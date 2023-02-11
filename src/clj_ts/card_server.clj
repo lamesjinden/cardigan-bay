@@ -182,7 +182,13 @@
     ))
 
 
-
+(defn server-custom-script
+  "Evaluate a script from system/custom/ with arguments"
+  [data]
+  (do
+    (println "In server-custom-script")
+    (str "This will (eventually) run a custom script: " data))
+  )
 
 
 (defn ldb-query->mdlist-card [i title result qname f user-authored?]
@@ -247,6 +253,13 @@
 **Number of Pages** ,, " (count (.all-pages db))
                     )]
         (common/package-card i :system :markdown sr sr user-authored?))
+
+      :customscript
+      (let [return-type (or (:return-type data) :markdown)
+            sr (server-custom-script data) ]
+        (common/package-card i :customscript return-type sr sr user-authored?))
+
+
 
       ;; not recognised
       (let [d (str "Not recognised system command in " data  " -- cmd " cmd )]
@@ -355,6 +368,12 @@ Bookmarked " timestamp  ",, <" url ">
       :manual-copy (common/package-card i source-type :manual-copy data data user-authored?)
 
       :raw (common/package-card i source-type :raw data data user-authored?)
+
+      :code
+      (do
+        (println "Exporting :code card " )
+        (common/package-card i :code :code data data user-authored?))
+
       :evalraw
       (common/package-card i :evalraw :raw data (server-eval data) user-authored?)
 
@@ -463,6 +482,7 @@ Bookmarked " timestamp  ",, <" url ">
         wiki-name (:wiki-name (server-state))
         site-url (:site-url (server-state))
         port (:port-no (server-state))
+        start-page-name (:start-page (server-state))
         ip (try
              (let [dgs (new DatagramSocket)]
                (.connect dgs (InetAddress/getByName "8.8.8.8") 10002)
@@ -480,6 +500,7 @@ Bookmarked " timestamp  ",, <" url ">
        :port port
        :ip ip
        :public_root (str site-url "/view/")
+       :start_page_name start-page-name
        :cards (load->cards page_name)
        :system_cards (generate-system-cards page_name)
        }
@@ -488,6 +509,7 @@ Bookmarked " timestamp  ",, <" url ">
        :site_url site-url
        :port port
        :ip ip
+       :start_page_name start-page-name
        :public_root (str site-url "/view/")
        :cards (raw->cards "PAGE DOES NOT EXIST" false false)
        :system_cards
@@ -568,12 +590,12 @@ Bookmarked " timestamp  ",, <" url ">
 
 
 
-;; trasforms on pages
+;; transforms on pages
 
 (defn append-card-to-page! [page-name type body]
   (let [page-body (try
                     (pagestore/read-page (server-state) page-name)
-                    (catch Exception e (str "New page : " page-name "\n\n"))
+                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n"))
                     )
         new-body (str page-body "----
 " type "
@@ -583,7 +605,7 @@ Bookmarked " timestamp  ",, <" url ">
 (defn prepend-card-to-page! [page-name type body]
   (let [page-body (try
                     (pagestore/read-page (server-state) page-name)
-                    (catch Exception e (str "New page : " page-name "\n\n"))
+                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n"))
                     )
         new-body (str
                       "----
@@ -616,9 +638,13 @@ Bookmarked " timestamp  ",, <" url ">
     (write-page-to-file! page-name (common/cards->raw new-cards))))
 
 
-;;;; Media files
+;;;; Media and Custom files
 
 (defn load-media-file [file-name]
   (-> (server-state) :page-store (.load-media-file file-name)))
+
+
+(defn load-custom-file [file-name]
+  (-> (server-state) :page-store (.load-custom-file file-name)))
 
 ;;file (io/file (System/getProperty "user.dir") (str "." uri))

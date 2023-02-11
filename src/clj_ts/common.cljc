@@ -181,12 +181,18 @@
           )
     ))
 
+;;;
 
 ;;; BOILERPLATE
 
 (defn embed-boilerplate [type]
 
   (condp = type
+    :markdown
+    "
+----
+
+"
     :youtube
     "
 ----
@@ -278,6 +284,19 @@
 }
 
 "
+    :mastodon
+ "
+----
+:embed
+
+{:type :mastodon
+ :url \"URL GOES HERE\"
+ :title \"\"
+ :caption \"\"
+}
+
+"
+
     :codepen
     "
 ----

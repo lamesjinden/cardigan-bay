@@ -5,12 +5,12 @@
 
 
    ;; Patterning stuff
-  [patterning.maths :as p-maths]
+  [patterning.maths :as p-maths :refer [PI half-PI sin cos ]]
   [patterning.sshapes
-   :refer [->SShape to-triangles add-style]
+   :refer [->SShape to-triangles add-style ]
    :as sshapes]
   [patterning.strings :as p-strings]
-   [patterning.groups :as groups :refer [over-style scale translate translate-to
+   [patterning.groups :as groups :refer [group over-style scale translate translate-to
                                          h-reflect v-reflect stretch rotate wobble reframe]]
   [patterning.layouts :refer [framed clock-rotate stack grid-layout diamond-layout
                               four-mirror four-round nested-stack checked-layout
@@ -19,9 +19,11 @@
    :as layouts]
 
    [patterning.library.std :refer [poly star nangle spiral diamond rect
-                                   horizontal-line square drunk-line]
+                                   horizontal-line square drunk-line bez-curve]
    :as std]
    [patterning.library.turtle :refer [basic-turtle] :as turtle]
+   [patterning.library.l_systems :refer [l-system]]
+
    [patterning.view :refer [make-txpt make-svg] :as p-views]
    [patterning.color :refer [p-color remove-transparency rand-col darker-color] :as p-colors ]
 
@@ -33,13 +35,20 @@
   {'clojure.core
    {
     ;; maths
+    'PI PI
+    'sin sin
+    'cos cos
+    'half-PI half-PI
 
     ;; sshapes
     '->SShape ->SShape
     'to-triangles to-triangles
+    'bez-curve bez-curve
+
     ;; strings
 
     ;; groups
+    'group group
     'over-style over-style
     'scale scale
     'translate translate
@@ -50,6 +59,7 @@
     'rotate rotate
     'wobble wobble
     'reframe reframe
+
     ;; layouts
     'framed framed
     'clock-rotate clock-rotate
@@ -65,6 +75,7 @@
     'h-mirror h-mirror 'ring ring
     'sshape-as-layout sshape-as-layout
     'one-col-layout one-col-layout
+
     ;; std
     'poly poly
     'star star
@@ -75,8 +86,13 @@
     'horizontal-line horizontal-line
     'square square
     'drunk-line drunk-line
+
     ;; turtle
     'basic-turtle basic-turtle
+
+    ;; L-Systems
+    'l-system l-system
+
     ;; colors
     'p-color p-color
     'rand-col rand-col
