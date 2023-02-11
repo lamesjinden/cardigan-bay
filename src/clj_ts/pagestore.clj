@@ -1,11 +1,11 @@
 (ns clj-ts.pagestore
   (:require
-   [clojure.string :as string]
-   [clj-ts.types :refer [IPageStore]]
-   [clojure.java.io :as io]
-   [clojure.core.memoize :refer [memo memo-clear!]]
-   )
-  )
+    [clojure.string :as string]
+    [clj-ts.types :refer [IPageStore]]
+    [clojure.java.io :as io]
+    [clojure.core.memoize :refer [memo memo-clear!]]))
+    
+  
 
 ;; Diagnostic T
 (defn P [x label] (do (println (str label " :: " x)) x))
@@ -17,21 +17,21 @@
 ;; page-path, system-path, export-path are Java nio Paths
 ;; git-repo? is boolean
 
-(deftype PageStore [page-path system-path export-path git-repo? ]
+(deftype PageStore [page-path system-path export-path git-repo?]
   IPageStore
 
   (as-map [this]
-    {:page-path page-path
+    {:page-path   page-path
      :system-path system-path
      :export-path export-path
-     :git-repo? git-repo?
-    })
+     :git-repo?   git-repo?})
+     
 
   (page-name->path [this page-name]
     (.resolve page-path (str page-name ".md")))
 
   (name->system-path [this name]
-    (.resolve system-path name  ))
+    (.resolve system-path name))
 
   (page-exists? [this p-name]
     (-> (.page-name->path this p-name) .toFile .exists))
@@ -45,8 +45,8 @@
   (read-page [this page]
     (if (instance? java.nio.file.Path page)
       (-> page .toFile slurp)
-      (-> page (#(.page-name->path this %)) .toFile slurp)
-      ))
+      (-> page (#(.page-name->path this %)) .toFile slurp)))
+      
 
   (write-page! [this page data]
     (if (instance? java.nio.file.Path page)
@@ -57,8 +57,8 @@
   (read-system-file [this name]
     (if (instance? java.nio.file.Path name)
       (-> name .toFile slurp)
-      (-> name (#(.name->system-path this %)) .toFile slurp)
-      ))
+      (-> name (#(.name->system-path this %)) .toFile slurp)))
+      
 
   (write-system-file! [this name data]
     (if (instance? java.nio.file.Path name)
@@ -70,19 +70,19 @@
     (str "Page Directory :\t" (str page-path) "\n"
          "Is Git Repo? :\t\t" (str git-repo?) "\n"
          "System Directory :\t" (str system-path) "\n"
-         "Export Directory :\t" (str export-path) "\n"
-         ))
+         "Export Directory :\t" (str export-path) "\n"))
+         
 
   (similar-page-names [this p-name]
     (let [all-pages (.pages-as-new-directory-stream this)
           all-names (map #(-> (.getFileName %)
                               .toString
                               (string/split #"\.")
-                            butlast
-                            last)
-                         all-pages) ]
-      (filter #(= (string/lower-case %) (string/lower-case p-name) ) all-names )
-      ))
+                              butlast
+                              last)
+                         all-pages)]
+      (filter #(= (string/lower-case %) (string/lower-case p-name)) all-names)))
+      
 
   (pages-as-new-directory-stream [this]
     (java.nio.file.Files/newDirectoryStream page-path "*.md"))
@@ -95,20 +95,18 @@
     (.resolve export-path "media"))
 
   (read-recentchanges [ps]
-    (.read-system-file ps "recentchanges")  )
+    (.read-system-file ps "recentchanges"))
 
   (write-recentchanges! [ps new-rc]
-    (.write-system-file! ps "recentchanges" new-rc)
-    )
+    (.write-system-file! ps "recentchanges" new-rc))
+    
 
   (load-media-file [ps file-name]
     (let [media-dir (.toString (.resolve page-path "media"))]
-      (io/file media-dir file-name))
-    )
+      (io/file media-dir file-name))))
+    
 
-
-
-  )
+  
 
 
 ;; Constructing
@@ -116,24 +114,26 @@
 (defn make-page-store [page-dir-as-string export-dir-as-string]
   (let [page-dir-path
         (->
-         (java.nio.file.Paths/get page-dir-as-string (make-array java.lang.String 0))
-         (.toAbsolutePath)
-         (.normalize))
+          (java.nio.file.Paths/get page-dir-as-string (make-array java.lang.String 0))
+          (.toAbsolutePath)
+          (.normalize))
         system-dir-path
         (->
-         (java.nio.file.Paths/get page-dir-as-string (into-array java.lang.String ["system"]))
-         (.toAbsolutePath)
-         (.normalize))
+          (java.nio.file.Paths/get page-dir-as-string (into-array java.lang.String ["system"]))
+          (.toAbsolutePath)
+          (.normalize))
         export-dir-path
         (->
-         (java.nio.file.Paths/get export-dir-as-string (make-array java.lang.String 0))
-         (.toAbsolutePath)
-         (.normalize))
+          (java.nio.file.Paths/get export-dir-as-string (make-array java.lang.String 0))
+          (.toAbsolutePath)
+          (.normalize))
+        ;; note -- only verifies page-dir-path is a git root
+        ;; todo -- check if within a git repo
         git-path (.resolve page-dir-path ".git")
         git-repo? (-> git-path .toFile .exists)
-        ps (->PageStore page-dir-path system-dir-path export-dir-path git-repo?)
-        ]
-    (assert (-> page-dir-path .toFile .exists )
+        ps (->PageStore page-dir-path system-dir-path export-dir-path git-repo?)]
+        
+    (assert (-> page-dir-path .toFile .exists)
             (str "Given page-store directory " page-dir-as-string " does not exist."))
 
     (assert (-> page-dir-path .toFile .isDirectory)
@@ -148,7 +148,7 @@
                  " but it is not a directory. Please remove that file and create a directory with that name"))
 
     (assert (-> export-dir-path .toFile .exists)
-            (str  "Given export-dir-path " export-dir-as-string " does not exist."))
+            (str "Given export-dir-path " export-dir-as-string " does not exist."))
 
     (assert (-> export-dir-path .toFile .isDirectory)
             (str "export-path " export-dir-as-string " is not a directory."))
@@ -162,8 +162,8 @@
 (defn dedouble [s] (string/replace s #"\/\/" "/"))
 
 (defn page-name->url [server-state page-name]
-  (dedouble (str (-> server-state :site-url) "/view/" page-name))
-  )
+  (dedouble (str (-> server-state :site-url) "/view/" page-name)))
+  
 
 
 (defn path->pagename [path]
@@ -176,15 +176,15 @@
   (let [
         rcc (.read-recentchanges ps)
 
-        filter-step (fn [xs] (filter #(not (string/includes? % (str "[[" pagename "]]"))) xs ) )
-        curlist (-> rcc string/split-lines filter-step )
+        filter-step (fn [xs] (filter #(not (string/includes? % (str "[[" pagename "]]"))) xs))
+        curlist (-> rcc string/split-lines filter-step)
         newlist (cons
-                 (str "* [[" pagename "]] (" (.toString (java.util.Date.)) ")")
-                 curlist
-                 )]
+                  (str "* [[" pagename "]] (" (.toString (java.util.Date.)) ")")
+                  curlist)]
+                  
     (println "Updating recentchanges ... adding " pagename)
-    (.write-recentchanges! ps (string/join "\n" (take 80 newlist)) )
-))
+    (.write-recentchanges! ps (string/join "\n" (take 80 newlist)))))
+    
 
 
 
@@ -206,7 +206,7 @@
 
 
 
-(defn write-page-to-file! [server-state p-name body ]
+(defn write-page-to-file! [server-state p-name body]
   (let [ps (.page-store server-state)]
     (.write-page! ps p-name body)
     (update-recent-changes! ps p-name)
@@ -215,13 +215,20 @@
 
 ;; Search
 (defn text-search [server-state page-names pattern]
-  (let [contains-pattern?
+  (let [title-contains-pattern?
         (fn [page-name]
-          (let [text (read-page server-state page-name) ]
-            (not (nil? (re-find pattern text )))))
-        res (filter contains-pattern? page-names)]
-    res
-    ))
+          (re-matches pattern page-name))
+      
+        page-contains-pattern?
+        (fn [page-name]
+          (let [text (read-page server-state page-name)]
+            (not (nil? (re-find pattern text)))))
+        
+        res (->> page-names
+                 (filter #(or (title-contains-pattern? %)
+                              (page-contains-pattern? %))))]
+    res))
+    
 
 
 ;; Global Search and replace
@@ -233,6 +240,6 @@
     (doseq [page-name matched-pages]
       (let [text (read-page server-state page-name)
             new-text (string/replace text pattern new-string)]
-        (write-page-to-file! server-state page-name new-text)
-        )))
-  )
+        (write-page-to-file! server-state page-name new-text)))))
+        
+  
