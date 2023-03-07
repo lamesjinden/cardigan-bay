@@ -1,50 +1,41 @@
 (ns clj-ts.client
   (:require
-   [reagent.core :as r]
-   [reagent.dom :as dom]
-   [clojure.string :refer [lower-case trim replace]]
-   [clojure.string :as string]
-   [cljs.core.async :refer [<! timeout]]
-   [cljs.core :refer [js->clj]]
-   [cljs.reader :refer [read-string]]
-   [cljs.pprint :refer [pprint]]
-
-
-   [sci.core :as sci]
-   [markdown.core :as md]
-
-
-   [clj-ts.common :refer [raw-card-text->raw-card-map
-                          double-comma-table
-                          double-bracket-links auto-links ]]
-   ;;[clj-ts.common :refer [card->html ]]
-            )
+    [reagent.core :as r]
+    [reagent.dom :as dom]
+    [clojure.string :refer [lower-case trim replace]]
+    [clojure.string :as string]
+    [cljs.core.async :refer [<! timeout]]
+    [cljs.core :refer [js->clj]]
+    [cljs.pprint :refer [pprint]]
+    [sci.core :as sci]
+    [markdown.core :as md]
+    [clj-ts.common :refer [raw-card-text->raw-card-map
+                           double-comma-table
+                           double-bracket-links auto-links]]
+    [cljsjs.highlight]
+    [cljsjs.highlight.langs.clojure]
+    [cljsjs.highlight.langs.bash])
   (:import goog.net.XhrIo)
   (:require-macros [cljs.core.async.macros :refer [go]]))
-
-
 
 ;; State
 (defonce db (r/atom
               {:current-page "HelloWorld"
-               :raw ""
-               :transcript ""
-               :cards []
-               :past ["HelloWorld"]
-               :future []
-               :wiki-name "Wiki Name"
-               :site-url "Site URL"
-               :mode :viewing
+               :raw          ""
+               :transcript   ""
+               :cards        []
+               :past         ["HelloWorld"]
+               :future       []
+               :wiki-name    "Wiki Name"
+               :site-url     "Site URL"
+               :mode         :viewing
                ;;:mode :page WHAT WAS THIS? WAS IT USED?
-               :port 4545}))
-
+               :port         4545}))
 
 ;; PageStore
 
-
 (defn load-page! [page-name new-past new-future]
   (let [lcpn page-name
-
         query (str "{\"query\" : \"query GetPage {
   source_page(page_name: \\\"" lcpn "\\\" ) {
     page_name
@@ -80,7 +71,7 @@
            (fn [e]
              (let [status (-> e .-target .getStatusText)
                    edn (-> e .-target .getResponseText .toString
-                           (#(.parse js/JSON %)) js->clj )
+                           (#(.parse js/JSON %)) js->clj)
                    data (-> edn (get "data"))
                    raw (-> data (get "source_page") (get "body"))
                    cards (-> data (get "server_prepared_page") (get "cards"))
@@ -89,9 +80,7 @@
                    wiki-name (-> data (get "server_prepared_page") (get "wiki_name"))
                    port (-> data (get "server_prepared_page") (get "port"))
                    ip (-> data (get "server_prepared_page") (get "ip"))
-                   start-page-name (-> data (get "server_prepared_page")  (get "start_page_name"))
-                   ]
-
+                   start-page-name (-> data (get "server_prepared_page") (get "start_page_name"))]
 
                (swap! db assoc
                       :current-page page-name
@@ -100,16 +89,14 @@
                       :port port
                       :ip ip
                       :start-page-name start-page-name
-                      :raw  raw
+                      :raw raw
                       :cards cards
                       :system-cards system-cards
                       :past new-past
-                      :future new-future)
-               )
-             (js/window.scroll 0 0)
-             )
+                      :future new-future))
+             (js/window.scroll 0 0))
            "POST",
-           query )))
+           query)))
 
 (defn generate-form-data [params]
   (let [form-data (js/FormData.)]
@@ -123,20 +110,17 @@
   (let [page-name (-> @db :current-page)
         new-data (-> js/document
                      (.getElementById "edit-field")
-                     .-value)
-        form-data (generate-form-data
-                    {"page" page-name
-                     "data" new-data})]
+                     .-value)]
     (.send XhrIo
-      "/clj_ts/save"
-      (fn [e]
-        (go
-          (<! (timeout 1000))
-          (reload!)
-          (r/force-update-all)))
-      "POST"
-      (pr-str {:page page-name
-               :data new-data}))))
+           "/clj_ts/save"
+           (fn [_] (reload!))
+           #_(fn [e]
+               (go
+                 (<! (timeout 1000))
+                 (reload!)))
+           "POST"
+           (pr-str {:page page-name
+                    :data new-data}))))
 
 
 (defn card-reorder! [page-name hash direction]
@@ -144,17 +128,11 @@
   (.send XhrIo
          "/api/reordercard"
          (fn [e]
-
-           (go
-             (<! (timeout 200))
-
-             (reload!)
-             (r/force-update-all)))
+           (reload!))
          "POST"
-         (pr-str {:page page-name
-                  :hash hash
-                  :direction direction}))
-  )
+         (pr-str {:page      page-name
+                  :hash      hash
+                  :direction direction})))
 
 (declare go-new!)
 
@@ -163,15 +141,11 @@
   (.send XhrIo
          "/api/movecard"
          (fn [e]
-           (go
-             (<! (timeout 200))
-             (go-new! new-page-name)))
+           (go-new! new-page-name))
          "POST"
          (pr-str {:from page-name
-                  :to new-page-name
-                  :hash hash}))
-  )
-
+                  :to   new-page-name
+                  :hash hash})))
 
 (declare prepend-transcript!)
 (declare string->html)
@@ -179,54 +153,44 @@
 (defn search-text! [query-text]
   (let [cleaned-query
         (-> query-text
-            (#(replace % "\"" "" ))
+            (#(replace % "\"" ""))
             (#(replace % "'" "")))
         query (str "{\"query\" : \"query TextSearch  {
 text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 }\",  \"variables\":null, \"operationName\":\"TextSearch\"   }")]
-(.send XhrIo
-      "/clj_ts/graphql"
-      (fn [e]
-        (let [status (-> e .-target .getStatusText)
-              edn (-> e .-target .getResponseText .toString
-                      (#(.parse js/JSON %)) js->clj )
-              data (-> edn (get "data"))
-              result (-> data (get "text_search") (get "result_text"))
-              ]
-          (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))
-          ))
-      "POST"
-      query)
-    ))
-
+    (.send XhrIo
+           "/clj_ts/graphql"
+           (fn [e]
+             (let [status (-> e .-target .getStatusText)
+                   edn (-> e .-target .getResponseText .toString
+                           (#(.parse js/JSON %)) js->clj)
+                   data (-> edn (get "data"))
+                   result (-> data (get "text_search") (get "result_text"))]
+               (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))))
+           "POST"
+           query)))
 
 ;; Nav and History
 
 (defn go-new! [p-name]
-  (do
-    (load-page! p-name (conj (-> @db :past) (-> @db :current-page))  [])
-    (swap! db assoc :mode :viewing)
-    ))
+  (load-page! p-name (conj (-> @db :past) (-> @db :current-page)) [])
+  (swap! db assoc :mode :viewing))
 
 (defn forward! [p-name]
-  (load-page! p-name (conj (-> @db :past) (-> @db :current-page)) (pop (-> @db :future)) )
-  )
+  (load-page! p-name (conj (-> @db :past) (-> @db :current-page)) (pop (-> @db :future))))
 
 (defn reload! []
   (load-page! (:current-page @db) (-> @db :past) (-> @db :future)))
 
 (defn back! []
-  (load-page! (-> @db :past last) (pop (-> @db :past)) (conj (-> @db :future) (-> @db :current-page))  ))
-
+  (load-page! (-> @db :past last) (pop (-> @db :past)) (conj (-> @db :future) (-> @db :current-page))))
 
 ;; Process page
 
 (defn stamp! [stamp]
-  (do
-    (swap! db assoc
-           :mode :editing
-           :raw (str (-> @db :raw) "\n----\n:stamp\n" {:type stamp} ))))
-
+  (swap! db assoc
+         :mode :editing
+         :raw (str (-> @db :raw) "\n----\n:stamp\n" {:type stamp})))
 
 (defn insert-text-at-cursor! [s]
   (let [ta (-> js/document
@@ -234,111 +198,98 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
         text (-> ta .-value)
         selectionStart (-> ta .-selectionStart)
         new (str
-             (subs text 0 selectionStart)
-             s
-             (subs text selectionStart))
-        ]
+              (subs text 0 selectionStart)
+              s
+              (subs text selectionStart))]
     (swap! db assoc :raw new)
-    (-> ta (.-value) (set! new) )))
-
+    (-> ta (.-value) (set! new))))
 
 (defn prepend-transcript! [code result]
-  (do
-    (swap! db assoc :transcript
-           (str "<p> > " code "
+  (swap! db assoc :transcript
+         (str "<p> > " code "
 <br/>
 " result "
 </p>
 " (-> @db :transcript)))
-    (swap! db assoc :mode :transcript)) )
-
+  (swap! db assoc :mode :transcript))
 
 ;; RUN
 
 (let [start-page
       (.send XhrIo
-      "/startpage"
-      (fn [e]
-        (-> e .-target .getResponseText .toString go-new!)))])
-
-
+             "/startpage"
+             (fn [e]
+               (-> e .-target .getResponseText .toString go-new!)))])
 
 ;; Rendering Views
 
 (defn nav-input [value]
-  [:input {:type "text"
-           :id "navinputbox"
-           :value @value
-          :on-change #(reset! value (-> % .-target .-value))}])
+  [:input {:type      "text"
+           :id        "navinputbox"
+           :value     @value
+           :on-change #(reset! value (-> % .-target .-value))}])
 
 (defn nav-bar []
   (let [current (r/atom (-> @db :future last))]
     (fn []
       (let [mode (-> @db :mode)
             start-page-name (-> @db :start-page-name)]
-         [:div {:class "navbar"}
-          [:div {:class "breadcrumbs"}
-           [:span (-> @db :wiki-name )]]
-          [:div {:id "nav1"}
+        [:div {:class "navbar"}
+         [:div {:class "breadcrumbs"}
+          [:span (-> @db :wiki-name)]]
+         [:div {:id "nav1"}
 
-           [:span {:on-click (fn [] (go-new! start-page-name)) } start-page-name]
-           " || "
-           [:span {:on-click (fn [] (go-new! "Help"))} "Help"]
-           " || "
-           [:span {:on-click (fn [] (go-new! "InQueue")) } "InQueue"]
-           " || "
-           [:span {:on-click (fn [] (go-new! "RecentChanges"))} "RecentChanges"]
-           " || "
-           [:span {:on-click (fn [] (go-new! "SandBox"))} "SandBox"]
+          [:span {:on-click (fn [] (go-new! start-page-name))} start-page-name]
+          " || "
+          [:span {:on-click (fn [] (go-new! "ToDo"))} "Todo"]
+          " || "
+          [:span {:on-click (fn [] (go-new! "Work"))} "Work"]
+          " || "
+          [:span {:on-click (fn [] (go-new! "Projects"))} "Projects"]
+          " || "
+          [:span {:on-click (fn [] (go-new! "SandBox"))} "SandBox"]
 
-           " || "
-           [:a {:href "/api/exportallpages"} "Export All Pages"]
+          " || "
+          [:a {:href "/api/exportallpages"} "Export All Pages"]]
+         [:div {:id "nav2"}
+          [:button
+           {:class    "big-btn"
+            :on-click (fn [] (back!))}
+           [:img {:src "/icons/skip-back.png"}] " Back"]
 
-
-           ]
-          [:div {:id "nav2"}
-           [:button
-            {:class "big-btn"
-             :on-click (fn [] (back!))}
-            [:img {:src "/icons/skip-back.png"}] " Back"]
-
-           [:button
-           {:class "big-btn"
-             :on-click (fn [] (forward! (-> @db :future last)))} ""
+          [:button
+           {:class    "big-btn"
+            :on-click (fn [] (forward! (-> @db :future last)))} ""
            [:img {:src "/icons/skip-forward.png"}] " Forward"]
 
-           [:button {:class "big-btn"}
-            [:a {:href "/api/rss/recentchanges"} [:img {:src "/icons/rss.png"}]]]
-           ]
+          [:button {:class "big-btn"}
+           [:a {:href "/api/rss/recentchanges"} [:img {:src "/icons/rss.png"}]]]]
 
-          [:div {:id "nav3"}
+         [:div {:id "nav3"}
 
-           [nav-input current]
+          [nav-input current]
 
-           [:button
-            {:class "big-btn"
-             :on-click (fn [] (go-new! @current))}
-            ;[:img {:src "/icons/arrow-right.png"}]
-            " Go!"]
+          [:button
+           {:class    "big-btn"
+            :on-click (fn [] (go-new! @current))}
+           ;[:img {:src "/icons/arrow-right.png"}]
+           " Go!"]
 
-           [:button
-            {:class "big-btn"
-             :on-click
-             (fn []
-               (let [code (-> @current str)
-                     result (sci/eval-string code)]
-                 (prepend-transcript! code result)
-                 )
-               )}
-            "Execute"]
+          [:button
+           {:class "big-btn"
+            :on-click
+            (fn []
+              (let [code (-> @current str)
+                    result (sci/eval-string code)]
+                (prepend-transcript! code result)))}
+           "Execute"]
 
-           [:button
-            {:class "big-btn"
-             :on-click
-             (fn []
-               (search-text! (-> @current str)))}
-            "Search"]
-           ]]))))
+          [:button
+           {:class "big-btn"
+            :on-click
+            (fn []
+              (search-text! (-> @current str)))}
+           "Search"]]]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -356,7 +307,6 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 ;;
 
 (defn embed-boilerplate [type]
-
   (condp = type
     :markdown
     "
@@ -369,9 +319,9 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 :embed
 
 {:type :youtube
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 }
 
 "
@@ -381,25 +331,23 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 :embed
 
 {:type :vimeo
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 }
 
 "
-
     :media-img
     "
 ----
 :embed
 
 {:type :media-img
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 }
 "
-
     :img
     "
 ----
@@ -411,16 +359,15 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 :caption \"\"
 }
 "
-
     :soundcloud
     "
 ----
 :embed
 
 {:type :soundcloud
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 
 }
 
@@ -432,25 +379,24 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 :embed
 
 {:type :bandcamp
- :id IDHERE
- :url \"URL GOES HERE\"
- :description \"DESCRIPTION GOES HERE\"
- :title \"\"
- :caption \"\"
+:id IDHERE
+:url \"URL GOES HERE\"
+:description \"DESCRIPTION GOES HERE\"
+:title \"\"
+:caption \"\"
 
 }
 
 "
-
     :twitter
     "
 ----
 :embed
 
 {:type :twitter
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 }
 
 "
@@ -460,47 +406,40 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 :embed
 
 {:type :codepen
- :url \"URL GOES HERE\"
- :title \"\"
- :caption \"\"
+:url \"URL GOES HERE\"
+:title \"\"
+:caption \"\"
 }
 
 "
-
     :rss
-
     "
 ----
 :embed
 
 {:type :rss
- :url \"URL GOES HERE\"
- :caption \"\"
- :title \"\"}
+:url \"URL GOES HERE\"
+:caption \"\"
+:title \"\"}
 "
-
     :oembed
     "
 ----
 :embed
 
 {:type :oembed
- :url \"URL GOES HERE\"
- :api \"API ENDPOINT
- :title \"\"
- :caption \"\"}
+:url \"URL GOES HERE\"
+:api \"API ENDPOINT
+:title \"\"
+:caption \"\"}
 "
-
-
-
-
-    (str   "
+    (str "
 ----
 
 NO BOILERPLATE FOR EMBED TYPE " type
-           "
-----
-")))
+         "
+         ----
+         ")))
 
 (defn pastebar []
   [:div {:class "pastebar"}
@@ -627,16 +566,9 @@ NO BOILERPLATE FOR EMBED TYPE " type
                         (fn []
                           (do
                             (swap! db assoc :mode :viewing)
-                            (save-page!)) )}
-               [:img {:src "/icons/save.png"}] " Save"]
-
-
-
-
-              ]]
-            (pastebar)
-
-            ]
+                            (save-page!)))}
+               [:img {:src "/icons/save.png"}] " Save"]]]
+            (pastebar)]
 
            :viewing
            [:span
@@ -648,95 +580,65 @@ NO BOILERPLATE FOR EMBED TYPE " type
             [:button {:class "big-btn"}
              [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
               [:img {:src "/icons/package.png"}]
-              " Export"]]
-
-            ]
+              " Export"]]]
            :transcript
            [:span
             [:button {:class "big-btn"
                       :on-click
                       #(swap! db assoc :mode :viewing)}
-             [:img {:src "/icons/x.png"}] " Return"]]
-           )
-
-
-         (comment
-           " :: Stamps :: "
-           [:button {:class "big-btn"
-                     :on-click
-                     (fn []
-                       (stamp! :delete ))} "Delete"]
-           " | "
-           [:button {:class "big-btn"
-                     :on-click
-                     (fn []
-                       (stamp! :fix)) } "Fix"])]))
-    ))
-
+             [:img {:src "/icons/x.png"}] " Return"]])]))))
 
 (defn not-blank? [card]
-  (not= "" (string/trim (get card "source_data")))
-  )
+  (not= "" (string/trim (get card "source_data"))))
 
 (defn string->html [s]
   (-> s
       (double-comma-table)
       (md/md->html)
       (auto-links)
-      (double-bracket-links)
-      ))
+      (double-bracket-links)))
 
 (defn card->html [card]
   (-> (get card "server_prepared_data")
       (string->html)))
 
-
 (defn send-to-input-box [value]
-  [:input {:type "text"
-           :id "sendto-inputbox"
-           :value @value
-          :on-change #(reset! value (-> % .-target .-value))}])
-
-
+  [:input {:type      "text"
+           :id        "sendto-inputbox"
+           :value     @value
+           :on-change #(reset! value (-> % .-target .-value))}])
 
 (defn card-bar [card]
-  (let [meta-id  (str "cardmeta" (get card "hash") )
+  (let [meta-id (str "cardmeta" (get card "hash"))
         state (r/atom {:toggle "none"})
         sendval (r/atom "")
         toggle! (fn [e]
                   (do
                     (if (= (-> @state :toggle) "none")
-                      (swap! state #(conj % {:toggle "block"}) )
+                      (swap! state #(conj % {:toggle "block"}))
                       (swap! state #(conj % {:toggle "none"})))))
         close! (fn [e]
-                 (swap! state #(conj % {:toggle "none"})))
-
-        ]
+                 (swap! state #(conj % {:toggle "none"})))]
 
     (fn [card]
       [:div {:class :card-meta}
-         [:div
-          [:span {:on-click (fn [e] (card-reorder!
-                                       (-> @db :current-page)
-                                       (get card "hash")
-                                       "up"))}
-           [:img {:src "/icons/chevrons-up.png"}]
-           ]
-          [:span {:on-click (fn [e] (card-reorder!
-                                       (-> @db :current-page)
-                                       (get card "hash")
-                                       "down"))}
-           [:img {:src "/icons/chevrons-down.png"}]]
+       [:div
+        [:span {:on-click (fn [e] (card-reorder!
+                                    (-> @db :current-page)
+                                    (get card "hash")
+                                    "up"))}
+         [:img {:src "/icons/chevrons-up.png"}]]
+        [:span {:on-click (fn [e] (card-reorder!
+                                    (-> @db :current-page)
+                                    (get card "hash")
+                                    "down"))}
+         [:img {:src "/icons/chevrons-down.png"}]]
 
-          [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
-           (if (= (-> @state :toggle) "none")
-             [:img {:src "/icons/eye.png"}]
-             [:img {:src "/icons/eye-off.png"}]
-             )
-
-           ]]
-       [:div {:id meta-id :style {:spacing-top "5px" :display (-> @state :toggle)
-                                  }}
+        [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
+         (if (= (-> @state :toggle) "none")
+           [:img {:src "/icons/eye.png"}]
+           [:img {:src "/icons/eye-off.png"}])]]
+       [:div {:id meta-id :style {:spacing-top "5px" :display (-> @state :toggle)}}
         [:div [:h4 "Card Bar"]]
         [:div
          [:span "ID: " (get card "id")] " | Hash: "
@@ -749,98 +651,64 @@ NO BOILERPLATE FOR EMBED TYPE " type
           "Send to Another Page : "
           [send-to-input-box sendval]
 
-          [:input { :name "hash" :id "sendhash" :type "hidden" :value (get card "hash")}]
-          [:input { :name "from" :id "sendcurrent" :type "hidden" :value (-> @db :current-page )}]
+          [:input {:name "hash" :id "sendhash" :type "hidden" :value (get card "hash")}]
+          [:input {:name "from" :id "sendcurrent" :type "hidden" :value (-> @db :current-page)}]
           [:img {:src "/icons/send.png"}]
           [:button {:on-click
                     (fn [e]
                       (card-send-to-page!
-                       (-> @db :current-page)
-                       (get card "hash")
-                       @sendval))}  "Send"]
-          ]
-         ]
-        ]
-       ])))
-
-
-
+                        (-> @db :current-page)
+                        (get card "hash")
+                        @sendval))} "Send"]]]]])))
 
 (defn workspace [card]
-  (let [state (r/atom {:code-toggle true
-                       :calc-toggle false
+  (let [state (r/atom {:code-toggle   true
+                       :calc-toggle   false
                        :result-toggle true
-                       :code (get card "server_prepared_data")
-                       :calc []
-                       :result ""})
-
-
+                       :code          (get card "server_prepared_data")
+                       :calc          []
+                       :result        ""})
         id (str "ws" (get card "hash"))
         code-id (str id "-code")
         calc-id (str id "-calc")
         result-id (str id "-result")
-
-        toggle-code!
-        (fn [e]
-          (js/console.log (str "Toggle code " (-> @state :code-toggle)))
-
-          (swap! state #(conj % {:code-toggle (-> @state :code-toggle not)})))
-
-        toggle-calc!
-        (fn [e]
-          (js/console.log (str "Toggle calc " (-> @state :calc-toggle)) )
-          (swap! state #(conj % {:calc-toggle (-> @state :calc-toggle not)})))
-
-        toggle-result!
-        (fn [e]
-          (js/console.log "Toggle result "  (-> @state :result-toggle))
-          (swap! state #(conj % {:result-toggle (-> @state :result-toggle not)})))
-
-        display
-        (fn [d]
-          (if d "block" "none"))
-
-        execute-code
-        (fn [e]
-          (let [result
-                (sci/eval-string
-                 (-> @state :code)
-                 {:bindings {'replace replace}
-                  :classes {'js goog/global
-                            :allow :all}}
-
-                 )]
-            (swap! state #(conj % {:calc result :result result})))
-          )
-        ]
-
+        toggle-code! (fn [e] (swap! state #(conj % {:code-toggle (-> @state :code-toggle not)})))
+        toggle-calc! (fn [e] (swap! state #(conj % {:calc-toggle (-> @state :calc-toggle not)})))
+        toggle-result! (fn [e] (swap! state #(conj % {:result-toggle (-> @state :result-toggle not)})))
+        display (fn [d] (if d "block" "none"))
+        execute-code (fn [e] (let [result
+                                   (sci/eval-string
+                                     (-> @state :code)
+                                     {:bindings {'replace replace}
+                                      :classes  {'js    goog/global
+                                                 :allow :all}})]
+                               (swap! state #(conj % {:calc result :result result}))))]
     (fn [card]
       (let []
         [:div {:class :workspace}
          [:h3 "Workspace"]
          [:p {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
-                 [:a {:href "https://github.com/borkdude/sci"} "SCI"]
-                 ". Be aware that it does not save any changes you make in the textbox.
+                                       [:a {:href "https://github.com/borkdude/sci"} "SCI"]
+                                       ". Be aware that it does not save any changes you make in the textbox.
 
-You'll need to  edit the page fully to make permanent changes to the code. "]]
+                                  You'll need to  edit the page fully to make permanent changes to the code. "]]
          [:div {:class :workspace-buttons}
           [:button {:class :workspace-button :on-click execute-code} "Run"]
           [:button {:class :workspace-button :on-click toggle-code!} "Code"]
           [:button {:class :workspace-button :on-click toggle-calc!} "Calculated"]
           [:button {:class :workspace-button :on-click toggle-result!} "Output"]]
          [:div {:class :code :style {:padding "3px"
-                                     :display (display (-> @state :code-toggle))} }
+                                     :display (display (-> @state :code-toggle))}}
           [:h4 "Source"]
           [:textarea {:cols 60 :rows 10
                       :on-change
-                      (fn [e] (swap! state #(conj % {:code (-> e .-target .-value )})))}
+                      (fn [e] (swap! state #(conj % {:code (-> e .-target .-value)})))}
            (trim (-> @state :code))]]
          [:div {:class :calculated-out :style {:padding "3px"
                                                :display (display (-> @state :calc-toggle))}}
           [:h4 "Calculated"]
           [:pre
-           (with-out-str (pprint (str (-> @state :calc))))
-           ]]
+           (with-out-str (pprint (str (-> @state :calc))))]]
          [:div {:class :results :style {:padding "3px"
                                         :display (display (-> @state :result-toggle))}}
           [:h4 "Result"]
@@ -853,50 +721,34 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
 
                (string? result)
                (if (= (first result) \<)
-                 [:div {:dangerouslySetInnerHTML {:__html result}} ]
-                 result
-                 )
+                 [:div {:dangerouslySetInnerHTML {:__html result}}]
+                 result)
 
                (= (first result) :div)
                result
 
 
                :else
-               (str result)))] ]
-         ]))))
+               (str result)))]]]))))
 
-
-(defn card-top-bar [card]
-
-  )
+(defn card-top-bar [card])
 
 (defn on-click-for-links [e]
   (let [tag (-> e .-target)
-                    classname (.getAttribute tag "class")
-                    data (.getAttribute tag "data")
-                    x (-> @db :dirty)]
-
-                (if (= classname "wikilink")
-                  (go-new! data)))
-  )
+        classname (.getAttribute tag "class")
+        data (.getAttribute tag "data")
+        x (-> @db :dirty)]
+    (if (= classname "wikilink")
+      (go-new! data))))
 
 (defn one-card [card]
-  (let [
-        inner-html
-        (fn [s] [:div {:dangerouslySetInnerHTML {:__html s}}])
-
+  (let [inner-html (fn [s] [:div {:dangerouslySetInnerHTML {:__html s}}])
         state2 (r/atom {:toggle "block"})
-
-        toggle!
-        (fn [e]
-          (do
-            (if (= (-> @state2 :toggle) "none")
-              (swap! state2 #(conj % {:toggle "block"}) )
-              (swap! state2 #(conj % {:toggle "none"})))))
-
-        ]
-    ;;(js/console.log (pr-str card))
-
+        toggle! (fn [e]
+                  (do
+                    (if (= (-> @state2 :toggle) "none")
+                      (swap! state2 #(conj % {:toggle "block"}))
+                      (swap! state2 #(conj % {:toggle "none"})))))]
     (fn [card]
       (let [rtype (get card "render_type")
             data (get card "server_prepared_data")
@@ -914,9 +766,9 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
 
               ":manual-copy"
               (inner-html
-               (str "<div class='manual-copy'>"
-                    (card->html card)
-                    "</div>"))
+                (str "<div class='manual-copy'>"
+                     (card->html card)
+                     "</div>"))
 
               ":html"
               (inner-html (str data))
@@ -930,32 +782,24 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
               ":workspace"
               [workspace card]
 
-              (str "UNKNOWN TYPE ( " rtype " ) " data))
-
-            ]
+              (str "UNKNOWN TYPE ( " rtype " ) " data))]
         [:div {:class :card-outer}
 
          [:div {:class :card-meta}
           [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
            (if (= (-> @state2 :toggle) "none")
              [:img {:src "/icons/maximize-2.svg"}]
-             [:img {:src "/icons/minimize-2.svg"}]
-             )]]
+             [:img {:src "/icons/minimize-2.svg"}])]]
 
          [:div
           {:style {:spacing-top "5px"
-                   :display (-> @state2 :toggle)}}
+                   :display     (-> @state2 :toggle)}}
           [:div
-           {:class "card"
-            :on-click on-click-for-links
+           {:class    "card"
+            :on-click on-click-for-links}
 
-            }
-
-           inner ]]
-         [card-bar card]
-         ]))))
-
-
+           inner]]
+         [card-bar card]]))))
 
 (defn card-list []
   [:div
@@ -963,45 +807,34 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
     (try
       (let [cards (-> @db :cards)]
         (for [card (filter not-blank? cards)]
-
           (try
             [one-card card]
             (catch :default e
               [:div {:class :card-outer}
                [:div {:class "card"}
                 [:h4 "Error"]
-                (str e)]]))
-          )
-        )
+                (str e)]]))))
       (catch :default e
         (do
           (js/console.log "ERROR")
           (js/console.log (str e))
-          (js/alert e))))
-
-    ]
+          (js/alert e))))]
    [:div
     (try
       (let [cards (-> @db :system-cards)]
         (for [card cards]
-          [one-card card]
-          )
-        )
+          [one-card card]))
       (catch :default e
-        (js/alert e)))]
-   ])
-
-
+        (js/alert e)))]])
 
 (defn transcript []
-  [:div {:class "transcript"
+  [:div {:class                   "transcript"
          :dangerouslySetInnerHTML {:__html (-> @db :transcript)}
-         :on-click on-click-for-links
-
-         }
-   ])
+         :on-click                on-click-for-links}])
 
 (defn main-container []
+  (r/after-render
+    (fn [] (.highlightAll js/hljs)))
 
   [:div
    [:div
@@ -1011,45 +844,45 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
       [:div {:class "edit-box"}
        [:textarea
         {:id "edit-field" :cols 80 :rows 40
+         ;; key-press only fires for printable characters, hence key-up
+         :on-key-up
+         (fn [e]
+           (let [kc (.-keyCode e)
+                 escape-code 27]
+             (when (and (= (-> @db :mode) :editing)
+                        (= kc escape-code))
+               (swap! db assoc :mode :viewing))))
          :on-key-press
          (fn [e]
-           (js/console.log "KEYPRESS ON TEXTAREA")
            (let [kc (.-charCode e)]
-             (js/console.log "pressed " kc)
              (if (= (-> @db :mode) :editing)
                (cond
-                 (and (.-ctrlKey e) (= 81))
+                 (and (.-ctrlKey e) (= 81))                 ;; 81 == 'q'
                  (insert-text-at-cursor! "THIS IS INSERTED")
                  :else '())
-               (if (and (.-ctrlKey e) (= 69 kc))
+               (if (and (.-ctrlKey e) (= 69 kc))            ;; 69 == 'e'
                  (swap! db assoc
                         :mode :editing)
-                 (-> js/document (.getElementById "edit-field") (.focus) )))))
-         }
+                 (-> js/document (.getElementById "edit-field") (.focus))))))}
         (-> @db :raw)]]
 
       :viewing
-      [:div
+      [:div {:on-double-click (fn [] (swap! db assoc :mode :editing))}
        [card-list]]
 
       :transcript
       [:div
-       [transcript]]
-      )]
-   ])
+       [transcript]])]])
 
-;;
+;; Main Page
 
 ; Main page
 (defn content []
   [:div {:class "main-container"}
    [:div {:class "headerbar"}
     [:div
-     [:div [nav-bar]]
-
-     ]]
+     [:div [nav-bar]]]]
    [:div {:class "context-box"}
-
     [:h2
      (if (= (-> @db :mode) :transcript)
        "Transcript"
@@ -1057,41 +890,22 @@ You'll need to  edit the page fully to make permanent changes to the code. "]]
         (-> @db :current-page)
         [:span {:class "tslink"}
          [:a {:href (str
-                     (string/replace (-> @db :site-url) #"/$" "")
-                     "/" (-> @db :current-page))} " (public)" ]]]) ]
-
-      [:div [tool-bar]]
-      [main-container]]
+                      (string/replace (-> @db :site-url) #"/$" "")
+                      "/" (-> @db :current-page))} " (public)"]]])]
+    [:div [tool-bar]]
+    [main-container]]
    [:div {:class "footer"}
     [:span
      [:span "This " (-> @db :wiki-name) " wiki!"]
-     [:span " || Home : " [:a {:href (-> @db :site-url)} (-> @db :site-url)] " || " ]
+     [:span " || Home : " [:a {:href (-> @db :site-url)} (-> @db :site-url)] " || "]
      [:span [:a {:href "/api/system/db"} "DB"] " || "]
      [:a {:href "https://github.com/interstar/cardigan-bay"} "Cardigan Bay "]
      "(c) Phil Jones 2020-2022  || "
-     [:span "IP: "(str (-> @db :ip) ) " || "]
-     [:a {:href
-          (str "javascript:(function(){window.location='http://localhost:" (-> @db :port) "/api/bookmarklet?url='+document.URL;})();")} "Bookmark to this Wiki"]] ]])
-
+     [:span "IP: " (str (-> @db :ip)) " || "]
+     [:a {:href (str "javascript:(function(){window.location='http://localhost:" (-> @db :port) "/api/bookmarklet?url='+document.URL;})();")} "Bookmark to this Wiki"]]]])
 
 ;; tells reagent to begin rendering
 
+(dom/render [content]
+            (.querySelector js/document "#app"))
 
-
-
-(r/render-component [content]
-                   (.querySelector js/document "#app"))
-
-
-
-
-
-(js/document.addEventListener
- "keypress"
- (fn [e]
-   (js/console.log "KEYPRESS EVENT")
-   (let [kc (.-charCode e)]
-
-     (js/console.log "pressed " (.-charCode e))
-
-     )))

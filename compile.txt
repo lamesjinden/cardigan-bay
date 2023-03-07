@@ -1,3 +1,27 @@
-clj -A:prod:app
-clj -A:dev:app
+# Production Build
+~~clj -A:prod:app~~
+~~clj -A:prod:client:server~~
+bb all
+
+# Dev Builds
+
+## client and server in 1 command
+~~clj -A:dev:app~~
+clj -A:dev:client:server # [broken] only works if nightlight is included with client
+```
+ :clojure.error/class java.lang.ClassNotFoundException,
+ :clojure.error/cause "org.eclipse.jetty.util.ConcurrentArrayQueue"
+ ...
+ jetty
+ ...
+ figwheel
+```
+
+**other option: separate dev builds for client and server**
+clj -A:dev-client:client
+clj -A:dev-server:server
+
+
+## Test Build
+
 clojure -A:test -m kaocha.runner --config-file test/tests.edn "$@"

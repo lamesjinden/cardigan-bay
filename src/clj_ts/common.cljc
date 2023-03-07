@@ -1,11 +1,8 @@
 (ns clj-ts.common
   (:require [clojure.string :as string]
-
             [markdown.core :as md]
             [hasch.core :refer [uuid5 edn-hash]]
             [clj-ts.command-line :as command-line]))
-
-
 
 ;; Cards
 
@@ -152,13 +149,12 @@
           ))
     ))
 
-
-(defn md->html [s]
-  (-> s
-      (double-comma-table)
-      (md/md-to-html-string)
-      (auto-links)
-      (double-bracket-links)))
+#?(:clj (defn md->html [s]
+          (-> s
+              (double-comma-table)
+              (md/md-to-html-string)
+              (auto-links)
+              (double-bracket-links))))
 
 ;; Cards with commands
 

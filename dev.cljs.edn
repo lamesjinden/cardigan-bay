@@ -1,3 +1,4 @@
+^{:css-dirs ["resources/clj_ts"]}
 {:main          clj-ts.client
  :optimizations :none
  :output-to     "resources/clj_ts/main.js"

@@ -1,0 +1,32 @@
+{:deps  {org.clojure/clojurescript {:mvn/version "1.10.439"}}
+ :tasks {:init   (do (def target-dir "target")
+                     (def jar-file "target/foo.jar")
+                     (def out-dir "resources/clj_ts/main.out")
+                     (def target-dir "target"))
+
+         clean   {:requires ([babashka.fs :as fs])
+                  :task     (let []
+                              (println "Cleaing")
+                              (println "  " out-dir)
+                              (fs/delete-tree out-dir)
+                              (println "  " target-dir)
+                              (fs/delete-tree target-dir))}
+
+         cljs    (do
+                   (println "Compiling ClojureScript")
+                   (let [out-file "resources/clj_ts/main.js"
+                         out-dir "resources/clj_ts/main.out"
+                         clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
+                                   out-dir
+                                   out-file)]
+                     (clojure clj-arg)))
+
+         uberjar (do
+                   (println "Compiling Clojure")
+                   (clojure "-T:uberjar uber"))
+
+         all     (do (run 'clean)
+                     (run 'cljs)
+                     (run 'uberjar))}
+ }
+

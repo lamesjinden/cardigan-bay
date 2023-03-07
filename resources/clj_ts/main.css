@@ -9,7 +9,6 @@ body {
     word-wrap: break-word;
 
     line-height: 1.618;
-    max-width: 48em;
     margin: auto;
     color: #4a4a4a;
 
@@ -119,7 +118,7 @@ blockquote {
 .main-container {
    background-color:#cccccc;
 
-   padding:2%;
+   padding: 0% 2%;
 }
 
 .context-box {
@@ -142,7 +141,7 @@ a {color:39cccc;}
 
 div textarea {
   box-sizing: border-box;
-  max-width: 90%;
+  width: 100%;
   padding: 10px;
   font-size: 1.1rem;
 }
