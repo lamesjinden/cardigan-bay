@@ -29,6 +29,7 @@
                 cljsjs/react                                  {:mvn/version "17.0.2-0"}
                 cljsjs/react-dom                              {:mvn/version "17.0.2-0"}
                 cljs-react-material-ui/cljs-react-material-ui {:mvn/version "0.2.50"}
+                cljsjs/ace                                    {:mvn/version "1.4.2-0"}
                 ;metosin/reitit-core                           {:mvn/version "0.6.0"}
                 ;metosin/reitit-frontend                       {:mvn/version "0.6.0"}
                 }}
@@ -37,7 +38,7 @@
   {:extra-deps {orchestra/orchestra       {:mvn/version "2018.12.06-2"}
                 expound/expound           {:mvn/version "0.7.2"}
                 com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
-   :main-opts  ["dev-client.clj"]}
+   :main-opts  ["dev-client.clj" "--directory bedrock"]}
 
   :server
   {:extra-deps {org.clojure/clojure      {:mvn/version "1.10.1"}

@@ -4,7 +4,6 @@
     [reagent.dom :as dom]
     [clojure.string :refer [lower-case trim replace]]
     [clojure.string :as string]
-    [cljs.core.async :refer [<! timeout]]
     [cljs.core :refer [js->clj]]
     [cljs.pprint :refer [pprint]]
     [sci.core :as sci]
@@ -14,9 +13,9 @@
                            double-bracket-links auto-links]]
     [cljsjs.highlight]
     [cljsjs.highlight.langs.clojure]
-    [cljsjs.highlight.langs.bash])
-  (:import goog.net.XhrIo)
-  (:require-macros [cljs.core.async.macros :refer [go]]))
+    [cljsjs.highlight.langs.bash]
+    [cljsjs.ace])
+  (:import goog.net.XhrIo))
 
 ;; State
 (defonce db (r/atom
@@ -69,8 +68,7 @@
     (.send XhrIo
            "/clj_ts/graphql"
            (fn [e]
-             (let [status (-> e .-target .getStatusText)
-                   edn (-> e .-target .getResponseText .toString
+             (let [edn (-> e .-target .getResponseText .toString
                            (#(.parse js/JSON %)) js->clj)
                    data (-> edn (get "data"))
                    raw (-> data (get "source_page") (get "body"))
@@ -81,7 +79,6 @@
                    port (-> data (get "server_prepared_page") (get "port"))
                    ip (-> data (get "server_prepared_page") (get "ip"))
                    start-page-name (-> data (get "server_prepared_page") (get "start_page_name"))]
-
                (swap! db assoc
                       :current-page page-name
                       :site-url site-url
@@ -108,23 +105,16 @@
 
 (defn save-page! []
   (let [page-name (-> @db :current-page)
-        new-data (-> js/document
-                     (.getElementById "edit-field")
-                     .-value)]
+        ace-instance (:ace-instance @db)
+        new-data (.getValue ace-instance)]
     (.send XhrIo
            "/clj_ts/save"
            (fn [_] (reload!))
-           #_(fn [e]
-               (go
-                 (<! (timeout 1000))
-                 (reload!)))
            "POST"
            (pr-str {:page page-name
                     :data new-data}))))
 
-
 (defn card-reorder! [page-name hash direction]
-
   (.send XhrIo
          "/api/reordercard"
          (fn [e]
@@ -137,7 +127,6 @@
 (declare go-new!)
 
 (defn card-send-to-page! [page-name hash new-page-name]
-
   (.send XhrIo
          "/api/movecard"
          (fn [e]
@@ -148,6 +137,7 @@
                   :hash hash})))
 
 (declare prepend-transcript!)
+
 (declare string->html)
 
 (defn search-text! [query-text]
@@ -161,8 +151,7 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
     (.send XhrIo
            "/clj_ts/graphql"
            (fn [e]
-             (let [status (-> e .-target .getStatusText)
-                   edn (-> e .-target .getResponseText .toString
+             (let [edn (-> e .-target .getResponseText .toString
                            (#(.parse js/JSON %)) js->clj)
                    data (-> edn (get "data"))
                    result (-> data (get "text_search") (get "result_text"))]
@@ -215,7 +204,7 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 
 ;; RUN
 
-(let [start-page
+(let [_start-page
       (.send XhrIo
              "/startpage"
              (fn [e]
@@ -232,13 +221,11 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 (defn nav-bar []
   (let [current (r/atom (-> @db :future last))]
     (fn []
-      (let [mode (-> @db :mode)
-            start-page-name (-> @db :start-page-name)]
+      (let [start-page-name (-> @db :start-page-name)]
         [:div {:class "navbar"}
          [:div {:class "breadcrumbs"}
           [:span (-> @db :wiki-name)]]
          [:div {:id "nav1"}
-
           [:span {:on-click (fn [] (go-new! start-page-name))} start-page-name]
           " || "
           [:span {:on-click (fn [] (go-new! "ToDo"))} "Todo"]
@@ -248,7 +235,6 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
           [:span {:on-click (fn [] (go-new! "Projects"))} "Projects"]
           " || "
           [:span {:on-click (fn [] (go-new! "SandBox"))} "SandBox"]
-
           " || "
           [:a {:href "/api/exportallpages"} "Export All Pages"]]
          [:div {:id "nav2"}
@@ -256,25 +242,19 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
            {:class    "big-btn"
             :on-click (fn [] (back!))}
            [:img {:src "/icons/skip-back.png"}] " Back"]
-
           [:button
            {:class    "big-btn"
             :on-click (fn [] (forward! (-> @db :future last)))} ""
            [:img {:src "/icons/skip-forward.png"}] " Forward"]
-
           [:button {:class "big-btn"}
            [:a {:href "/api/rss/recentchanges"} [:img {:src "/icons/rss.png"}]]]]
-
          [:div {:id "nav3"}
-
           [nav-input current]
-
           [:button
            {:class    "big-btn"
             :on-click (fn [] (go-new! @current))}
            ;[:img {:src "/icons/arrow-right.png"}]
            " Go!"]
-
           [:button
            {:class "big-btn"
             :on-click
@@ -283,7 +263,6 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
                     result (sci/eval-string code)]
                 (prepend-transcript! code result)))}
            "Execute"]
-
           [:button
            {:class "big-btn"
             :on-click
@@ -498,7 +477,6 @@ NO BOILERPLATE FOR EMBED TYPE " type
 "))}
      "Code on Server"]
 
-
     [:button {:class "big-btn"
               :on-click
               (fn [e]
@@ -545,48 +523,47 @@ NO BOILERPLATE FOR EMBED TYPE " type
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn tool-bar []
-  (let [current (r/atom (-> @db :future last))]
-    (fn []
-      (let [mode (-> @db :mode)]
-        [:div
-         (condp = mode
-           :editing
-           [:div
-            [:div
-             [:span
-              [:button {:class "big-btn"
-                        :on-click
-                        (fn []
-                          (do
-                            (swap! db assoc :mode :viewing)
-                            (reload!)))}
-               [:img {:src "/icons/x.png"}] " Cancel"]
-              [:button {:class "big-btn"
-                        :on-click
-                        (fn []
-                          (do
-                            (swap! db assoc :mode :viewing)
-                            (save-page!)))}
-               [:img {:src "/icons/save.png"}] " Save"]]]
-            (pastebar)]
+  (fn []
+    (let [mode (-> @db :mode)]
+      [:div
+       (condp = mode
 
-           :viewing
+         :editing
+         [:div
+          [:div
            [:span
             [:button {:class "big-btn"
                       :on-click
-                      #(swap! db assoc :mode :editing)}
-             [:img {:src "/icons/edit.png"}] " Edit"]
-
-            [:button {:class "big-btn"}
-             [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
-              [:img {:src "/icons/package.png"}]
-              " Export"]]]
-           :transcript
-           [:span
+                      (fn []
+                        (do
+                          (swap! db assoc :mode :viewing)
+                          (reload!)))}
+             [:img {:src "/icons/x.png"}] " Cancel"]
             [:button {:class "big-btn"
                       :on-click
-                      #(swap! db assoc :mode :viewing)}
-             [:img {:src "/icons/x.png"}] " Return"]])]))))
+                      (fn []
+                        (do
+                          (swap! db assoc :mode :viewing)
+                          (save-page!)))}
+             [:img {:src "/icons/save.png"}] " Save"]]]
+          (pastebar)]
+
+         :viewing
+         [:span
+          [:button {:class "big-btn"
+                    :on-click
+                    #(swap! db assoc :mode :editing)}
+           [:img {:src "/icons/edit.png"}] " Edit"]
+          [:button {:class "big-btn"}
+           [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
+            [:img {:src "/icons/package.png"}]
+            " Export"]]]
+         :transcript
+         [:span
+          [:button {:class "big-btn"
+                    :on-click
+                    #(swap! db assoc :mode :viewing)}
+           [:img {:src "/icons/x.png"}] " Return"]])])))
 
 (defn not-blank? [card]
   (not= "" (string/trim (get card "source_data"))))
@@ -616,10 +593,7 @@ NO BOILERPLATE FOR EMBED TYPE " type
                   (do
                     (if (= (-> @state :toggle) "none")
                       (swap! state #(conj % {:toggle "block"}))
-                      (swap! state #(conj % {:toggle "none"})))))
-        close! (fn [e]
-                 (swap! state #(conj % {:toggle "none"})))]
-
+                      (swap! state #(conj % {:toggle "none"})))))]
     (fn [card]
       [:div {:class :card-meta}
        [:div
@@ -633,7 +607,6 @@ NO BOILERPLATE FOR EMBED TYPE " type
                                     (get card "hash")
                                     "down"))}
          [:img {:src "/icons/chevrons-down.png"}]]
-
         [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
          (if (= (-> @state :toggle) "none")
            [:img {:src "/icons/eye.png"}]
@@ -645,12 +618,10 @@ NO BOILERPLATE FOR EMBED TYPE " type
          [:span (get card "hash")] " | Source type: "
          [:span (get card "source_type")] " | Render type: "
          [:span (get card "render_type")]]
-
         [:div
          [:span
           "Send to Another Page : "
           [send-to-input-box sendval]
-
           [:input {:name "hash" :id "sendhash" :type "hidden" :value (get card "hash")}]
           [:input {:name "from" :id "sendcurrent" :type "hidden" :value (-> @db :current-page)}]
           [:img {:src "/icons/send.png"}]
@@ -661,77 +632,92 @@ NO BOILERPLATE FOR EMBED TYPE " type
                         (get card "hash")
                         @sendval))} "Send"]]]]])))
 
+(def default-ace-options {:fontSize "1.6rem"})
+(def ace-theme "ace/theme/cloud9_day")
+(def ace-mode-clojure "ace/mode/clojure")
+(def ace-mode-markdown "ace/mode/markdown")
+
+(defn configure-ace-instance!
+  ([ace-instance mode]
+   (configure-ace-instance! ace-instance mode default-ace-options))
+  ([ace-instance mode options]
+   (let [ace-session (.getSession ace-instance)]
+     (.setTheme ace-instance ace-theme)
+     (.setOptions ace-instance (clj->js options))
+     (.setMode ace-session mode))))
+
 (defn workspace [card]
   (let [state (r/atom {:code-toggle   true
                        :calc-toggle   false
                        :result-toggle true
                        :code          (get card "server_prepared_data")
                        :calc          []
-                       :result        ""})
-        id (str "ws" (get card "hash"))
-        code-id (str id "-code")
-        calc-id (str id "-calc")
-        result-id (str id "-result")
-        toggle-code! (fn [e] (swap! state #(conj % {:code-toggle (-> @state :code-toggle not)})))
-        toggle-calc! (fn [e] (swap! state #(conj % {:calc-toggle (-> @state :calc-toggle not)})))
-        toggle-result! (fn [e] (swap! state #(conj % {:result-toggle (-> @state :result-toggle not)})))
+                       :result        ""
+                       :editor        (atom nil)})
+        toggle-code! (fn [_e] (swap! state #(conj % {:code-toggle (-> @state :code-toggle not)})))
+        toggle-calc! (fn [_e] (swap! state #(conj % {:calc-toggle (-> @state :calc-toggle not)})))
+        toggle-result! (fn [_e] (swap! state #(conj % {:result-toggle (-> @state :result-toggle not)})))
         display (fn [d] (if d "block" "none"))
-        execute-code (fn [e] (let [result
-                                   (sci/eval-string
-                                     (-> @state :code)
-                                     {:bindings {'replace replace}
-                                      :classes  {'js    goog/global
-                                                 :allow :all}})]
-                               (swap! state #(conj % {:calc result :result result}))))]
-    (fn [card]
-      (let []
-        [:div {:class :workspace}
-         [:h3 "Workspace"]
-         [:p {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
-                                       [:a {:href "https://github.com/borkdude/sci"} "SCI"]
-                                       ". Be aware that it does not save any changes you make in the textbox.
+        execute-code (fn [_e] (let [code (.getValue (:editor @state))
+                                    result
+                                    (sci/eval-string
+                                      code
+                                      {:bindings {'replace replace}
+                                       :classes  {'js    goog/global
+                                                  :allow :all}})]
+                                (swap! state #(conj % {:calc result :result result}))))]
+    (reagent.core/create-class
+      {:component-did-mount    (fn [_this] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
+                                                 ace-instance (.edit js/ace editor-element)]
+                                             (configure-ace-instance! ace-instance ace-mode-clojure)
+                                             (swap! state assoc :editor ace-instance)))
+       :component-will-unmount (fn [_this]
+                                 (let [editor (:editor @state)]
+                                   (when editor
+                                     (.destroy editor))))
+       :reagent-render         (fn [_card]
+                                 (let []
+                                   [:div {:class :workspace}
+                                    [:h3 "Workspace"]
+                                    [:p {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
+                                                                  [:a {:href "https://github.com/borkdude/sci"} "SCI"]
+                                                                  ". Be aware that it does not save any changes you make in the textbox.
 
-                                  You'll need to  edit the page fully to make permanent changes to the code. "]]
-         [:div {:class :workspace-buttons}
-          [:button {:class :workspace-button :on-click execute-code} "Run"]
-          [:button {:class :workspace-button :on-click toggle-code!} "Code"]
-          [:button {:class :workspace-button :on-click toggle-calc!} "Calculated"]
-          [:button {:class :workspace-button :on-click toggle-result!} "Output"]]
-         [:div {:class :code :style {:padding "3px"
-                                     :display (display (-> @state :code-toggle))}}
-          [:h4 "Source"]
-          [:textarea {:cols 60 :rows 10
-                      :on-change
-                      (fn [e] (swap! state #(conj % {:code (-> e .-target .-value)})))}
-           (trim (-> @state :code))]]
-         [:div {:class :calculated-out :style {:padding "3px"
-                                               :display (display (-> @state :calc-toggle))}}
-          [:h4 "Calculated"]
-          [:pre
-           (with-out-str (pprint (str (-> @state :calc))))]]
-         [:div {:class :results :style {:padding "3px"
-                                        :display (display (-> @state :result-toggle))}}
-          [:h4 "Result"]
-          [:div
-           (let [result (-> @state :result)]
-             (cond
+                                                             You'll need to  edit the page fully to make permanent changes to the code. "]]
+                                    [:div {:class :workspace-buttons}
+                                     [:button {:class :workspace-button :on-click execute-code} "Run"]
+                                     [:button {:class :workspace-button :on-click toggle-code!} "Code"]
+                                     [:button {:class :workspace-button :on-click toggle-calc!} "Calculated"]
+                                     [:button {:class :workspace-button :on-click toggle-result!} "Output"]]
+                                    [:div {:class :code :style {:padding "3px"
+                                                                :display (display (-> @state :code-toggle))}}
+                                     [:h4 "Source"]
+                                     [:div {:class ["workspace-editor"]} (trim (-> @state :code))]]
+                                    [:div {:class :calculated-out :style {:padding "3px"
+                                                                          :display (display (-> @state :calc-toggle))}}
+                                     [:h4 "Calculated"]
+                                     [:pre
+                                      (with-out-str (pprint (str (-> @state :calc))))]]
+                                    [:div {:class :results :style {:padding "3px"
+                                                                   :display (display (-> @state :result-toggle))}}
+                                     [:h4 "Result"]
+                                     [:div
+                                      (let [result (-> @state :result)]
+                                        (cond
 
-               (number? result)
-               (str result)
+                                          (number? result)
+                                          (str result)
 
-               (string? result)
-               (if (= (first result) \<)
-                 [:div {:dangerouslySetInnerHTML {:__html result}}]
-                 result)
+                                          (string? result)
+                                          (if (= (first result) \<)
+                                            [:div {:dangerouslySetInnerHTML {:__html result}}]
+                                            result)
 
-               (= (first result) :div)
-               result
+                                          (= (first result) :div)
+                                          result
 
-
-               :else
-               (str result)))]]]))))
-
-(defn card-top-bar [card])
+                                          :else
+                                          (str result)))]]]))})))
 
 (defn on-click-for-links [e]
   (let [tag (-> e .-target)
@@ -741,10 +727,10 @@ NO BOILERPLATE FOR EMBED TYPE " type
     (if (= classname "wikilink")
       (go-new! data))))
 
-(defn one-card [card]
+(defn one-card [_card]
   (let [inner-html (fn [s] [:div {:dangerouslySetInnerHTML {:__html s}}])
         state2 (r/atom {:toggle "block"})
-        toggle! (fn [e]
+        toggle! (fn [_]
                   (do
                     (if (= (-> @state2 :toggle) "none")
                       (swap! state2 #(conj % {:toggle "block"}))
@@ -752,53 +738,50 @@ NO BOILERPLATE FOR EMBED TYPE " type
     (fn [card]
       (let [rtype (get card "render_type")
             data (get card "server_prepared_data")
-            inner
-            (condp = rtype
+            inner (condp = rtype
 
-              ":code"
-              (inner-html (str "<code>" data "</code>"))
+                    ":code"
+                    {:reagent-render (fn [_] (inner-html (str "<code>" data "</code>")))}
 
-              ":raw"
-              (inner-html (str "<pre>" data "</pre>"))
+                    ":raw"
+                    {:reagent-render (fn [_] (inner-html (str "<pre>" data "</pre>")))}
 
-              ":markdown"
-              (inner-html (card->html card))
+                    ":markdown" {:reagent-render      (fn [_] (inner-html (card->html card)))
+                                 :component-did-mount (fn [_] (.highlightAll js/hljs))}
 
-              ":manual-copy"
-              (inner-html
-                (str "<div class='manual-copy'>"
-                     (card->html card)
-                     "</div>"))
+                    ":manual-copy"
+                    {:reagent-render (fn [_] (inner-html
+                                               (str "<div class='manual-copy'>"
+                                                    (card->html card)
+                                                    "</div>")))}
 
-              ":html"
-              (inner-html (str data))
+                    ":html"
+                    {:reagent-render (fn [_] (inner-html (str data)))}
 
-              ":stamp"
-              (inner-html (str data))
+                    ":stamp"
+                    {:reagent-render (fn [_] (inner-html (str data)))}
 
-              ":hiccup"
-              "THIS SHOULD BE HICCUP RENDERED"
+                    ":hiccup"
+                    {:reagent-render (fn [_] "THIS SHOULD BE HICCUP RENDERED")}
 
-              ":workspace"
-              [workspace card]
+                    ":workspace"
+                    {:reagent-render (fn [_] [workspace card])}
 
-              (str "UNKNOWN TYPE ( " rtype " ) " data))]
+                    (str "UNKNOWN TYPE ( " rtype " ) " data))
+            component (reagent.core/create-class inner)]
         [:div {:class :card-outer}
-
          [:div {:class :card-meta}
           [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
            (if (= (-> @state2 :toggle) "none")
              [:img {:src "/icons/maximize-2.svg"}]
              [:img {:src "/icons/minimize-2.svg"}])]]
-
          [:div
           {:style {:spacing-top "5px"
                    :display     (-> @state2 :toggle)}}
           [:div
            {:class    "card"
             :on-click on-click-for-links}
-
-           inner]]
+           [component]]]
          [card-bar card]]))))
 
 (defn card-list []
@@ -832,39 +815,32 @@ NO BOILERPLATE FOR EMBED TYPE " type
          :dangerouslySetInnerHTML {:__html (-> @db :transcript)}
          :on-click                on-click-for-links}])
 
-(defn main-container []
-  (r/after-render
-    (fn [] (.highlightAll js/hljs)))
+(defn editor-component []
+  (reagent.core/create-class
+    {:component-did-mount    (fn [_this] (let [editor-element (first (array-seq (.getElementsByClassName js/document "edit-box")))
+                                               ace-instance (.edit js/ace editor-element)]
+                                           (configure-ace-instance! ace-instance ace-mode-markdown {:fontSize "1.2rem"})
+                                           (swap! db assoc :ace-instance ace-instance)))
+     :component-will-unmount (fn [_this]
+                               (let [editor (:editor @db)]
+                                 (when editor
+                                   (.destroy editor))))
+     :reagent-render         (fn [_] [:div {:class ["edit-box"]
+                                            :on-key-up
+                                            (fn [e]
+                                              (let [kc (.-keyCode e)
+                                                    escape-code 27]
+                                                (when (and (= (-> @db :mode) :editing)
+                                                           (= kc escape-code))
+                                                  (swap! db assoc :mode :viewing))))} (:raw @db)])}))
 
+(defn main-container []
   [:div
    [:div
     (condp = (-> @db :mode)
 
       :editing
-      [:div {:class "edit-box"}
-       [:textarea
-        {:id "edit-field" :cols 80 :rows 40
-         ;; key-press only fires for printable characters, hence key-up
-         :on-key-up
-         (fn [e]
-           (let [kc (.-keyCode e)
-                 escape-code 27]
-             (when (and (= (-> @db :mode) :editing)
-                        (= kc escape-code))
-               (swap! db assoc :mode :viewing))))
-         :on-key-press
-         (fn [e]
-           (let [kc (.-charCode e)]
-             (if (= (-> @db :mode) :editing)
-               (cond
-                 (and (.-ctrlKey e) (= 81))                 ;; 81 == 'q'
-                 (insert-text-at-cursor! "THIS IS INSERTED")
-                 :else '())
-               (if (and (.-ctrlKey e) (= 69 kc))            ;; 69 == 'e'
-                 (swap! db assoc
-                        :mode :editing)
-                 (-> js/document (.getElementById "edit-field") (.focus))))))}
-        (-> @db :raw)]]
+      [editor-component]
 
       :viewing
       [:div {:on-double-click (fn [] (swap! db assoc :mode :editing))}
@@ -905,7 +881,4 @@ NO BOILERPLATE FOR EMBED TYPE " type
      [:a {:href (str "javascript:(function(){window.location='http://localhost:" (-> @db :port) "/api/bookmarklet?url='+document.URL;})();")} "Bookmark to this Wiki"]]]])
 
 ;; tells reagent to begin rendering
-
-(dom/render [content]
-            (.querySelector js/document "#app"))
-
+(dom/render [content] (.querySelector js/document "#app"))

@@ -1,22 +1,15 @@
 /*  CSS for running program */
 
-
 body {
     font-family: serif;
     font-size: 1.6rem;
-
     overflow-wrap: break-word;
     word-wrap: break-word;
-
     line-height: 1.618;
     margin: auto;
     color: #4a4a4a;
-
     padding: 13px;
-
-
     background-color:#cccccc;
-
 }
 
 @media only screen and (max-width: 600px) {
@@ -26,20 +19,18 @@ body {
   }
 }
 
-
 h1, h2, h3, h4, h5, h6 {
-  line-height: 1.1;
-  font-family: Verdana, Geneva, sans-serif;
-
-  font-weight: 700;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  -ms-word-break: break-all;
-  word-break: break-word;
-  -ms-hyphens: auto;
-  -moz-hyphens: auto;
-  -webkit-hyphens: auto;
-  hyphens: auto;
+    line-height: 1.1;
+    font-family: Verdana, Geneva, sans-serif;
+    font-weight: 700;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -ms-word-break: break-all;
+    word-break: break-word;
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 #nav1 span {
@@ -48,25 +39,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .wikilink { cursor: pointer; }
 
-.wikiname {color: #555555; text-align: right;}
+.wikiname {
+    color: #555555;
+    text-align: right;
+}
 
 .headerbar {
 	padding:10px;
 	margin: 0;
-/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#a7cfdf+0,331554+100 */
-
-/*
-background: -moz-linear-gradient(45deg, #a7cfdf  0%, #7375A4 100% );
-background: -webkit-linear-gradient(45deg, #a7cfdf  0%, #7375A4 100%);
-background: linear-gradient(45deg, #a7cfdf  0%, #737594 100%);
-filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a7cfdf', endColorstr='#7375A4',GradientType=1 );
-	width:100%;
-*/
-
 }
 
 .headerbar a {color:black;}
-
 
 .card-outer {
     border-radius: 15px;
@@ -98,26 +81,21 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a7cfdf', end
 }
 
 blockquote {
-  background: #f9f9f9;
-  border-left: 10px solid #fada96;
-  margin: 1.5em 10px;
-  padding: 0.5em 10px;
-  quotes: "\201C""\201D""\2018""\2019";
+    background: #f9f9f9;
+    border-left: 10px solid #fada96;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
+    quotes: "\201C""\201D""\2018""\2019";
 }
 
 .transcluded {
-  background-color: #eeeeff;
-  padding:10px;
-
-  border-left: 10px solid #faaa96;
-
+    background-color: #eeeeff;
+    padding:10px;
+    border-left: 10px solid #faaa96;
 }
-
-
 
 .main-container {
    background-color:#cccccc;
-
    padding: 0% 2%;
 }
 
@@ -126,48 +104,39 @@ blockquote {
     border-width:3px;
     border-color:#111111;
     background-color:#eeeeee;
-
     padding: 5px;
     margin: 5px;
     border-radius: 10px;
 }
-text {
-    /*      font-family:Verdana; */
+
+a {
+    color:39cccc;
 }
 
-a {color:39cccc;}
-
-.wikilink {color:#85144b;}
+.wikilink {
+    color:#85144b;
+}
 
 div textarea {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 10px;
-  font-size: 1.1rem;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    font-size: 1.1rem;
 }
 
 button {
-
     color: #339933;
-
-
     margin:5px;
-
     background-repeat: no-repeat;
     background-position: <left|right>;
-
     padding: 5px;
-
 }
-
 
 button:hover {
    background-color: #;
 }
 
-
 .navbar {
-    /*padding:20px;*/
     border:10px;
     Background:dark-blue;
 }
@@ -217,11 +186,9 @@ button:hover {
     font-size: 1rem;
 }
 
-
 .twin_pages {
     color:#333333;
 }
-
 
 .embed_div {
     display: flex;
@@ -230,31 +197,16 @@ button:hover {
     width:100%;
 }
 
-
-
 .youtube-embedded {
     width:100%;
     position: relative;
-    /*
-    padding-bottom: 56.25%;
-    padding-top: 25px;
-*/
     height: 20em;
 }
-
 
 .vimeo-embedded {
     width:100%;
     position: relative;
-    /*
-    padding-bottom: 56.25%;
-    padding-top: 25px;
-*/
     height: 20em;
-}
-
-.bandcamp-embedded {
-
 }
 
 .manual-copy {
@@ -262,12 +214,10 @@ button:hover {
     padding: 5px;
     margin: 2px;
     border-radius: 10px;
-
 }
 
-
 .code {
-    font-size : 0.8rem;
+    font-size : 1.6rem;
 }
 
 .calculated-out {
@@ -280,4 +230,16 @@ button:hover {
 
 .workspace-note {
     font-size : 0.8rem;
+}
+
+.workspace-editor {
+    min-height: 20em;
+    width: 100%;
+}
+
+.edit-box {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
 }
