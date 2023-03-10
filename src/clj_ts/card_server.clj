@@ -1,34 +1,22 @@
 (ns clj-ts.card-server
   [:require
-   [clojure.string :as string]
-   [clojure.pprint :refer [pprint]]
-
-   [clj-ts.logic :as ldb]
-   [clj-ts.pagestore :as pagestore]
-   [clj-ts.common :as common]
-   [clj-ts.types :as types]
-   [clj-ts.embed :as embed]
-   [clj-ts.patterning :as patterning]
-
-   [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
-   [com.walmartlabs.lacinia.schema :as schema]
-   [clojure.java.io :as io]
-   [clojure.edn :as edn]
-   [clj-rss.core :as rss]
-
-   [sci.core :as sci]
-
-   [hiccup.core :refer [html]]
-
-
-   ]
+    [clojure.string :as string]
+    [clojure.pprint :refer [pprint]]
+    [clj-ts.logic :as ldb]
+    [clj-ts.pagestore :as pagestore]
+    [clj-ts.common :as common]
+    [clj-ts.types :as types]
+    [clj-ts.embed :as embed]
+    [clj-ts.patterning :as patterning]
+    [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
+    [com.walmartlabs.lacinia.schema :as schema]
+    [clojure.java.io :as io]
+    [clojure.edn :as edn]
+    [clj-rss.core :as rss]
+    [sci.core :as sci]
+    [hiccup.core :refer [html]]]
   (:import (java.net InetAddress)
-           (java.net DatagramSocket))
-
-  )
-
-
-
+           (java.net DatagramSocket)))
 
 ;; Card Server State is ALL the global state for the application.
 ;; NOTHING mutable should be stored anywhere else but in the card-server-state atom.
@@ -46,40 +34,40 @@
 (defmacro dnn [cs m & args]
   `(let [db# (:facts-db ~cs)]
      (if (nil? db#) :not-available
-         (. db# ~m ~@args))
+                    (. db# ~m ~@args))
      ))
 
 
 
 (defrecord CardServerRecord
-    [wiki-name site-url port-no start-page facts-db page-store page-exporter]
+  [wiki-name site-url port-no start-page facts-db page-store page-exporter]
 
   ldb/IFactsDb
   (raw-db [cs] (dnn cs raw-db))
-  (all-pages [cs] (dnn cs all-pages) )
-  (all-links [cs] (dnn cs all-links) )
+  (all-pages [cs] (dnn cs all-pages))
+  (all-links [cs] (dnn cs all-links))
   (broken-links [cs] (dnn cs broken-links))
   (orphan-pages [cs] (dnn cs orphan-pages))
   (links-to [cs p-name] (dnn cs links-to p-name))
 
-)
+  )
 
 
 
 ;; State Management is done at the card-server level
 
-(def the-server-state  (atom :dummy))
+(def the-server-state (atom :dummy))
 
 (defn initialize-state! [wiki-name site-url port-no start-page logic-db page-store page-exporter]
   (reset! the-server-state
           (->CardServerRecord
-           wiki-name
-           site-url
-           port-no
-           start-page
-           logic-db
-           page-store
-           page-exporter) )
+            wiki-name
+            site-url
+            port-no
+            start-page
+            logic-db
+            page-store
+            page-exporter))
   )
 
 (defn server-state
@@ -133,8 +121,8 @@
 (defn update-pagedir! [new-pd new-ed]
   (let [new-ps
         (pagestore/make-page-store
-         new-pd
-         new-ed)]
+          new-pd
+          new-ed)]
     (set-page-store! new-ps)
     (regenerate-db!)))
 
@@ -153,9 +141,9 @@
 (defn regenerate-db! []
   (future
     (println "Starting to rebuild logic db")
-    (let [f (ldb/regenerate-db (server-state)) ]
-      (set-facts-db! f )
-      (println "Finished building logic db"))) )
+    (let [f (ldb/regenerate-db (server-state))]
+      (set-facts-db! f)
+      (println "Finished building logic db"))))
 
 
 
@@ -165,7 +153,7 @@
   (let [sw (new java.io.StringWriter)
         pw (new java.io.PrintWriter sw)]
     (.printStackTrace e pw)
-    (str "Exception :: " (.getMessage e) (-> sw .toString) ))  )
+    (str "Exception :: " (.getMessage e) (-> sw .toString))))
 
 
 ;; Card Processing
@@ -193,7 +181,7 @@
 
 (defn ldb-query->mdlist-card [i title result qname f user-authored?]
   (let [items (apply str (map f result))
-        body (str "*" title "* " "*(" (count result) " items)*\n\n" items )  ]
+        body (str "*" title "* " "*(" (count result) " items)*\n\n" items)]
     (common/package-card i :system :markdown body body user-authored?)))
 
 (defn item1 [s] (str "* [[" s "]]\n"))
@@ -212,40 +200,40 @@
 
       :alllinks
       (ldb-query->mdlist-card
-       i "All Links" (.all-links db) :alllinks
-       (fn [[a b]] (str "[[" a "]],, &#8594;,, [[" b "]]\n"))
-       user-authored?)
+        i "All Links" (.all-links db) :alllinks
+        (fn [[a b]] (str "[[" a "]],, &#8594;,, [[" b "]]\n"))
+        user-authored?)
 
       :brokenlinks
       (ldb-query->mdlist-card
-       i "Broken Internal Links" (.broken-links db) :brokenlinks
-       (fn [[a b]] (str "[[" a "]],, &#8603;,, [[" b "]]\n"))
-       user-authored?)
+        i "Broken Internal Links" (.broken-links db) :brokenlinks
+        (fn [[a b]] (str "[[" a "]],, &#8603;,, [[" b "]]\n"))
+        user-authored?)
 
       :orphanpages
       (ldb-query->mdlist-card
-       i "Orphan Pages" (.orphan-pages db) :orphanpages item1
-       user-authored?)
+        i "Orphan Pages" (.orphan-pages db) :orphanpages item1
+        user-authored?)
 
       :recentchanges
-      (let [src (.read-recentchanges ps) ]
+      (let [src (.read-recent-changes ps)]
         (common/package-card
-         "recentchanges" :system :markdown src src user-authored?))
+          "recentchanges" :system :markdown src src user-authored?))
 
       :search
-      (let [res (pagestore/text-search (server-state) (.all-pages db)
-                                       (re-pattern (:query info)))
-            out
-            (str "*Searching pages containing \" " (:query info) "\"*\n "
-                 (apply str (map #(str "* [[" % "]]\n") res))) ]
-
-
+      (let [pattern-str (str "(?i)" (:query info))
+            _ (println "pattern-str" pattern-str)
+            res (pagestore/text-search (server-state)
+                                       (.all-pages db)
+                                       (re-pattern pattern-str))
+            out (str "*Searching pages containing \" " (:query info) "\"*\n "
+                     (apply str (map #(str "* [[" % "]]\n") res)))]
         (common/package-card (str "search " i) :system :markdown out out user-authored?))
 
       :about
       (let [sr (str "### System Information
 
-**Wiki Name**,, " (:wiki-name (server-state)   )  "
+**Wiki Name**,, " (:wiki-name (server-state)) "
 **PageStore Directory** (relative to code) ,, " (.page-path ps) "
 **Is Git Repo?**  ,, " (.git-repo? ps) "
 **Site Url Root** ,, " (:site-url (server-state)) "
@@ -256,20 +244,18 @@
 
       :customscript
       (let [return-type (or (:return-type data) :markdown)
-            sr (server-custom-script data) ]
+            sr (server-custom-script data)]
         (common/package-card i :customscript return-type sr sr user-authored?))
 
-
-
       ;; not recognised
-      (let [d (str "Not recognised system command in " data  " -- cmd " cmd )]
+      (let [d (str "Not recognised system command in " data " -- cmd " cmd)]
         (common/package-card i :system :raw d d user-authored?)))
     ))
 
 
 (defn transclude [i data user-authored?]
   (let [{:keys [from process]} (read-string data)
-        raw (-> from (#(pagestore/read-page (server-state) %)) )
+        raw (-> from (#(pagestore/read-page (server-state) %)))
         return-type (if (nil? process) :markdown process)
         head (str "*Transcluded from [[" from "]]* \n")
         body (str head raw)]
@@ -278,7 +264,7 @@
 (defn bookmark-card [data]
   (let [{:keys [url timestamp]} (read-string data)]
     (str "
-Bookmarked " timestamp  ",, <" url ">
+Bookmarked " timestamp ",, <" url ">
 
 ")))
 
@@ -299,7 +285,7 @@ Bookmarked " timestamp  ",, <" url ">
           arcs (-> data read-string :arcs)
 
           maxit (fn [f i xs]
-                  (apply f (map  #(nth % i) xs ) ))
+                  (apply f (map #(nth % i) xs)))
           maxx (maxit max 2 nodes)
           maxy (maxit max 3 nodes)
           minx (maxit min 2 nodes)
@@ -307,21 +293,21 @@ Bookmarked " timestamp  ",, <" url ">
 
           node (fn [[n label x y]]
                  (let [an-id (gensym)
-                       the-text [:text {:class "wikilink"
-                                        :data label
-                                        :x x :y (+ y 20)
+                       the-text [:text {:class       "wikilink"
+                                        :data        label
+                                        :x           x :y (+ y 20)
                                         :text-anchor "middle"
-                                        :fill "black"
+                                        :fill        "black"
                                         } label]
 
                        final-text
                        (if for-export?
-                         [:a {:href label} the-text ]
+                         [:a {:href label} the-text]
                          the-text
                          )
-                       box [:circle {:cx x :cy y :r 20
-                                     :width 100 :height 20
-                                     :stroke "orange"
+                       box [:circle {:cx           x :cy y :r 20
+                                     :width        100 :height 20
+                                     :stroke       "orange"
                                      :stroke-width 2 :fill "yellow"}
                             ]
 
@@ -329,21 +315,21 @@ Bookmarked " timestamp  ",, <" url ">
                    (html [:g {:id an-id} box final-text])))
           arc (fn [[n1 n2]]
                 (let
-                    [a1 (afind n1 nodes)
-                     a2 (afind n2 nodes)]
+                  [a1 (afind n1 nodes)
+                   a2 (afind n2 nodes)]
                   (if
-                      (and a1 a2)
+                    (and a1 a2)
                     (let [[label x1 y1] a1
                           [label x2 y2] a2]
-                      (html [:line {:x1 x1  :y1 y1 :x2 x2 :y2 y2
-                                    :stroke "#000" :stroke-width 2
+                      (html [:line {:x1         x1 :y1 y1 :x2 x2 :y2 y2
+                                    :stroke     "#000" :stroke-width 2
                                     :marker-end "url(#arrowhead)"}])
 
                       )
                     "")))
-          svg (html [:svg {:width "500px" :height "400px"
-                           :viewBox (str "0 0 " (* 1.3 maxx) (* 1.3 maxy)) }
-                     [:defs [:marker {:id "arrowhead" :markerWidth "10" :markerHeight "7"
+          svg (html [:svg {:width   "500px" :height "400px"
+                           :viewBox (str "0 0 " (* 1.3 maxx) (* 1.3 maxy))}
+                     [:defs [:marker {:id   "arrowhead" :markerWidth "10" :markerHeight "7"
                                       :refX "-5" :refY "3.5" :orient "auto"}
                              [:polygon {:points "-5 0, 0 3.5, -5 7"}]]]
                      (apply str (map arc arcs))
@@ -361,7 +347,7 @@ Bookmarked " timestamp  ",, <" url ">
   )
 
 (defn process-card
-  [i card for-export?  user-authored?]
+  [i card for-export? user-authored?]
   (let [[source-type, data] (common/raw-card-text->raw-card-map card)]
     (condp = source-type
       :markdown (common/package-card i source-type :markdown data data user-authored?)
@@ -371,7 +357,7 @@ Bookmarked " timestamp  ",, <" url ">
 
       :code
       (do
-        (println "Exporting :code card " )
+        (println "Exporting :code card ")
         (common/package-card i :code :code data data user-authored?))
 
       :evalraw
@@ -412,7 +398,7 @@ Bookmarked " timestamp  ",, <" url ">
       )))
 
 (defn raw->cards [raw for-export? user-authored?]
-  (let [cards (string/split  raw #"----")]
+  (let [cards (string/split raw #"----")]
     (map process-card (iterate inc 0) cards (repeat for-export?) (repeat user-authored?))))
 
 
@@ -430,7 +416,7 @@ Bookmarked " timestamp  ",, <" url ">
       (raw->cards true true)))
 
 (defn generate-system-cards [page-name]
- [(backlinks page-name)] )
+  [(backlinks page-name)])
 
 (defn load-one-card [page-name hash]
   (let [cards (load->cards page-name)]
@@ -438,23 +424,19 @@ Bookmarked " timestamp  ",, <" url ">
 
 ;; GraphQL resolvers
 
-(defn resolve-text-search [context arguments value]
+(defn resolve-text-search [_context arguments _value]
   (let [{:keys [query_string]} arguments
-
-        res (pagestore/text-search (server-state)
-                                   (.all-pages (-> (server-state)
-                                                   :facts-db))
-                                   (re-pattern query_string))
+        query-pattern-str (str "(?i)" query_string)
+        res (pagestore/text-search
+              (server-state)
+              (.all-pages (-> (server-state) :facts-db))
+              (re-pattern query-pattern-str))
         header (str "#### " (count res) " pages containing \"" query_string "\"\n")
-        out
-        (str header
-             (apply str (map #(str "* [[" % "]]\n") res))) ]
-
-    {:result_text out}
-    ))
+        out (str header (apply str (map #(str "* [[" % "]]\n") res)))]
+    {:result_text out}))
 
 (defn resolve-card
-    "Not yet tested"
+  "Not yet tested"
   [context arguments value user-authored?]
   (let [{:keys [page_name hash]} arguments
         ps (.page-store (server-state))]
@@ -464,19 +446,19 @@ Bookmarked " timestamp  ",, <" url ">
       (common/package-card 0 :markdown :markdown
                            (str "Card " hash " doesn't exist in " page_name)
                            (str "Card " hash " doesn't exist in " page_name)
-                           user-authored?) )))
+                           user-authored?))))
 
 (defn resolve-source-page [context arguments value]
   (let [{:keys [page_name]} arguments
         ps (.page-store (server-state))]
     (if (.page-exists? ps page_name)
       {:page_name page_name
-       :body (pagestore/read-page (server-state) page_name)}
+       :body      (pagestore/read-page (server-state) page_name)}
       {:page_name page_name
-       :body "PAGE DOES NOT EXIST"})))
+       :body      "PAGE DOES NOT EXIST"})))
 
 
-(defn resolve-page [context arguments value]
+(defn resolve-page [_context arguments _value]
   (let [{:keys [page_name]} arguments
         ps (:page-store (server-state))
         wiki-name (:wiki-name (server-state))
@@ -489,39 +471,39 @@ Bookmarked " timestamp  ",, <" url ">
                (-> dgs .getLocalAddress .getHostAddress))
 
              (catch Exception e (str e))
-            )
+             )
 
         ]
 
     (if (.page-exists? ps page_name)
-      {:page_name page_name
-       :wiki_name wiki-name
-       :site_url site-url
-       :port port
-       :ip ip
-       :public_root (str site-url "/view/")
+      {:page_name       page_name
+       :wiki_name       wiki-name
+       :site_url        site-url
+       :port            port
+       :ip              ip
+       :public_root     (str site-url "/view/")
        :start_page_name start-page-name
-       :cards (load->cards page_name)
-       :system_cards (generate-system-cards page_name)
+       :cards           (load->cards page_name)
+       :system_cards    (generate-system-cards page_name)
        }
-      {:page_name page_name
-       :wiki_name wiki-name
-       :site_url site-url
-       :port port
-       :ip ip
+      {:page_name       page_name
+       :wiki_name       wiki-name
+       :site_url        site-url
+       :port            port
+       :ip              ip
        :start_page_name start-page-name
-       :public_root (str site-url "/view/")
-       :cards (raw->cards "PAGE DOES NOT EXIST" false false)
+       :public_root     (str site-url "/view/")
+       :cards           (raw->cards "PAGE DOES NOT EXIST" false false)
        :system_cards
        (let [sim-names (map
-                        #(str "\n- [[" % "]]")
-                        (.similar-page-names
-                         ps page_name))  ]
+                         #(str "\n- [[" % "]]")
+                         (.similar-page-names
+                           ps page_name))]
          (if (empty? sim-names) []
-             [(common/package-card
-               :similarly_name_pages :system :markdown ""
-               (str "Here are some similarly named pages :"
-                    (apply str sim-names)) false)]))
+                                [(common/package-card
+                                   :similarly_name_pages :system :markdown ""
+                                   (str "Here are some similarly named pages :"
+                                        (apply str sim-names)) false)]))
        })))
 
 
@@ -535,8 +517,8 @@ Bookmarked " timestamp  ",, <" url ">
       edn/read-string
 
       (attach-resolvers {:resolve-source-page resolve-source-page
-                         :resolve-page resolve-page
-                         :resolve-card resolve-card
+                         :resolve-page        resolve-page
+                         :resolve-card        resolve-card
                          :resolve-text-search resolve-text-search
                          })
       schema/compile))
@@ -550,13 +532,13 @@ Bookmarked " timestamp  ",, <" url ">
                     (let [m (re-matches #"\* \[\[(\S+)\]\] (\(.+\))" s)
                           [pname date] [(second m) (nth m 2)]]
                       {:title (str pname " changed on " date)
-                       :link (link-fn pname)}
+                       :link  (link-fn pname)}
                       ))
-        rc (-> (.read-recentchanges ps)
+        rc (-> (.read-recent-changes ps)
                string/split-lines
                (#(map make-link %)))]
-    (rss/channel-xml {:title "RecentChanges"
-                      :link (-> (server-state) :site-url)
+    (rss/channel-xml {:title       "RecentChanges"
+                      :link        (-> (server-state) :site-url)
                       :description "Recent Changes in CardiganBay Wiki"}
                      rc
                      )))
@@ -569,24 +551,24 @@ Bookmarked " timestamp  ",, <" url ">
     (cond
       (= bl :not-available)
       (common/package-card
-       :backlinks :system :markdown
-       "Backlinks Not Available"
-       "Backlinks Not Available"
-       false)
+        :backlinks :system :markdown
+        "Backlinks Not Available"
+        "Backlinks Not Available"
+        false)
 
       (= bl '())
       (common/package-card
-       :backlinks :system :markdown
-       "No Backlinks"
-       "No Backlinks"
-       false)
+        :backlinks :system :markdown
+        "No Backlinks"
+        "No Backlinks"
+        false)
 
       :otherwise
       (ldb-query->mdlist-card
-       "backlinks" "Backlinks" bl
-       :calculated
-       (fn [[a b]] (str "* [[" a "]] \n"))
-       false))))
+        "backlinks" "Backlinks" bl
+        :calculated
+        (fn [[a b]] (str "* [[" a "]] \n"))
+        false))))
 
 
 
@@ -600,7 +582,7 @@ Bookmarked " timestamp  ",, <" url ">
         new-body (str page-body "----
 " type "
 " body)]
-    (write-page-to-file! page-name new-body )))
+    (write-page-to-file! page-name new-body)))
 
 (defn prepend-card-to-page! [page-name type body]
   (let [page-body (try
@@ -608,15 +590,15 @@ Bookmarked " timestamp  ",, <" url ">
                     (catch Exception e (str "Automatically created a new page : " page-name "\n\n"))
                     )
         new-body (str
-                      "----
+                   "----
 " type "
 " body "
 
 ----
 "
-                      page-body)
+                   page-body)
         ]
-    (write-page-to-file! page-name new-body )))
+    (write-page-to-file! page-name new-body)))
 
 (defn move-card [page-name hash destination-name]
   (let [from-cards (load->cards page-name)
@@ -632,8 +614,8 @@ Bookmarked " timestamp  ",, <" url ">
 (defn reorder-card [page-name hash direction]
   (let [cards (load->cards page-name)
         new-cards (if (= "up" direction)
-          (common/move-card-up cards hash)
-          (common/move-card-down cards hash))
+                    (common/move-card-up cards hash)
+                    (common/move-card-down cards hash))
         ]
     (write-page-to-file! page-name (common/cards->raw new-cards))))
 
