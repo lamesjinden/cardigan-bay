@@ -1,11 +1,11 @@
 {:enums
  {:source_type
   {:description "The original raw type of the card's source"
-   :values [:markdown :raw :evalraw :evalmd :system :embed :html :code]}
+   :values      [:markdown :raw :evalraw :evalmd :system :embed :html :code]}
 
   :render_type
   {:description "A type that is attached to each card to specify how it should be rendered"
-   :values [:untouched :markdown]}}
+   :values      [:untouched :markdown]}}
 
 
  :objects
@@ -13,32 +13,32 @@
  {:Card
   {:description "A card within the system"
    :fields
-   {:source_type {:type String}
-    :render_type {:type String}
-    :source_data {:type String}
+   {:source_type          {:type String}
+    :render_type          {:type String}
+    :source_data          {:type String}
     :server_prepared_data {:type String}
-    :id {:type String}
-    :hash {:type String}
+    :id                   {:type String}
+    :hash                 {:type String}
     }}
 
   :SourcePage
   {:description "A page always has a representation whose body is nothing but a string of plaintext"
    :fields
    {:page_name {:type String}
-    :body {:type String}}
+    :body      {:type String}}
    }
 
   :Page
   {:description "A Page is a named page within the wiki. It is made of a series of cards"
    :fields
-   {:page_name {:type String}
-    :cards {:type (list :Card)}
-    :wiki_name {:type String}
-    :site_url {:type String}
-    :port {:type Int}
-    :ip {:type String}
+   {:page_name       {:type String}
+    :cards           {:type (list :Card)}
+    :wiki_name       {:type String}
+    :site_url        {:type String}
+    :port            {:type Int}
+    :ip              {:type String}
     :start_page_name {:type String}
-    :system_cards {:type (list :Card)}
+    :system_cards    {:type (list :Card)}
 
     }}
 
@@ -54,30 +54,30 @@
  :queries
  {
   :source_page
-  {:type :SourcePage
+  {:type        :SourcePage
    :description "Retrieve the raw version of a single page by its name"
-   :args {:page_name {:type (non-null String)}}
-   :resolve :resolve-source-page}
+   :args        {:page_name {:type (non-null String)}}
+   :resolve     :resolve-source-page}
 
   :server_prepared_page
-  {:type :Page
+  {:type        :Page
    :description "Retrieve the server prepared version of a single page by its name"
-   :args {:page_name {:type (non-null String)}}
-   :resolve :resolve-page}
+   :args        {:page_name {:type (non-null String)}}
+   :resolve     :resolve-page}
 
 
   :card
-  {:type :Card
+  {:type        :Card
    :description "Retrieve a single card"
-   :args {:page_name {:type (non-null String)}
-          :hash {:type (non-null String)}}
-   :resolve :resolve-card
+   :args        {:page_name {:type (non-null String)}
+                 :hash      {:type (non-null String)}}
+   :resolve     :resolve-card
    }
 
   :text_search
-  {:type :SearchResult
+  {:type        :SearchResult
    :description "Search text within the PageStore"
-   :args {:query_string {:type String}}
-   :resolve :resolve-text-search}
+   :args        {:query_string {:type String}}
+   :resolve     :resolve-text-search}
   }
  }

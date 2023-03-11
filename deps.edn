@@ -1,4 +1,4 @@
-{:paths ["src" "resources"]
+{:paths ["resources" "src/common"]
  :deps  {org.clojure/core.async        {:mvn/version "0.4.490"}
          markdown-clj/markdown-clj     {:mvn/version "1.10.1"}
          instaparse/instaparse         {:mvn/version "1.4.10"}
@@ -17,47 +17,42 @@
    :main-opts  ["-m" "clj-kondo.main"]}
 
   :dev
-  {:extra-deps {orchestra/orchestra       {:mvn/version "2018.12.06-2"}
-                expound/expound           {:mvn/version "0.7.2"}
-                com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
-   :main-opts  ["dev.clj"]}
+  {:extra-paths ["dev"]
+   :extra-deps {expound/expound {:mvn/version "0.7.2"}}}
 
   :client
-  {:extra-deps {org.clojure/clojurescript                     {:mvn/version "1.10.439"}
-                reagent/reagent                               {:mvn/version "1.2.0"}
-                cljsjs/highlight                              {:mvn/version "11.7.0-0"}
-                cljsjs/react                                  {:mvn/version "17.0.2-0"}
-                cljsjs/react-dom                              {:mvn/version "17.0.2-0"}
-                cljs-react-material-ui/cljs-react-material-ui {:mvn/version "0.2.50"}
-                cljsjs/ace                                    {:mvn/version "1.4.2-0"}
-                ;metosin/reitit-core                           {:mvn/version "0.6.0"}
-                ;metosin/reitit-frontend                       {:mvn/version "0.6.0"}
-                }}
+  {:extra-deps  {org.clojure/clojurescript                     {:mvn/version "1.10.439"}
+                 reagent/reagent                               {:mvn/version "1.2.0"}
+                 cljsjs/highlight                              {:mvn/version "11.7.0-0"}
+                 cljsjs/react                                  {:mvn/version "17.0.2-0"}
+                 cljsjs/react-dom                              {:mvn/version "17.0.2-0"}
+                 cljs-react-material-ui/cljs-react-material-ui {:mvn/version "0.2.50"}
+                 cljsjs/ace                                    {:mvn/version "1.4.2-0"}}
+   :extra-paths ["src/client"]}
 
   :dev-client
-  {:extra-deps {orchestra/orchestra       {:mvn/version "2018.12.06-2"}
-                expound/expound           {:mvn/version "0.7.2"}
-                com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
-   :main-opts  ["dev-client.clj" "--directory bedrock"]}
+  {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
+   :main-opts  ["dev/dev-client.clj"]}
 
   :server
-  {:extra-deps {org.clojure/clojure      {:mvn/version "1.10.1"}
-                org.clojure/core.logic   {:mvn/version "0.8.11"}
-                org.clojure/data.json    {:mvn/version "0.2.6"}
-                org.clojure/tools.reader {:mvn/version "1.3.2"}
-                ring/ring-core           {:mvn/version "1.7.1"}
-                ring/ring                {:mvn/version "1.7.1"}
-                com.walmartlabs/lacinia  {:mvn/version "0.36.0"}
-                hiccup/hiccup            {:mvn/version "1.0.5"}
-                http-kit/http-kit        {:mvn/version "2.4.0-alpha6"}
-                org.clojure/tools.cli    {:mvn/version "0.3.5"}
-                cljstache/cljstache      {:mvn/version "2.0.6"}
-                org.clojure/core.memoize {:mvn/version "1.0.236"}
-                clj-rss/clj-rss          {:mvn/version "0.2.5"}
-                remus/remus              {:mvn/version "0.1.0"}}}
+  {:extra-deps  {org.clojure/clojure      {:mvn/version "1.10.1"}
+                 org.clojure/core.logic   {:mvn/version "0.8.11"}
+                 org.clojure/data.json    {:mvn/version "0.2.6"}
+                 org.clojure/tools.reader {:mvn/version "1.3.2"}
+                 ring/ring-core           {:mvn/version "1.7.1"}
+                 ring/ring                {:mvn/version "1.7.1"}
+                 com.walmartlabs/lacinia  {:mvn/version "0.36.0"}
+                 hiccup/hiccup            {:mvn/version "1.0.5"}
+                 http-kit/http-kit        {:mvn/version "2.4.0-alpha6"}
+                 org.clojure/tools.cli    {:mvn/version "0.3.5"}
+                 cljstache/cljstache      {:mvn/version "2.0.6"}
+                 org.clojure/core.memoize {:mvn/version "1.0.236"}
+                 clj-rss/clj-rss          {:mvn/version "0.2.5"}
+                 remus/remus              {:mvn/version "0.1.0"}}
+   :extra-paths ["src/server"]}
 
   :dev-server
-  {:main-opts ["dev-server.clj"]}
+  {:main-opts ["-m" "dev_server"]}
 
   :test
   {:extra-paths ["test"]
@@ -67,7 +62,6 @@
    :main-opts   ["-m" "cognitect.test-runner"]}
 
   :uberjar
-  {:deps       {io.github.clojure/tools.build {:mvn/version "0.9.3"}}
-   :ns-default build}
-
-  :app {:extra-deps {}}}}
+  {:deps        {io.github.clojure/tools.build {:mvn/version "0.9.3"}}
+   :extra-paths ["build"]
+   :ns-default  build}}}

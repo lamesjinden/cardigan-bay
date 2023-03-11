@@ -17,7 +17,6 @@
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.params :refer [wrap-params params-request]]
-            [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.util.response :refer [not-found]]
 
@@ -221,10 +220,8 @@
       (not-found "Media file not found"))))
 
 ; runs when any request is received
-(defn handler [{:keys [uri request-method] :as request}]
-  (let [qs (:query-string request)
-        view-matches (re-matches #"/view/(\S+)" uri)]
-    (println (str "URI: " uri ", " qs))
+(defn handler [{:keys [uri request-method query-string] :as request}]
+  (let [view-matches (re-matches #"/view/(\S+)" uri)]
 
     (cond
       (= uri "/")
@@ -343,19 +340,29 @@
     :default false
     :parse-fn boolean]])
 
-; runs when the server starts
-(defn -main [& args]
+(defn args->opts [args]
   (let [as (if *command-line-args* *command-line-args* args)
         xs (cli/parse-opts as cli-options)
-        opts (get xs :options)
+        opts (get xs :options)]
+    opts))
 
-        ps (pagestore/make-page-store (:directory opts) (:export-dir opts))
+(defn create-app []
+  (-> #'handler
+      (wrap-resource "public")
+      (wrap-content-type)
+      (wrap-keyword-params)
+      (wrap-params)))
+
+(defn init-app [opts]
+  (let [ps (pagestore/make-page-store (:directory opts) (:export-dir opts))
         pe (export/make-page-exporter ps (:extension opts) (:links opts))]
 
     (println (str "\n"
                   "Welcome to Cardigan Bay\n"
                   "======================="))
+
     (card-server/initialize-state! (:name opts) (:site opts) (:port opts) (:init opts) nil ps pe)
+
     (println
       (str "\n"
            "Wiki Name:\t" (:wiki-name (card-server/server-state)) "\n"
@@ -376,12 +383,12 @@
            "\n"
            ))
 
-    (card-server/regenerate-db!)
+    (card-server/regenerate-db!)))
 
-    (-> #'handler
-        (wrap-content-type)
-        (wrap-keyword-params)
-        (wrap-params)
-        (wrap-reload)
-        (wrap-resource "clj_ts")
-        (run-server {:port (:port opts)}))))
+; runs when the server starts
+(defn -main [& args]
+  (let [opts (args->opts args)
+        server-opts (select-keys opts [:port])]
+    (init-app opts)
+    (let [app (create-app)]
+      (run-server app server-opts))))

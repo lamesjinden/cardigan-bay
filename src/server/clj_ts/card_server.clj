@@ -510,18 +510,18 @@ Bookmarked " timestamp ",, <" url ">
 
 ;; [schema-file (io/file (System/getProperty "user.dir") "clj_ts/gql_schema.edn")]
 (def pagestore-schema
-  (-> "gql_schema.edn"
-      io/resource
-      slurp
+  (->
+    "gql_schema.edn"
+    io/resource
+    slurp
+    edn/read-string
 
-      edn/read-string
-
-      (attach-resolvers {:resolve-source-page resolve-source-page
-                         :resolve-page        resolve-page
-                         :resolve-card        resolve-card
-                         :resolve-text-search resolve-text-search
-                         })
-      schema/compile))
+    (attach-resolvers {:resolve-source-page resolve-source-page
+                       :resolve-page        resolve-page
+                       :resolve-card        resolve-card
+                       :resolve-text-search resolve-text-search
+                       })
+    schema/compile))
 
 
 ;; RecentChanges as RSS

@@ -1,1 +1,0 @@
-clj -A:test:app

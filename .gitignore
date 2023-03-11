@@ -1,0 +1,9 @@
+/.clj-kondo/
+/.cpcache/
+/.lsp/
+/.idea/
+/resources/public/main.js
+/resources/out/
+/target/
+
+/.nrepl-port

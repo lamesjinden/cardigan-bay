@@ -1,35 +1,44 @@
 {:deps  {org.clojure/clojurescript {:mvn/version "1.10.439"}}
- :tasks {:init      (do (def target-dir "target")
-                        (def jar-file "target/foo.jar")
-                        (def out-dir "resources/clj_ts/main.out")
-                        (def target-dir "target"))
+ :tasks {:init        (do (def target-dir "target")
+                          (def out-dir "resources/out")
+                          (def target-dir "target"))
 
-         clean      {:requires ([babashka.fs :as fs])
-                     :task     (let []
-                                 (println "Cleaing")
-                                 (println "  " out-dir)
-                                 (fs/delete-tree out-dir)
-                                 (println "  " target-dir)
-                                 (fs/delete-tree target-dir))}
+         clean-client (do
+                        (println "Cleaning (client)")
+                        (println "  " out-dir)
+                        (fs/delete-tree out-dir))
 
-         cljs       (do
-                      (println "Compiling ClojureScript")
-                      (let [out-file "resources/clj_ts/main.js"
-                            out-dir "resources/clj_ts/main.out"
-                            clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
-                                      out-dir
-                                      out-file)]
-                        (clojure clj-arg)))
+         clean-server (do
+                        (println "Cleaning (server)")
+                        (println "  " target-dir)
+                        (fs/delete-tree target-dir))
 
-         uberjar    (do
-                      (println "Compiling Clojure")
-                      (clojure "-T:uberjar uber"))
+         clean        {:requires ([babashka.fs :as fs])
+                       :task     (do
+                                   (run 'clean-client)
+                                   (run 'clean-server))}
 
-         all        (do (run 'clean)
-                        (run 'cljs)
-                        (run 'uberjar))
+         cljs         (do
+                        (println "Compiling ClojureScript")
+                        (let [out-file "resources/public/main.js"
+                              out-dir "resources/out"
+                              clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
+                                        out-dir
+                                        out-file)]
+                          (clojure clj-arg)))
 
-         dev-client (clojure "-M:dev-client:client")
-         dev-server (clojure "-M:dev-server:server --directory '../../Documents/wiki/bedrock/'")}
+         uberjar      (do
+                        (println "Compiling Clojure")
+                        (clojure "-T:uberjar uber"))
+
+         all          (do (run 'clean)
+                          (run 'cljs)
+                          (run 'uberjar))
+
+         dev-client   (clojure "-M:dev-client:client:dev")
+         dev-server   (clojure "-M:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
+
+         lint         (do (println "todo --- clj -A:eastwood:app"))
+         test         (do (println "todo --- clojure -A:test -m kaocha.runner --config-file test/tests.edn \"$@\""))}
  }
 
