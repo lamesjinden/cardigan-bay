@@ -1,7 +1,6 @@
 (ns clj-ts.pagestore
   (:require
     [clojure.string :as string]
-    [clj-ts.types :refer [IPageStore]]
     [clojure.java.io :as io]
     [clojure.core.memoize :refer [memo memo-clear!]]))
 
@@ -12,6 +11,27 @@
 
 ;; page-path, system-path, export-path are Java nio Paths
 ;; git-repo? is boolean
+
+(defprotocol IPageStore
+  (as-map [ps])
+  (page-name->path [ps page-name])
+  (name->system-path [ps name])
+  (page-exists? [ps page-name])
+  (system-file-exists? [ps name])
+  (last-modified [ps page-name])
+  (read-page [ps page])
+  (write-page! [ps page data])
+  (read-system-file [ps name])
+  (write-system-file! [ps name data])
+  (report [ps])
+  (similar-page-names [ps p-name])
+  (pages-as-new-directory-stream [ps])
+  (media-files-as-new-directory-stream [ps])
+  (media-export-path [ps])
+  (read-recent-changes [ps])
+  (write-recent-changes! [ps new-rc])
+  (load-media-file [ps file-name])
+  (load-custom-file [ps file-name]))
 
 (deftype PageStore [page-path system-path export-path git-repo?]
   IPageStore

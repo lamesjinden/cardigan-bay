@@ -1,14 +1,21 @@
 {:deps  {org.clojure/clojurescript {:mvn/version "1.10.439"}}
- :tasks {:init        (do (def target-dir "target")
-                          (def out-dir "resources/out")
-                          (def target-dir "target"))
+ :tasks {:init        (do (def global "global"))
 
-         clean-client (do
+         clean-client (let [resources-out "resources/out"
+                            resources-public-js "resources/public/js"
+                            target "target"
+                            dirs [resources-out resources-public-js target]
+                            main-js "resources/public/main.js"
+                            files [main-js]]
                         (println "Cleaning (client)")
-                        (println "  " out-dir)
-                        (fs/delete-tree out-dir))
+                        (println "  " (clojure.string/join ", " dirs))
+                        (doseq [dir dirs]
+                          (fs/delete-tree dir))
+                        (println "  " (clojure.string/join ", " files))
+                        (doseq [file files]
+                          (fs/delete-if-exists "resources/public/main.js")))
 
-         clean-server (do
+         clean-server (let [target-dir "target"]
                         (println "Cleaning (server)")
                         (println "  " target-dir)
                         (fs/delete-tree target-dir))
@@ -18,25 +25,26 @@
                                    (run 'clean-client)
                                    (run 'clean-server))}
 
-         cljs         (do
+         build-client (do
                         (println "Compiling ClojureScript")
                         (let [out-file "resources/public/main.js"
-                              out-dir "resources/out"
+                              out-dir "resources/public/js/compiled/out"
                               clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
                                         out-dir
                                         out-file)]
-                          (clojure clj-arg)))
+                          (clojure clj-arg)
+                          (fs/delete-tree out-dir)))
 
-         uberjar      (do
+         build-server (do
                         (println "Compiling Clojure")
                         (clojure "-T:uberjar uber"))
 
          all          (do (run 'clean)
-                          (run 'cljs)
-                          (run 'uberjar))
+                          (run 'build-client)
+                          (run 'build-server))
 
-         dev-client   (clojure "-M:dev-client:client:dev")
-         dev-server   (clojure "-M:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
+         run-dev-client   (clojure "-M:run-dev-client:client:dev")
+         run-dev-server   (clojure "-M:run-dev-server:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
 
          lint         (do (println "todo --- clj -A:eastwood:app"))
          test         (do (println "todo --- clojure -A:test -m kaocha.runner --config-file test/tests.edn \"$@\""))}

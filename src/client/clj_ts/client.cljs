@@ -1,21 +1,25 @@
 (ns clj-ts.client
   (:require
-    [reagent.core :as r]
-    [reagent.dom :as dom]
-    [clojure.string :refer [lower-case trim replace]]
-    [clojure.string :as string]
     [cljs.core :refer [js->clj]]
     [cljs.pprint :refer [pprint]]
+    [clojure.string :refer [lower-case trim replace]]
+    [clojure.string :as string]
+    [goog.string :as gstring]
+    [goog.string.format]
+    [reagent.core :as r]
+    [reagent.dom :as dom]
     [sci.core :as sci]
     [markdown.core :as md]
-    [clj-ts.common :refer [raw-card-text->raw-card-map
-                           double-comma-table
-                           double-bracket-links auto-links]]
     [cljsjs.highlight]
     [cljsjs.highlight.langs.clojure]
     [cljsjs.highlight.langs.bash]
-    [cljsjs.ace])
+    [cljsjs.ace]
+    [clj-ts.common :refer [raw-card-text->raw-card-map
+                           double-comma-table
+                           double-bracket-links auto-links]])
   (:import goog.net.XhrIo))
+
+(goog-define env "production")
 
 ;; State
 (defonce db (r/atom
@@ -28,14 +32,54 @@
                :wiki-name    "Wiki Name"
                :site-url     "Site URL"
                :mode         :viewing
-               ;;:mode :page WHAT WAS THIS? WAS IT USED?
-               :port         4545}))
+               :env-port     4545}))
+
+(defn http-send [{:keys [url callback method body headers timeout with-credentials?]
+                  :or   {body              nil
+                         headers           nil
+                         timeout           0
+                         with-credentials? false}}]
+  (when (not url)
+    (throw (js/error "url was not defined")))
+  (when (not callback)
+    (throw (js/error "callback was not defined")))
+  (when (not method)
+    (throw (js/error "method was not defined")))
+
+  (let [url (if (= env "dev")
+              (gstring/format "//localhost:%s%s" (:env-port @db) url)
+              url)]
+    (.send XhrIo
+           url
+           callback
+           method
+           body
+           headers
+           timeout
+           with-credentials?)))
+
+(defn http-get [url callback & {:keys [headers timeout with-credentials?]}]
+  (http-send {:url               url
+              :callback          callback
+              :method            "GET"
+              :headers           headers
+              :timeout           timeout
+              :with-credentials? with-credentials?}))
+
+(defn http-post [url callback body & {:keys [headers timeout with-credentials?]}]
+  (http-send {:url               url
+              :callback          callback
+              :method            "POST"
+              :body              body
+              :headers           headers
+              :timeout           timeout
+              :with-credentials? with-credentials?}))
 
 ;; PageStore
 
-(defn load-page! [page-name new-past new-future]
-  (let [lcpn page-name
-        query (str "{\"query\" : \"query GetPage {
+(defn ->load-page-query [page-name]
+  (let [lcpn page-name]
+    (str "{\"query\" : \"query GetPage {
   source_page(page_name: \\\"" lcpn "\\\" ) {
     page_name
     body
@@ -64,36 +108,36 @@
       server_prepared_data
     }
   }
-} \",\"variables\":null, \"operationName\":\"GetPage\"}")]
-    (.send XhrIo
-           "/clj_ts/graphql"
-           (fn [e]
-             (let [edn (-> e .-target .getResponseText .toString
-                           (#(.parse js/JSON %)) js->clj)
-                   data (-> edn (get "data"))
-                   raw (-> data (get "source_page") (get "body"))
-                   cards (-> data (get "server_prepared_page") (get "cards"))
-                   system-cards (-> data (get "server_prepared_page") (get "system_cards"))
-                   site-url (-> data (get "server_prepared_page") (get "site_url"))
-                   wiki-name (-> data (get "server_prepared_page") (get "wiki_name"))
-                   port (-> data (get "server_prepared_page") (get "port"))
-                   ip (-> data (get "server_prepared_page") (get "ip"))
-                   start-page-name (-> data (get "server_prepared_page") (get "start_page_name"))]
-               (swap! db assoc
-                      :current-page page-name
-                      :site-url site-url
-                      :wiki-name wiki-name
-                      :port port
-                      :ip ip
-                      :start-page-name start-page-name
-                      :raw raw
-                      :cards cards
-                      :system-cards system-cards
-                      :past new-past
-                      :future new-future))
-             (js/window.scroll 0 0))
-           "POST",
-           query)))
+} \",\"variables\":null, \"operationName\":\"GetPage\"}")))
+
+(defn load-page! [page-name new-past new-future]
+  (let [query (->load-page-query page-name)
+        callback (fn [e]
+                   (let [edn (-> e .-target .getResponseText .toString
+                                 (#(.parse js/JSON %)) js->clj)
+                         data (-> edn (get "data"))
+                         raw (-> data (get "source_page") (get "body"))
+                         cards (-> data (get "server_prepared_page") (get "cards"))
+                         system-cards (-> data (get "server_prepared_page") (get "system_cards"))
+                         site-url (-> data (get "server_prepared_page") (get "site_url"))
+                         wiki-name (-> data (get "server_prepared_page") (get "wiki_name"))
+                         port (-> data (get "server_prepared_page") (get "port"))
+                         ip (-> data (get "server_prepared_page") (get "ip"))
+                         start-page-name (-> data (get "server_prepared_page") (get "start_page_name"))]
+                     (swap! db assoc
+                            :current-page page-name
+                            :site-url site-url
+                            :wiki-name wiki-name
+                            :port port
+                            :ip ip
+                            :start-page-name start-page-name
+                            :raw raw
+                            :cards cards
+                            :system-cards system-cards
+                            :past new-past
+                            :future new-future))
+                   (js/window.scroll 0 0))]
+    (http-post "/clj_ts/graphql" callback query)))
 
 (defn generate-form-data [params]
   (let [form-data (js/FormData.)]
@@ -107,57 +151,53 @@
   (let [page-name (-> @db :current-page)
         ace-instance (:ace-instance @db)
         new-data (.getValue ace-instance)]
-    (.send XhrIo
-           "/clj_ts/save"
-           (fn [_] (reload!))
-           "POST"
-           (pr-str {:page page-name
-                    :data new-data}))))
+    (http-post
+      "/clj_ts/save"
+      (fn [_] (reload!))
+      (pr-str {:page page-name
+               :data new-data}))))
 
 (defn card-reorder! [page-name hash direction]
-  (.send XhrIo
-         "/api/reordercard"
-         (fn [e]
-           (reload!))
-         "POST"
-         (pr-str {:page      page-name
-                  :hash      hash
-                  :direction direction})))
+  (http-post
+    "/api/reordercard"
+    (fn [_] (reload!))
+    (pr-str {:page      page-name
+             :hash      hash
+             :direction direction})))
 
 (declare go-new!)
 
 (defn card-send-to-page! [page-name hash new-page-name]
-  (.send XhrIo
-         "/api/movecard"
-         (fn [e]
-           (go-new! new-page-name))
-         "POST"
-         (pr-str {:from page-name
-                  :to   new-page-name
-                  :hash hash})))
+  (http-post
+    "/api/movecard"
+    (fn [_] (go-new! new-page-name))
+    (pr-str {:from page-name
+             :to   new-page-name
+             :hash hash})))
 
 (declare prepend-transcript!)
 
 (declare string->html)
 
-(defn search-text! [query-text]
-  (let [cleaned-query
-        (-> query-text
-            (#(replace % "\"" ""))
-            (#(replace % "'" "")))
-        query (str "{\"query\" : \"query TextSearch  {
+(defn ->text-search-query [cleaned-query]
+  (str "{\"query\" : \"query TextSearch  {
 text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
-}\",  \"variables\":null, \"operationName\":\"TextSearch\"   }")]
-    (.send XhrIo
-           "/clj_ts/graphql"
-           (fn [e]
-             (let [edn (-> e .-target .getResponseText .toString
-                           (#(.parse js/JSON %)) js->clj)
-                   data (-> edn (get "data"))
-                   result (-> data (get "text_search") (get "result_text"))]
-               (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))))
-           "POST"
-           query)))
+}\",  \"variables\":null, \"operationName\":\"TextSearch\"   }"))
+
+(defn search-text! [query-text]
+  (let [cleaned-query (-> query-text
+                          (#(replace % "\"" ""))
+                          (#(replace % "'" "")))
+        query (->text-search-query cleaned-query)
+        callback (fn [e]
+                   (let [edn (-> e .-target .getResponseText .toString (#(.parse js/JSON %)) js->clj)
+                         data (-> edn (get "data"))
+                         result (-> data (get "text_search") (get "result_text"))]
+                     (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))))]
+    (http-post
+      "/clj_ts/graphql"
+      callback
+      query)))
 
 ;; Nav and History
 
@@ -204,11 +244,9 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 
 ;; RUN
 
-(let [_start-page
-      (.send XhrIo
-             "/startpage"
-             (fn [e]
-               (-> e .-target .getResponseText .toString go-new!)))])
+(let [url "/startpage"
+      callback (fn [e] (-> e .-target .getResponseText .toString go-new!))]
+  (http-get url callback))
 
 ;; Rendering Views
 
@@ -727,14 +765,13 @@ NO BOILERPLATE FOR EMBED TYPE " type
     (if (= classname "wikilink")
       (go-new! data))))
 
-(defn one-card [_card]
+(defn one-card []
   (let [inner-html (fn [s] [:div {:dangerouslySetInnerHTML {:__html s}}])
         state2 (r/atom {:toggle "block"})
         toggle! (fn [_]
-                  (do
-                    (if (= (-> @state2 :toggle) "none")
-                      (swap! state2 #(conj % {:toggle "block"}))
-                      (swap! state2 #(conj % {:toggle "none"})))))]
+                  (if (= (-> @state2 :toggle) "none")
+                    (swap! state2 #(conj % {:toggle "block"}))
+                    (swap! state2 #(conj % {:toggle "none"}))))]
     (fn [card]
       (let [rtype (get card "render_type")
             data (get card "server_prepared_data")
@@ -785,30 +822,46 @@ NO BOILERPLATE FOR EMBED TYPE " type
          [card-bar card]]))))
 
 (defn card-list []
-  [:div
-   [:div
-    (try
-      (let [cards (-> @db :cards)]
-        (for [card (filter not-blank? cards)]
-          (try
-            [one-card card]
-            (catch :default e
-              [:div {:class :card-outer}
-               [:div {:class "card"}
-                [:h4 "Error"]
-                (str e)]]))))
-      (catch :default e
-        (do
-          (js/console.log "ERROR")
-          (js/console.log (str e))
-          (js/alert e))))]
-   [:div
-    (try
-      (let [cards (-> @db :system-cards)]
-        (for [card cards]
-          [one-card card]))
-      (catch :default e
-        (js/alert e)))]])
+  (reagent.core/create-class
+    {:component-did-mount
+     (fn [_this] (let [random-max 65535
+                       cards (->> (:cards @db)
+                                  (mapv (fn [card]
+                                          (assoc card :key (rand-int random-max)))))
+                       system-cards (->> (:system-cards @db)
+                                         (mapv (fn [system-card]
+                                                 (let [key (rand-int random-max)]
+                                                   (assoc system-card :key key)))))]
+                   (swap! db assoc :cards cards)
+                   (swap! db assoc :system-cards system-cards)))
+
+     :reagent-render
+     (fn [_this]
+       (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
+         [:div
+          [:div
+           (try
+             (let [cards (-> @db :cards)]
+               (for [card (filter not-blank? cards)]
+                 (try
+                   [:div {:key (key-fn card)} [one-card card]]
+                   (catch :default e
+                     [:div {:class :card-outer}
+                      [:div {:class "card"}
+                       [:h4 "Error"]
+                       (str e)]]))))
+             (catch :default e
+               (do
+                 (js/console.log "ERROR")
+                 (js/console.log (str e))
+                 (js/alert e))))]
+          [:div
+           (try
+             (let [cards (-> @db :system-cards)]
+               (for [card cards]
+                 [:div {:key (key-fn card)} [one-card card]]))
+             (catch :default e
+               (js/alert e)))]]))}))
 
 (defn transcript []
   [:div {:class                   "transcript"
@@ -832,7 +885,10 @@ NO BOILERPLATE FOR EMBED TYPE " type
                                                     escape-code 27]
                                                 (when (and (= (-> @db :mode) :editing)
                                                            (= kc escape-code))
-                                                  (swap! db assoc :mode :viewing))))} (:raw @db)])}))
+                                                  (swap! db assoc :mode :viewing))
+
+                                                (when ())
+                                                ))} (:raw @db)])}))
 
 (defn main-container []
   [:div
@@ -849,6 +905,12 @@ NO BOILERPLATE FOR EMBED TYPE " type
       :transcript
       [:div
        [transcript]])]])
+
+(defn bookmarklet-footer-link []
+  (let [port (:port @db)
+        document-url js/document.URL
+        url (str "http://localhost:" port "/api/bookmarklet?url=" document-url)]
+    [:a {:href url} "Bookmark to this Wiki"]))
 
 ;; Main Page
 
@@ -878,7 +940,7 @@ NO BOILERPLATE FOR EMBED TYPE " type
      [:a {:href "https://github.com/interstar/cardigan-bay"} "Cardigan Bay "]
      "(c) Phil Jones 2020-2022  || "
      [:span "IP: " (str (-> @db :ip)) " || "]
-     [:a {:href (str "javascript:(function(){window.location='http://localhost:" (-> @db :port) "/api/bookmarklet?url='+document.URL;})();")} "Bookmark to this Wiki"]]]])
+     [bookmarklet-footer-link]]]])
 
 ;; tells reagent to begin rendering
 (dom/render [content] (.querySelector js/document "#app"))

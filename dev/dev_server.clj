@@ -2,7 +2,10 @@
   (:require
     [org.httpkit.server :as http]
     [ring.middleware.reload :as reload]
+    [ring.middleware.cors :as cors]
     [clj-ts.server :as cb]))
+
+(set! *warn-on-reflection* true)
 
 (defonce server (atom nil))
 
@@ -21,14 +24,10 @@
 
     (reset! server (http/run-server
                      (-> (cb/create-app)
-                         (reload/wrap-reload))
-                     {:port (:port opts)}))
-
-    #_(let [app (cb/create-app)
-            app (reload/wrap-reload app)
-            shutdown-server (http/run-server app {:port (:port opts)})]
-        (reset! server shutdown-server))
-    ))
+                         (reload/wrap-reload)
+                         (cors/wrap-cors :access-control-allow-origin [#".*"]
+                                         :access-control-allow-methods [:get :put :post :delete]))
+                     {:port (:port opts)}))))
 
 (defn -main [& args]
   (apply create-server args))

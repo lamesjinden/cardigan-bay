@@ -1,7 +1,9 @@
 ^{:css-dirs ["resources/public"]
   :open-url false}
-{:main          clj-ts.client
- :optimizations :none
- :output-to     "resources/clj_ts/main.js"
- :output-dir    "resources/clj_ts/main.out"
- :asset-path    "/main.out"}
+{:main            clj-ts.client
+ :optimizations   :none
+ :source-map      true
+ :output-to       "resources/public/main.js"
+ :output-dir      "resources/public/js/compiled/out"
+ :asset-path      "js/compiled/out"
+ :closure-defines {clj-ts.client/env "dev"}}

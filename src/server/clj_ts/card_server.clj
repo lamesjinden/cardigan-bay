@@ -5,7 +5,6 @@
     [clj-ts.logic :as ldb]
     [clj-ts.pagestore :as pagestore]
     [clj-ts.common :as common]
-    [clj-ts.types :as types]
     [clj-ts.embed :as embed]
     [clj-ts.patterning :as patterning]
     [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
@@ -29,15 +28,10 @@
 
 (defprotocol ICardServerRecord)
 
-
-
 (defmacro dnn [cs m & args]
   `(let [db# (:facts-db ~cs)]
      (if (nil? db#) :not-available
-                    (. db# ~m ~@args))
-     ))
-
-
+                    (. db# ~m ~@args))))
 
 (defrecord CardServerRecord
   [wiki-name site-url port-no start-page facts-db page-store page-exporter]
@@ -48,11 +42,7 @@
   (all-links [cs] (dnn cs all-links))
   (broken-links [cs] (dnn cs broken-links))
   (orphan-pages [cs] (dnn cs orphan-pages))
-  (links-to [cs p-name] (dnn cs links-to p-name))
-
-  )
-
-
+  (links-to [cs p-name] (dnn cs links-to p-name)))
 
 ;; State Management is done at the card-server level
 
@@ -67,8 +57,7 @@
             start-page
             logic-db
             page-store
-            page-exporter))
-  )
+            page-exporter)))
 
 (defn server-state
   "Other modules should always get the card-server data through calling this function.
@@ -98,25 +87,16 @@
   (set-state! :facts-db facts))
 
 (defn set-page-store! [page-store]
-  {:pre [(satisfies? types/IPageStore page-store)]}
+  {:pre [(satisfies? pagestore/IPageStore page-store)]}
   (set-state! :page-store page-store))
-
-(defn set-page-exporter! [page-exporter]
-  {:pre [(= (type page-exporter) types/IPageExporter)]}
-  (set-state! :page-exporer page-exporter))
-
-
 
 ;; PageStore delegation
 
 (declare regenerate-db!)
 
 (defn write-page-to-file! [p-name body]
-  (do
-    (pagestore/write-page-to-file! (server-state) p-name body)
-    (regenerate-db!)
-    ))
-
+  (pagestore/write-page-to-file! (server-state) p-name body)
+  (regenerate-db!))
 
 (defn update-pagedir! [new-pd new-ed]
   (let [new-ps
@@ -134,8 +114,6 @@
   (-> (.page-store (server-state))
       (.read-page page-name)))
 
-
-
 ;; Logic delegation
 
 (defn regenerate-db! []
@@ -145,8 +123,6 @@
       (set-facts-db! f)
       (println "Finished building logic db"))))
 
-
-
 ;; Useful for errors
 
 (defn exception-stack [e]
@@ -154,7 +130,6 @@
         pw (new java.io.PrintWriter sw)]
     (.printStackTrace e pw)
     (str "Exception :: " (.getMessage e) (-> sw .toString))))
-
 
 ;; Card Processing
 
@@ -166,18 +141,13 @@
         (try
           (#(apply str (sci/eval-string code)))
           (catch Exception e exception-stack))]
-    evaluated
-    ))
-
+    evaluated))
 
 (defn server-custom-script
   "Evaluate a script from system/custom/ with arguments"
   [data]
-  (do
-    (println "In server-custom-script")
-    (str "This will (eventually) run a custom script: " data))
-  )
-
+  (println "In server-custom-script")
+  (str "This will (eventually) run a custom script: " data))
 
 (defn ldb-query->mdlist-card [i title result qname f user-authored?]
   (let [items (apply str (map f result))
@@ -186,10 +156,8 @@
 
 (defn item1 [s] (str "* [[" s "]]\n"))
 
-
 (defn system-card [i data user-authored?]
-  (let [
-        info (read-string data)
+  (let [info (read-string data)
         cmd (:command info)
         db (-> (server-state) :facts-db)
         ps (-> (server-state) :page-store)]
@@ -249,9 +217,7 @@
 
       ;; not recognised
       (let [d (str "Not recognised system command in " data " -- cmd " cmd)]
-        (common/package-card i :system :raw d d user-authored?)))
-    ))
-
+        (common/package-card i :system :raw d d user-authored?)))))
 
 (defn transclude [i data user-authored?]
   (let [{:keys [from process]} (read-string data)
@@ -268,15 +234,11 @@ Bookmarked " timestamp ",, <" url ">
 
 ")))
 
-
-
 (defn afind [n ns]
   (cond (empty? ns) nil
         (= n (-> ns first first))
         (-> ns first rest)
         :otherwise (afind n (rest ns))))
-
-
 
 (defn network-card [i data for-export? user-authored?]
   (try
@@ -342,9 +304,7 @@ Bookmarked " timestamp ",, <" url ">
     (catch Exception e (common/package-card i :network :raw data
                                             (str (exception-stack e)
                                                  "\n" data)
-                                            user-authored?))
-    )
-  )
+                                            user-authored?))))
 
 (defn process-card
   [i card for-export? user-authored?]
@@ -352,7 +312,6 @@ Bookmarked " timestamp ",, <" url ">
     (condp = source-type
       :markdown (common/package-card i source-type :markdown data data user-authored?)
       :manual-copy (common/package-card i source-type :manual-copy data data user-authored?)
-
       :raw (common/package-card i source-type :raw data data user-authored?)
 
       :code
@@ -394,21 +353,18 @@ Bookmarked " timestamp ",, <" url ">
                            (patterning/one-pattern data) user-authored?)
 
       ;; not recognised
-      (common/package-card i source-type source-type data data user-authored?)
-      )))
+      (common/package-card i source-type source-type data data user-authored?))))
 
 (defn raw->cards [raw for-export? user-authored?]
   (let [cards (string/split raw #"----")]
     (map process-card (iterate inc 0) cards (repeat for-export?) (repeat user-authored?))))
-
 
 (declare backlinks)
 
 (defn load->cards [page-name]
   (-> (server-state) .page-store
       (.read-page page-name)
-      (raw->cards false true))
-  )
+      (raw->cards false true)))
 
 (defn load->cards-for-export [page-name]
   (-> (server-state) .page-store
@@ -457,7 +413,6 @@ Bookmarked " timestamp ",, <" url ">
       {:page_name page_name
        :body      "PAGE DOES NOT EXIST"})))
 
-
 (defn resolve-page [_context arguments _value]
   (let [{:keys [page_name]} arguments
         ps (:page-store (server-state))
@@ -469,11 +424,7 @@ Bookmarked " timestamp ",, <" url ">
              (let [dgs (new DatagramSocket)]
                (.connect dgs (InetAddress/getByName "8.8.8.8") 10002)
                (-> dgs .getLocalAddress .getHostAddress))
-
-             (catch Exception e (str e))
-             )
-
-        ]
+             (catch Exception e (str e)))]
 
     (if (.page-exists? ps page_name)
       {:page_name       page_name
@@ -484,8 +435,7 @@ Bookmarked " timestamp ",, <" url ">
        :public_root     (str site-url "/view/")
        :start_page_name start-page-name
        :cards           (load->cards page_name)
-       :system_cards    (generate-system-cards page_name)
-       }
+       :system_cards    (generate-system-cards page_name)}
       {:page_name       page_name
        :wiki_name       wiki-name
        :site_url        site-url
@@ -494,19 +444,15 @@ Bookmarked " timestamp ",, <" url ">
        :start_page_name start-page-name
        :public_root     (str site-url "/view/")
        :cards           (raw->cards "PAGE DOES NOT EXIST" false false)
-       :system_cards
-       (let [sim-names (map
-                         #(str "\n- [[" % "]]")
-                         (.similar-page-names
-                           ps page_name))]
-         (if (empty? sim-names) []
-                                [(common/package-card
-                                   :similarly_name_pages :system :markdown ""
-                                   (str "Here are some similarly named pages :"
-                                        (apply str sim-names)) false)]))
-       })))
-
-
+       :system_cards    (let [sim-names (map
+                                          #(str "\n- [[" % "]]")
+                                          (.similar-page-names
+                                            ps page_name))]
+                          (if (empty? sim-names) []
+                                                 [(common/package-card
+                                                    :similarly_name_pages :system :markdown ""
+                                                    (str "Here are some similarly named pages :"
+                                                         (apply str sim-names)) false)]))})))
 
 ;; [schema-file (io/file (System/getProperty "user.dir") "clj_ts/gql_schema.edn")]
 (def pagestore-schema
@@ -515,14 +461,11 @@ Bookmarked " timestamp ",, <" url ">
     io/resource
     slurp
     edn/read-string
-
     (attach-resolvers {:resolve-source-page resolve-source-page
                        :resolve-page        resolve-page
                        :resolve-card        resolve-card
-                       :resolve-text-search resolve-text-search
-                       })
+                       :resolve-text-search resolve-text-search})
     schema/compile))
-
 
 ;; RecentChanges as RSS
 
@@ -532,17 +475,14 @@ Bookmarked " timestamp ",, <" url ">
                     (let [m (re-matches #"\* \[\[(\S+)\]\] (\(.+\))" s)
                           [pname date] [(second m) (nth m 2)]]
                       {:title (str pname " changed on " date)
-                       :link  (link-fn pname)}
-                      ))
+                       :link  (link-fn pname)}))
         rc (-> (.read-recent-changes ps)
                string/split-lines
                (#(map make-link %)))]
     (rss/channel-xml {:title       "RecentChanges"
                       :link        (-> (server-state) :site-url)
                       :description "Recent Changes in CardiganBay Wiki"}
-                     rc
-                     )))
-
+                     rc)))
 
 ;; Backlinks
 
@@ -570,15 +510,12 @@ Bookmarked " timestamp ",, <" url ">
         (fn [[a b]] (str "* [[" a "]] \n"))
         false))))
 
-
-
 ;; transforms on pages
 
 (defn append-card-to-page! [page-name type body]
   (let [page-body (try
                     (pagestore/read-page (server-state) page-name)
-                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n"))
-                    )
+                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n")))
         new-body (str page-body "----
 " type "
 " body)]
@@ -587,8 +524,7 @@ Bookmarked " timestamp ",, <" url ">
 (defn prepend-card-to-page! [page-name type body]
   (let [page-body (try
                     (pagestore/read-page (server-state) page-name)
-                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n"))
-                    )
+                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n")))
         new-body (str
                    "----
 " type "
@@ -596,17 +532,15 @@ Bookmarked " timestamp ",, <" url ">
 
 ----
 "
-                   page-body)
-        ]
+                   page-body)]
     (write-page-to-file! page-name new-body)))
 
 (defn move-card [page-name hash destination-name]
   (let [from-cards (load->cards page-name)
         card (common/find-card-by-hash from-cards hash)
         stripped (into [] (common/remove-card-by-hash from-cards hash))
-        stripped_raw (common/cards->raw stripped)
-        ]
-    (if (not (nil? card))
+        stripped_raw (common/cards->raw stripped)]
+    (when (not (nil? card))
       (do
         (append-card-to-page! destination-name (:source_type card) (:source_data card))
         (write-page-to-file! page-name stripped_raw)))))
@@ -615,18 +549,13 @@ Bookmarked " timestamp ",, <" url ">
   (let [cards (load->cards page-name)
         new-cards (if (= "up" direction)
                     (common/move-card-up cards hash)
-                    (common/move-card-down cards hash))
-        ]
+                    (common/move-card-down cards hash))]
     (write-page-to-file! page-name (common/cards->raw new-cards))))
-
 
 ;;;; Media and Custom files
 
 (defn load-media-file [file-name]
   (-> (server-state) :page-store (.load-media-file file-name)))
 
-
 (defn load-custom-file [file-name]
   (-> (server-state) :page-store (.load-custom-file file-name)))
-
-;;file (io/file (System/getProperty "user.dir") (str "." uri))
