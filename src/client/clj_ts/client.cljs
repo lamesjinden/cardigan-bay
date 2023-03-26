@@ -1,9 +1,8 @@
 (ns clj-ts.client
   (:require
-    [cljs.core :refer [js->clj]]
+    [cljs.core]
     [cljs.pprint :refer [pprint]]
-    [clojure.string :refer [lower-case trim replace]]
-    [clojure.string :as string]
+    [clojure.string :as str]
     [goog.string :as gstring]
     [goog.string.format]
     [reagent.core :as r]
@@ -16,8 +15,9 @@
     [cljsjs.ace]
     [clj-ts.common :refer [raw-card-text->raw-card-map
                            double-comma-table
-                           double-bracket-links auto-links]])
-  (:import goog.net.XhrIo))
+                           double-bracket-links
+                           auto-links]])
+  (:import [goog.net XhrIo]))
 
 (goog-define env "production")
 
@@ -145,7 +145,8 @@
       (.append form-data (name k) v))
     form-data))
 
-(declare reload!)
+(defn reload! []
+  (load-page! (:current-page @db) (-> @db :past) (-> @db :future)))
 
 (defn save-page! []
   (let [page-name (-> @db :current-page)
@@ -186,8 +187,8 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 
 (defn search-text! [query-text]
   (let [cleaned-query (-> query-text
-                          (#(replace % "\"" ""))
-                          (#(replace % "'" "")))
+                          (#(str/replace % "\"" ""))
+                          (#(str/replace % "'" "")))
         query (->text-search-query cleaned-query)
         callback (fn [e]
                    (let [edn (-> e .-target .getResponseText .toString (#(.parse js/JSON %)) js->clj)
@@ -208,9 +209,6 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 (defn forward! [p-name]
   (load-page! p-name (conj (-> @db :past) (-> @db :current-page)) (pop (-> @db :future))))
 
-(defn reload! []
-  (load-page! (:current-page @db) (-> @db :past) (-> @db :future)))
-
 (defn back! []
   (load-page! (-> @db :past last) (pop (-> @db :past)) (conj (-> @db :future) (-> @db :current-page))))
 
@@ -221,6 +219,8 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
          :mode :editing
          :raw (str (-> @db :raw) "\n----\n:stamp\n" {:type stamp})))
 
+; todo - broken. probably because edit-field was replaced with ace-editor
+; todo - once fixed, can this be done without going directly to the dom?
 (defn insert-text-at-cursor! [s]
   (let [ta (-> js/document
                (.getElementById "edit-field"))
@@ -604,7 +604,7 @@ NO BOILERPLATE FOR EMBED TYPE " type
            [:img {:src "/icons/x.png"}] " Return"]])])))
 
 (defn not-blank? [card]
-  (not= "" (string/trim (get card "source_data"))))
+  (not= "" (str/trim (get card "source_data"))))
 
 (defn string->html [s]
   (-> s
@@ -730,7 +730,7 @@ NO BOILERPLATE FOR EMBED TYPE " type
                                     [:div {:class :code :style {:padding "3px"
                                                                 :display (display (-> @state :code-toggle))}}
                                      [:h4 "Source"]
-                                     [:div {:class ["workspace-editor"]} (trim (-> @state :code))]]
+                                     [:div {:class ["workspace-editor"]} (str/trim (-> @state :code))]]
                                     [:div {:class :calculated-out :style {:padding "3px"
                                                                           :display (display (-> @state :calc-toggle))}}
                                      [:h4 "Calculated"]
@@ -824,14 +824,9 @@ NO BOILERPLATE FOR EMBED TYPE " type
 (defn card-list []
   (reagent.core/create-class
     {:component-did-mount
-     (fn [_this] (let [random-max 65535
-                       cards (->> (:cards @db)
-                                  (mapv (fn [card]
-                                          (assoc card :key (rand-int random-max)))))
-                       system-cards (->> (:system-cards @db)
-                                         (mapv (fn [system-card]
-                                                 (let [key (rand-int random-max)]
-                                                   (assoc system-card :key key)))))]
+     (fn [_this] (let [set-key (fn [card] (assoc card :key (random-uuid)))
+                       cards (->> (:cards @db) (mapv set-key))
+                       system-cards (->> (:system-cards @db) (mapv set-key))]
                    (swap! db assoc :cards cards)
                    (swap! db assoc :system-cards system-cards)))
 
@@ -928,7 +923,7 @@ NO BOILERPLATE FOR EMBED TYPE " type
         (-> @db :current-page)
         [:span {:class "tslink"}
          [:a {:href (str
-                      (string/replace (-> @db :site-url) #"/$" "")
+                      (str/replace (-> @db :site-url) #"/$" "")
                       "/" (-> @db :current-page))} " (public)"]]])]
     [:div [tool-bar]]
     [main-container]]
