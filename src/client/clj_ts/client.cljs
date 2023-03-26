@@ -166,39 +166,10 @@
              :hash      hash
              :direction direction})))
 
-(declare go-new!)
-
-(defn card-send-to-page! [page-name hash new-page-name]
-  (http-post
-    "/api/movecard"
-    (fn [_] (go-new! new-page-name))
-    (pr-str {:from page-name
-             :to   new-page-name
-             :hash hash})))
-
-(declare prepend-transcript!)
-
-(declare string->html)
-
 (defn ->text-search-query [cleaned-query]
   (str "{\"query\" : \"query TextSearch  {
 text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
 }\",  \"variables\":null, \"operationName\":\"TextSearch\"   }"))
-
-(defn search-text! [query-text]
-  (let [cleaned-query (-> query-text
-                          (#(str/replace % "\"" ""))
-                          (#(str/replace % "'" "")))
-        query (->text-search-query cleaned-query)
-        callback (fn [e]
-                   (let [edn (-> e .-target .getResponseText .toString (#(.parse js/JSON %)) js->clj)
-                         data (-> edn (get "data"))
-                         result (-> data (get "text_search") (get "result_text"))]
-                     (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))))]
-    (http-post
-      "/clj_ts/graphql"
-      callback
-      query)))
 
 ;; Nav and History
 
@@ -255,6 +226,28 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
            :id        "navinputbox"
            :value     @value
            :on-change #(reset! value (-> % .-target .-value))}])
+
+(defn string->html [s]
+  (-> s
+      (double-comma-table)
+      (md/md->html)
+      (auto-links)
+      (double-bracket-links)))
+
+(defn search-text! [query-text]
+  (let [cleaned-query (-> query-text
+                          (#(str/replace % "\"" ""))
+                          (#(str/replace % "'" "")))
+        query (->text-search-query cleaned-query)
+        callback (fn [e]
+                   (let [edn (-> e .-target .getResponseText .toString (#(.parse js/JSON %)) js->clj)
+                         data (-> edn (get "data"))
+                         result (-> data (get "text_search") (get "result_text"))]
+                     (prepend-transcript! (str "Searching for " cleaned-query) (string->html result))))]
+    (http-post
+      "/clj_ts/graphql"
+      callback
+      query)))
 
 (defn nav-bar []
   (let [current (r/atom (-> @db :future last))]
@@ -606,13 +599,6 @@ NO BOILERPLATE FOR EMBED TYPE " type
 (defn not-blank? [card]
   (not= "" (str/trim (get card "source_data"))))
 
-(defn string->html [s]
-  (-> s
-      (double-comma-table)
-      (md/md->html)
-      (auto-links)
-      (double-bracket-links)))
-
 (defn card->html [card]
   (-> (get card "server_prepared_data")
       (string->html)))
@@ -622,6 +608,14 @@ NO BOILERPLATE FOR EMBED TYPE " type
            :id        "sendto-inputbox"
            :value     @value
            :on-change #(reset! value (-> % .-target .-value))}])
+
+(defn card-send-to-page! [page-name hash new-page-name]
+  (http-post
+    "/api/movecard"
+    (fn [_] (go-new! new-page-name))
+    (pr-str {:from page-name
+             :to   new-page-name
+             :hash hash})))
 
 (defn card-bar [card]
   (let [meta-id (str "cardmeta" (get card "hash"))
