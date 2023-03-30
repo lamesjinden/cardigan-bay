@@ -96,12 +96,13 @@ text_search(query_string:\\\"" cleaned-query "\\\"){     result_text }
       (pop (-> @db :future)))))
 
 (defn back! [db]
-  (load-page!
-    db
-    (-> @db :past last)
-    (pop (-> @db :past))
-    (conj (-> @db :future)
-          (-> @db :current-page))))
+  (when (not (empty? (:past @db)))
+    (load-page!
+      db
+      (-> @db :past last)
+      (pop (-> @db :past))
+      (conj (-> @db :future)
+            (-> @db :current-page)))))
 
 (defn save-page! [db]
   (let [page-name (-> @db :current-page)

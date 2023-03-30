@@ -19,7 +19,7 @@
                :raw          ""
                :transcript   ""
                :cards        []
-               :past         ["HelloWorld"]
+               :past         []
                :future       []
                :wiki-name    "Wiki Name"
                :site-url     "Site URL"
@@ -77,8 +77,8 @@
 ;; region page load
 
 ; request and load the start-page
-;; todo - fix, figwheel loads startpage on every change
-(handle/load-start-page! db)
+(when (empty? (:past @db))
+  (handle/load-start-page! db))
 
 ; request page render
 (dom/render
