@@ -77,6 +77,7 @@
 ;; region page load
 
 ; request and load the start-page
+;; todo - fix, figwheel loads startpage on every change
 (handle/load-start-page! db)
 
 ; request page render
