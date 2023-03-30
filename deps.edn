@@ -1,13 +1,15 @@
 {:paths ["resources" "src/common"]
- :deps  {org.clojure/core.async        {:mvn/version "0.4.490"}
-         markdown-clj/markdown-clj     {:mvn/version "1.10.1"}
+ :deps  {org.clojure/core.async        {:mvn/version "1.6.673"}
+         markdown-clj/markdown-clj     {:mvn/version "1.11.4"}
          instaparse/instaparse         {:mvn/version "1.4.12"}
-         io.replikativ/hasch           {:mvn/version "0.3.7"}
+         io.replikativ/hasch           {:mvn/version "0.3.94"}
          com.alchemyislands/patterning {:mvn/version "0.5.4-SNAPSHOT"}
-         org.babashka/sci              {:mvn/version "0.3.2"}}
+         org.babashka/sci              {:mvn/version "0.7.38"}
+         org.slf4j/slf4j-nop           {:mvn/version "2.0.5"}}
 
  :aliases
  {
+
   :eastwood
   {:extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}
    :main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]}
@@ -18,10 +20,10 @@
 
   :dev
   {:extra-paths ["dev"]
-   :extra-deps  {expound/expound {:mvn/version "0.7.2"}}}
+   :extra-deps  {expound/expound {:mvn/version "0.9.0"}}}
 
   :client
-  {:extra-deps  {org.clojure/clojurescript                     {:mvn/version "1.11.57"}
+  {:extra-deps  {org.clojure/clojurescript                     {:mvn/version "1.11.60"}
                  reagent/reagent                               {:mvn/version "1.2.0"}
                  cljsjs/highlight                              {:mvn/version "11.7.0-0"}
                  cljsjs/react                                  {:mvn/version "17.0.2-0"}
@@ -30,34 +32,48 @@
                  cljsjs/ace                                    {:mvn/version "1.4.2-0"}}
    :extra-paths ["src/client"]}
 
-  :run-dev-client
+  :rebel-main
+  {:main-opts  ["-m" "rebel-readline.main"]
+   :extra-deps {com.bhauman/figwheel-main       {:mvn/version "0.2.18"}
+                com.bhauman/rebel-readline      {:mvn/version "0.1.4"}
+                com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+                org.clojure/tools.nrepl         {:mvn/version "0.2.13"}
+                ; careful updating cider-nrepl and piggieback
+                ; verify nrepl setup still works after updates
+                cider/cider-nrepl               {:mvn/version "0.17.0"}
+                cider/piggieback                {:mvn/version "0.3.8"}}}
+
+  :figwheel-main
   {:extra-deps {com.bhauman/rebel-readline {:mvn/version "0.1.4"}
                 com.bhauman/figwheel-main  {:mvn/version "0.2.18"}}
-   :main-opts  ["-m" "figwheel.main" "--build" "dev/dev-client" "--repl"]}
+   :main-opts  ["-m" "figwheel.main" "--build" "dev/dev_client"]}
 
   :server
   {:extra-deps  {org.clojure/clojure      {:mvn/version "1.11.1"}
-                 org.clojure/core.logic   {:mvn/version "0.8.11"}
-                 org.clojure/data.json    {:mvn/version "1.0.0"}
+                 org.clojure/core.logic   {:mvn/version "1.0.1"}
+                 org.clojure/data.json    {:mvn/version "2.4.0"}
                  org.clojure/tools.reader {:mvn/version "1.3.6"}
-                 ring/ring-core           {:mvn/version "1.9.5"}
-                 com.walmartlabs/lacinia  {:mvn/version "0.36.0"}
+                 ring/ring-core           {:mvn/version "1.9.6"}
+                 com.walmartlabs/lacinia  {:mvn/version "1.2"}
                  hiccup/hiccup            {:mvn/version "1.0.5"}
                  http-kit/http-kit        {:mvn/version "2.6.0"}
-                 org.clojure/tools.cli    {:mvn/version "0.3.5"}
+                 org.clojure/tools.cli    {:mvn/version "1.0.214"}
                  cljstache/cljstache      {:mvn/version "2.0.6"}
-                 org.clojure/core.memoize {:mvn/version "1.0.253"}
-                 clj-rss/clj-rss          {:mvn/version "0.2.6"}
-                 remus/remus              {:mvn/version "0.1.0"}
-                 org.slf4j/slf4j-nop      {:mvn/version "1.7.32"}}
+                 org.clojure/core.memoize {:mvn/version "1.0.257"}
+                 clj-rss/clj-rss          {:mvn/version "0.4.0"}
+                 remus/remus              {:mvn/version "0.2.4"}}
    :extra-paths ["src/server"]}
 
   :dev-server
-  {:extra-deps {ring/ring-devel     {:mvn/version "1.9.5"}
+  {:extra-deps {ring/ring-devel     {:mvn/version "1.9.6"}
                 ring-cors/ring-cors {:mvn/version "0.1.13"}}}
 
   :run-dev-server
   {:main-opts ["-m" "dev_server"]}
+
+  :nrepl-main
+  {:extra-deps {nrepl/nrepl {:mvn/version "1.0.0"}}
+   :main-opts  ["-m" "nrepl.cmdline"]}
 
   :test
   {:extra-paths ["test"]

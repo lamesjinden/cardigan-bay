@@ -6,4 +6,5 @@
  :output-to       "resources/public/main.js"
  :output-dir      "resources/public/js/compiled/out"
  :asset-path      "js/compiled/out"
- :closure-defines {clj-ts.client/env "dev"}}
+ :closure-defines {clj-ts.http/env      "dev"
+                   clj-ts.http/env-port 4545}}
