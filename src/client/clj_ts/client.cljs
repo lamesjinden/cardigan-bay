@@ -1,10 +1,11 @@
 (ns clj-ts.client
   (:require
-    [cljs.core]
     [clojure.string :as str]
     [reagent.core :as r]
     [reagent.dom :as dom]
+    [promesa.core :as p]
     [clj-ts.handle :as handle]
+    [clj-ts.events.navigation :as nav]
     [clj-ts.views.nav-bar :refer [nav-bar]]
     [clj-ts.views.tool-bar :refer [tool-bar]]
     [clj-ts.views.card-list :refer [card-list]]
@@ -19,10 +20,9 @@
                :raw          ""
                :transcript   ""
                :cards        []
-               :past         []
-               :future       []
                :wiki-name    "Wiki Name"
                :site-url     "Site URL"
+               :initialized? false
                :mode         :viewing
                :env-port     4545}))
 
@@ -77,12 +77,27 @@
 ;; region page load
 
 ; request and load the start-page
-(when (empty? (:past @db))
-  (handle/load-start-page! db))
 
-; request page render
-(dom/render
-  [content]
-  (.querySelector js/document "#app"))
+(def resolved (p/resolved 0))
+
+(defn configure-async! []
+  (if (:initialized? @db)
+    resolved
+    (let [init (first (.-init js/window))
+          loaded-p (if (object? init)
+                     (p/resolved (nav/load-page db init))
+                     (nav/load-start-page-async! db))]
+      (p/then loaded-p (fn []
+                         (swap! db assoc :mode :viewing)
+                         (swap! db assoc :initialized? true)
+                         (nav/hook-pop-state db)
+                         (nav/replace-state-initial)
+                         (js/window.scroll 0 0))))))
+
+(defn render-app []
+  (dom/render [content] (.querySelector js/document "#app")))
+
+(-> (configure-async!)
+    (p/then (fn [] (render-app))))
 
 ;; endregion

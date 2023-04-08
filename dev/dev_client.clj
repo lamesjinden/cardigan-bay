@@ -37,9 +37,4 @@
   (figwheel.main.api/cljs-repl "dev/dev_client")
   ;; load the webapp on figwheel's port (9500)
   ;; begin eval'ing cljs code
-
-  (+ 1 1)
-  (println "hi")
-  (js/alert "hi")
-
   )

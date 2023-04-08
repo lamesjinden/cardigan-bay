@@ -5,142 +5,48 @@
             [clojure.pprint :as pp]
             [clojure.tools.cli :as cli]
             [clj-ts.card-server :as card-server]
-            [clj-ts.common :as common]
             [clj-ts.static-export :as export]
             [clj-ts.pagestore :as pagestore]
             [clj-ts.embed :as embed]
-            [markdown.core :as md]
             [org.httpkit.server :refer [run-server]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.resource :refer [wrap-resource]]
+            [ring.middleware.json :refer [wrap-json-body]]
             [ring.util.response :as resp]
-            [com.walmartlabs.lacinia :refer [execute]]
-            [clojure.data.json :as json])
+            [clojure.data.json :as json]
+            [selmer.parser :as selmer])
   (:import (java.time LocalDateTime))
   (:gen-class))
 
+;; Response
+
+(defn create-not-found [uri-or-page-name]
+  (-> (resp/not-found (str "Not found " uri-or-page-name))
+      (resp/content-type "text")))
+
+(defn create-ok []
+  (-> "thank you"
+      (resp/response)
+      (resp/content-type "text/html")))
+
 ;; Requests
-
-(defn page-request [request]
-  (let [qs (:query-string request)
-        p-name (second (string/split qs #"="))
-        raw (if (card-server/page-exists? p-name)
-              (card-server/read-page p-name)
-              "PAGE DOES NOT EXIST")]
-    {:p-name p-name :raw raw}))
-
-(defn render-page [raw]
-  (let [cards (string/split raw #"----")
-        card #(str "<div class='card'>" (md/md-to-html-string %) "</div>")]
-    (apply str (map card cards))))
-
-(defn get-page [request]
-  (let [{:keys [raw]} (page-request request)]
-    (-> (render-page raw)
-        (resp/response)
-        (resp/content-type "text/html"))))
-
-(defn get-raw [request]
-  (let [{:keys [raw]} (page-request request)]
-    (-> raw
-        (resp/response)
-        (resp/content-type "text/html"))))
-
-(defn get-edn-cards [request]
-  (let [{:keys [raw]} (page-request request)
-        cards (card-server/raw->cards raw :false nil)]
-    (-> cards
-        (resp/response)
-        (resp/content-type "text/html"))))
 
 (defn save-page [request]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         p-name (:page form-body)
         body (:data form-body)]
     (card-server/write-page-to-file! p-name body)
-    (-> "thank you"
-        (resp/response)
-        (resp/content-type "text/html"))))
-
-(defn get-flattened [request]
-  (let [{:keys [p-name]} (page-request request)
-        cards (-> p-name card-server/load->cards common/cards->raw)]
-    (-> cards
-        (resp/response)
-        (resp/content-type "text/html"))))
+    (create-ok)))
 
 ; Logic using pages
 
-(defn wrap-results-as-list [res]
-  (str
-    "<div>"
-    (apply str
-           "<ul>"
-           (for [p res]
-             (apply str "<li>"
-                    (if (coll? p)
-                      (string/join ",," (for [q p] (str "<a href=''>" q "</a>")))
-                      (str "<a href=''>" p "</a>"))
-                    "</li>")))
-    "</ul></div>"))
-
-(defn retn [res]
-  (-> (wrap-results-as-list res)
-      (resp/response)
-      (resp/content-type "text/html")))
-
-(defn raw-db [_request]
+(defn raw-db []
   (card-server/regenerate-db!)
   (-> (str "<pre>" (with-out-str (pp/pprint (.raw-db (card-server/server-state)))) "</pre>")
       (resp/response)
       (resp/content-type "text/html")))
-
-(defn get-start-page [_request]
-  (-> (-> (card-server/server-state) .start-page)
-      (resp/response)
-      (resp/content-type "text/html")))
-
-;; GraphQL handler
-
-(defn extract-query
-  "Reads the `query` query parameters, which contains a JSON string
-  for the GraphQL query associated with this request. Returns a
-  string.  Note that this differs from the PersistentArrayMap returned
-  by variable-map. e.g. The variable map is a hashmap whereas the
-  query is still a plain string."
-  [request]
-  (let [body (-> request :body .bytes slurp (json/read-str :key-fn keyword) :query)]
-    (case (:request-method request)
-      :get (get-in request [:query-params "query"])
-      ;; Additional error handling because the clojure ring server still
-      ;; hasn't handed over the values of the request to lacinia GraphQL
-      ;; (-> request :body .bytes slurp edn/read-string)
-      :post (try (-> request
-                     :body
-                     .bytes
-                     slurp
-                     (json/read-str :key-fn keyword)
-                     :query)
-                 (catch Exception e ""))
-      :else "")))
-
-(defn graphql-handler [request]
-  (let [query (extract-query request)
-        result (execute card-server/pagestore-schema query nil nil)
-        body (json/write-str result)]
-    (-> body
-        (resp/response)
-        (resp/content-type "application/json"))))
-
-(defn icons-handler [request]
-  (let [uri (:uri request)
-        file (io/file (System/getProperty "user.dir") (str "." uri))]
-    (when (.isFile file)
-      (-> file
-          (resp/response)
-          (resp/content-type "image/png")))))
 
 (defn move-card-handler [request]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
@@ -148,9 +54,7 @@
         hash (:hash form-body)
         new-page-name (:to form-body)]
     (card-server/move-card page-name hash new-page-name)
-    (-> "thank you"
-        (resp/response)
-        (resp/content-type "text/html"))))
+    (create-ok)))
 
 (defn reorder-card-handler [request]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
@@ -158,9 +62,7 @@
         hash (:hash form-body)
         direction (:direction form-body)]
     (card-server/reorder-card page-name hash direction)
-    (-> "thank you"
-        (resp/response)
-        (resp/content-type "text/html"))))
+    (create-ok)))
 
 (defn bookmarklet-handler [request]
   (let [url (-> request :params :url)
@@ -176,53 +78,117 @@
     (resp/redirect (str "/view/" page-name) :see-other)))
 
 (defn export-all-pages-handler [_request]
-  (future
-    (export/export-all-pages (card-server/server-state))
-    (println "Export finished"))
+  (export/export-all-pages (card-server/server-state))
   (resp/redirect (str "/view/" (-> card-server/server-state :start-page)) :see-other))
 
 (defn media-file-handler [request]
-  (let [file-name (-> request :uri
+  (let [uri (:uri request)
+        file-name (-> uri
                       (#(re-matches #"/media/(\S+)" %))
                       second)
         file (card-server/load-media-file file-name)]
-    (println "Media file request " file-name)
     (if (.isFile file)
       (resp/response file)
-      (resp/not-found "Media file not found"))))
+      (create-not-found uri))))
 
 (defn custom-file-handler [request]
-  (let [file-name (-> request :uri
+  (let [uri (:uri request)
+        file-name (-> uri
                       (#(re-matches #"/custom/(\S+)" %))
                       second)
         file (card-server/load-custom-file file-name)]
     (if (.isFile file)
       (resp/response file)
-      (resp/not-found "Media file not found"))))
+      (create-not-found uri))))
 
-(defn handler [{:keys [uri] :as request}]
-  (let [view-matches (re-matches #"/view/(\S+)" uri)]
+(defn get-page-data [body]
+  (let [source-page (card-server/resolve-source-page nil body nil)
+        server-prepared-page (card-server/resolve-page nil body nil)]
+    {:source_page          source-page
+     :server_prepared_page server-prepared-page}))
 
+;; using custom tag to take advantage of overriding :tag-second
+;; as simple variable substitution is not as customizable
+(selmer/add-tag! :identity (fn [args context-map]
+                             (let [kw (keyword (first args))]
+                               (get context-map kw))))
+
+(def index-local-path "public/index.html")
+
+(defn render-page-config
+  ([subject-file page-name]
+   (let [subject-content (slurp (io/resource subject-file))]
+     (if page-name
+       (let [page-config (get-page-data {:page_name page-name})
+             page-config-str (json/write-str page-config)
+             rendered (selmer.util/without-escaping
+                        (selmer.parser/render
+                          subject-content
+                          {:page-config page-config-str}
+                          {:tag-open   \[
+                           :tag-close  \]
+                           :tag-second \"}))]
+         rendered)
+       subject-content)))
+  ([page-name]
+   (render-page-config index-local-path page-name)))
+
+(defn handle-root-request [_request]
+  (-> index-local-path
+      (render-page-config (.start-page (card-server/server-state)))
+      (resp/response)
+      (resp/content-type "text/html")))
+
+(defn handle-api-init [_request]
+  (let [init-page-name (.start-page (card-server/server-state))
+        page-config (get-page-data {:page_name init-page-name})
+        page-config-str (json/write-str page-config)]
+    (-> page-config-str
+        (resp/response)
+        (resp/content-type "application/json"))))
+
+(defn handle-api-page [request]
+  (let [body (:body request)]
+    (-> (json/write-str (get-page-data body))
+        (resp/response)
+        (resp/content-type "application/json"))))
+
+(defn handle-api-search [request]
+  (let [body (:body request)]
+    (-> (clj-ts.card-server/resolve-text-search nil body nil)
+        (json/write-str)
+        (resp/response)
+        (resp/content-type "application/json"))))
+
+(def pages-request-pattern #"/pages/(.+)")
+
+(defn handle-page-request [request]
+  (let [uri (:uri request)
+        match (re-matches pages-request-pattern uri)
+        page-name (ring.util.codec/url-decode (get match 1))]
+
+    (if (clj-ts.card-server/page-exists? page-name)
+      (-> index-local-path
+          (render-page-config page-name)
+          (resp/response)
+          (resp/content-type "text/html"))
+      (-> (resp/not-found (str "Page not found " page-name))
+          (resp/content-type "text")))))
+
+(defn handler [request]
+  (let [uri (:uri request)]
     (cond
-      (= uri "/")
-      (->
-        (resp/resource-response "index.html" {:root "public"})
-        (resp/content-type "text/html"))
-
-      (= uri "/startpage")
-      (get-start-page request)
-
-      (= uri "/clj_ts/old")
-      (get-page request)
+      (= uri "/") (handle-root-request request)
+      (= uri "/api/init") (handle-api-init request)
+      (= uri "/api/page") (handle-api-page request)
+      (= uri "/api/search") (handle-api-search request)
+      (re-matches pages-request-pattern uri) (handle-page-request request)
 
       (= uri "/clj_ts/save")
       (save-page request)
 
-      (= uri "/clj_ts/graphql")
-      (graphql-handler request)
-
       (= uri "/api/system/db")
-      (raw-db request)
+      (raw-db)
 
       (= uri "/api/movecard")
       (move-card-handler request)
@@ -231,28 +197,24 @@
       (reorder-card-handler request)
 
       (= uri "/api/rss/recentchanges")
-      {:status  200
-       :headers {"Content-Type" "application/rss+xml"}
-       :body    (card-server/rss-recent-changes
-                  (fn [p-name]
-                    (str (-> (card-server/server-state)
-                             :page-exporter
-                             (.page-name->exported-link p-name)))))}
+      (-> (card-server/rss-recent-changes (fn [page-name]
+                                            (str (-> (card-server/server-state)
+                                                     :page-exporter
+                                                     (.page-name->exported-link page-name)))))
+          (resp/response)
+          (resp/content-type "application/rss+xml"))
 
+      ;; todo - redirects to /view, why?
       (= uri "/api/bookmarklet")
       (bookmarklet-handler request)
 
+      ;; todo - redirects to /view, why?
       (= uri "/api/exportpage")
       (export-page-handler request)
 
+      ;; todo - redirects to /view, why?
       (= uri "/api/exportallpages")
       (export-all-pages-handler request)
-
-      (= uri "/custom/main.css")
-      (custom-file-handler request)
-
-      (re-matches #"/icons/(\S+)" uri)
-      (icons-handler request)
 
       (re-matches #"/media/(\S+)" uri)
       (media-file-handler request)
@@ -260,62 +222,47 @@
       (re-matches #"/custom/(\S+)" uri)
       (custom-file-handler request)
 
-      view-matches
-      (let [pagename (-> view-matches second)]
-        (do
-          (card-server/set-start-page! pagename)
-          {:status  303
-           :headers {"Location" "/index.html"}}))
+      ;; todo - what is happening here?
+      ;; todo - a: sets page-name as the start page
+      ;;        then redirects back to index.html
+      ;;        which renders the new start-page
+      (re-matches #"/view/(\S+)" uri)
+      (let [page-name (second (re-matches #"/view/(\S+)" uri))]
+        (card-server/set-start-page! page-name)
+        {:status  303
+         :headers {"Location" "/index.html"}})
 
-      :otherwise
-      (do
-        (or
-          ;; if the request is a static file
-          (let [file (io/file (System/getProperty "user.dir") (str "." uri))]
-            (when (.isFile file)
-              {:status 200
-               :body   file}))
-          (resp/not-found
-            (do
-              (println "Page not found " uri)
-              "Page not found")))))))
+      :default
+      (create-not-found uri))))
 
-;; Parse command line args
+;; region main entry
+
 (def cli-options
-  [
-   ["-p" "--port PORT" "Port number"
+  [["-p" "--port PORT" "Port number"
     :default 4545
     :parse-fn #(Integer/parseInt %)
     :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
-
    ["-d" "--directory DIR" "Pages directory"
     :default "./bedrock/"
     :parse-fn str]
-
    ["-n" "--name NAME" "Wiki Name"
     :default "Yet Another CardiganBay Wiki"
     :parse-fn str]
-
    ["-s" "--site SITE" "Site URL "
     :default "/"
     :parse-fn str]
-
    ["-i" "--init INIT" "Start Page"
     :default "HelloWorld"
     :parse-fn str]
-
    ["-l" "--links LINK" "Export Links"
     :default "./"
     :parse-fn str]
-
    ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"
     :default ".html"
     :parse-fn str]
-
    ["-e" "--export-dir DIR" "Export Directory"
     :default "./bedrock/exported/"
     :parse-fn str]
-
    ["-b" "--beginner IS_BEGINNER" "Is Beginner Rather Than Expert"
     :default false
     :parse-fn boolean]])
@@ -331,7 +278,8 @@
       (wrap-resource "public")
       (wrap-content-type)
       (wrap-keyword-params)
-      (wrap-params)))
+      (wrap-params)
+      (wrap-json-body {:keywords? true})))
 
 (defn init-app [opts]
   (let [ps (pagestore/make-page-store (:directory opts) (:export-dir opts))
@@ -360,15 +308,15 @@
            "\n"
            "\n"
            "-----------------------------------------------------------------------------------------------"
-           "\n"
-           ))
+           "\n"))
 
     (card-server/regenerate-db!)))
 
-; runs when the server starts
 (defn -main [& args]
   (let [opts (args->opts args)
         server-opts (select-keys opts [:port])]
     (init-app opts)
     (let [app (create-app)]
       (run-server app server-opts))))
+
+;; endregion

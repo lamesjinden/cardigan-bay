@@ -3,14 +3,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inconsolata">
-    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <link rel="stylesheet" type="text/css" href="/css/main.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.1/styles/idea.min.css" rel="stylesheet"
           type="text/css">
-</head>
 <body>
 <div id="app"></div>
-<!-- don't change this! -->
-<script src="main.js"></script>
+<!-- the following line is crafted to work when ssr templated or not -->
+<!--   the server uses \[\" and \"\] as tags for replacement -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.js"
+        integrity="sha512-Km4SIAd8d2xB73+j5NmOjzIxriadCWR9xapO/YARlvfwkgrWneSpV/6GeaRzVLNckFHzUn9Iv1oGbsDW/HtTZQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.3/theme-cloud9_day.min.js"
         integrity="sha512-rrcaq6t42o1KAJ4sud10ULOpFeibC8VlxXWJgLr5l2awqwIiloXeGQvG+hPuKHAnkObwTfREDh+J4caNOgUqwA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -23,5 +25,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.3/mode-markdown.min.js"
         integrity="sha512-FcGoEI1B57Lhpw0AEj4lI3uQuPJQtEu0aHVr/G3iIJmM+zWIBDhp6RbsNq7b9poWqJB+q9OBHZa9wkJoSaj9tA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>init = [["identity page-config"]];</script>
+<script src="/main.js"></script>
+</head>
 </body>
 </html>

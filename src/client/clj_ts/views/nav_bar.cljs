@@ -11,34 +11,25 @@
          [:div {:class "breadcrumbs"}
           [:span (-> @db :wiki-name)]]
          [:div {:id "nav1"}
-          [:span {:on-click (fn [] (handle/go-new! db start-page-name))} start-page-name]
+          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db start-page-name))} start-page-name]
           " || "
-          [:span {:on-click (fn [] (handle/go-new! db "ToDo"))} "Todo"]
+          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "ToDo"))} "Todo"]
           " || "
-          [:span {:on-click (fn [] (handle/go-new! db "Work"))} "Work"]
+          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Work"))} "Work"]
           " || "
-          [:span {:on-click (fn [] (handle/go-new! db "Projects"))} "Projects"]
+          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Projects"))} "Projects"]
           " || "
-          [:span {:on-click (fn [] (handle/go-new! db "SandBox"))} "SandBox"]
+          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "SandBox"))} "SandBox"]
           " || "
-          [:a {:href "/api/exportallpages"} "Export All Pages"]]
-         [:div {:id "nav2"}
-          [:button
-           {:class    "big-btn"
-            :on-click (fn [] (handle/back! db))}
-           [:img {:src "/icons/skip-back.png"}] " Back"]
-          [:button
-           {:class    "big-btn"
-            :on-click (fn [] (handle/forward! db (-> @db :future last)))}
-           ""
-           [:img {:src "/icons/skip-forward.png"}] " Forward"]
+          [:a {:href "/api/exportallpages"} "Export All Pages"]
+          " || "
           [:button {:class "big-btn"}
            [:a {:href "/api/rss/recentchanges"} [:img {:src "/icons/rss.png"}]]]]
          [:div {:id "nav3"}
           [nav-input current]
           [:button
            {:class    "big-btn"
-            :on-click (fn [] (handle/go-new! db @current))}
+            :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
            " Go!"]
           [:button
            {:class    "big-btn"
@@ -46,5 +37,5 @@
            "Execute"]
           [:button
            {:class    "big-btn"
-            :on-click (fn [] (handle/search-text! db (-> @current str)))}
+            :on-click (fn [] (handle/search-text-async! db (-> @current str)))}
            "Search"]]]))))

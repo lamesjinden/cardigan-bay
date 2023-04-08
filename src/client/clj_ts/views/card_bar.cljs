@@ -19,13 +19,13 @@
     (fn [db card]
       [:div {:class :card-meta}
        [:div
-        [:span {:on-click (fn [e] (handle/card-reorder!
+        [:span {:on-click (fn [e] (handle/card-reorder-async!
                                     db
                                     (-> @db :current-page)
                                     (get card "hash")
                                     "up"))}
          [:img {:src "/icons/chevrons-up.png"}]]
-        [:span {:on-click (fn [e] (handle/card-reorder!
+        [:span {:on-click (fn [e] (handle/card-reorder-async!
                                     db
                                     (-> @db :current-page)
                                     (get card "hash")
@@ -51,7 +51,7 @@
           [:img {:src "/icons/send.png"}]
           [:button {:on-click
                     (fn []
-                      (handle/card-send-to-page!
+                      (handle/card-send-to-page-async!
                         db
                         (-> @db :current-page)
                         (get card "hash")

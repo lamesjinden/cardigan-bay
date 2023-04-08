@@ -21,6 +21,6 @@
                  :display     (-> @state2 :toggle)}}
         [:div
          {:class    "card"
-          :on-click (fn [e] (handle/on-click-for-links db e))}
+          :on-click (fn [e] (handle/on-click-for-links-async! db e))}
          [component]]]
        [(card-bar card) db card]])))

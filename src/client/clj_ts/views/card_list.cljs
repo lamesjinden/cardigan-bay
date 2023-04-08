@@ -11,31 +11,31 @@
         data (get card "server_prepared_data")
         inner-component (condp = render-type
 
-                          ":code"
+                          "code"
                           {:reagent-render (fn [] (inner-html (str "<code>" data "</code>")))}
 
-                          ":raw"
+                          "raw"
                           {:reagent-render (fn [] (inner-html (str "<pre>" data "</pre>")))}
 
-                          ":markdown" {:reagent-render      (fn [] (inner-html (view/card->html card)))
+                          "markdown" {:reagent-render      (fn [] (inner-html (view/card->html card)))
                                        :component-did-mount highlight/highlight-all}
 
-                          ":manual-copy"
+                          "manual-copy"
                           {:reagent-render (fn [] (inner-html
                                                     (str "<div class='manual-copy'>"
                                                          (view/card->html card)
                                                          "</div>")))}
 
-                          ":html"
+                          "html"
                           {:reagent-render (fn [] (inner-html (str data)))}
 
-                          ":stamp"
+                          "stamp"
                           {:reagent-render (fn [] (inner-html (str data)))}
 
-                          ":hiccup"
+                          "hiccup"
                           {:reagent-render (fn [] "THIS SHOULD BE HICCUP RENDERED")}
 
-                          ":workspace"
+                          "workspace"
                           {:reagent-render (fn [] [workspace card])}
 
                           (str "UNKNOWN TYPE ( " render-type " ) " data))

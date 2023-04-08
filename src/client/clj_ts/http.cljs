@@ -1,5 +1,6 @@
 (ns clj-ts.http
   (:require
+    [promesa.core :as p]
     [goog.string :as gstring]
     [goog.string.format])
   (:import [goog.net XhrIo]))
@@ -7,11 +8,11 @@
 (goog-define env "production")
 (goog-define env-port "")
 
-(defn http-send [{:keys [url callback method body headers timeout with-credentials?]
-                  :or   {body              nil
-                         headers           nil
-                         timeout           0
-                         with-credentials? false}}]
+(defn http-send-async [{:keys [url callback method body headers timeout with-credentials?]
+                        :or   {body              nil
+                               headers           nil
+                               timeout           0
+                               with-credentials? false}}]
   (when (not url)
     (throw (js/error "url was not defined")))
   (when (not callback)
@@ -21,29 +22,42 @@
 
   (let [url (if (= env "dev")
               (gstring/format "//localhost:%s%s" env-port url)
-              url)]
+              url)
+        ; replace callback with a function that resolves a promise
+        ; return the resolved promise
+        deferred (p/deferred)
+        adapted-callback (fn [e]
+                           (if (.isSuccess (.-target e))
+                             (do
+                               (let [callback-result (callback e)]
+                                 (p/resolve! deferred callback-result)))
+                             (do
+                               (let [status {:status     (.getStatus (.-target e))
+                                             :statusText (.getStatusText (.-target e))}]
+                                 (p/reject! deferred status)))))]
     (.send XhrIo
            url
-           callback
+           adapted-callback
            method
            body
-           headers
+           (clj->js headers)
            timeout
-           with-credentials?)))
+           with-credentials?)
+    deferred))
 
-(defn http-get [url callback & {:keys [headers timeout with-credentials?]}]
-  (http-send {:url               url
-              :callback          callback
-              :method            "GET"
-              :headers           headers
-              :timeout           timeout
-              :with-credentials? with-credentials?}))
+(defn http-get-async [url callback & {:keys [headers timeout with-credentials?]}]
+  (http-send-async {:url               url
+                    :callback          callback
+                    :method            "GET"
+                    :headers           headers
+                    :timeout           timeout
+                    :with-credentials? with-credentials?}))
 
-(defn http-post [url callback body & {:keys [headers timeout with-credentials?]}]
-  (http-send {:url               url
-              :callback          callback
-              :method            "POST"
-              :body              body
-              :headers           headers
-              :timeout           timeout
-              :with-credentials? with-credentials?}))
+(defn http-post-async [url callback body & {:keys [headers timeout with-credentials?]}]
+  (http-send-async {:url               url
+                    :callback          callback
+                    :method            "POST"
+                    :body              body
+                    :headers           headers
+                    :timeout           timeout
+                    :with-credentials? with-credentials?}))

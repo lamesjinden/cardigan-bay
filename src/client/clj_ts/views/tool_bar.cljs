@@ -16,7 +16,7 @@
              {:class    "big-btn"
               :on-click (fn []
                           (swap! db assoc :mode :viewing)
-                          (handle/reload! db))}
+                          (handle/cancel-async! db))}
              [:img {:src "/icons/x.png"}] " Cancel"]
             [:button
              {:class    "big-btn"

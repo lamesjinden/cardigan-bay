@@ -1,16 +1,11 @@
 (ns clj-ts.card-server
   [:require
     [clojure.string :as string]
-    [clojure.pprint :refer [pprint]]
     [clj-ts.logic :as ldb]
     [clj-ts.pagestore :as pagestore]
     [clj-ts.common :as common]
     [clj-ts.embed :as embed]
     [clj-ts.patterning :as patterning]
-    [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
-    [com.walmartlabs.lacinia.schema :as schema]
-    [clojure.java.io :as io]
-    [clojure.edn :as edn]
     [clj-rss.core :as rss]
     [sci.core :as sci]
     [hiccup.core :refer [html]]]
@@ -242,17 +237,14 @@ Bookmarked " timestamp ",, <" url ">
 
 (defn network-card [i data for-export? user-authored?]
   (try
-    (let [
-          nodes (-> data read-string :nodes)
+    (let [nodes (-> data read-string :nodes)
           arcs (-> data read-string :arcs)
-
           maxit (fn [f i xs]
                   (apply f (map #(nth % i) xs)))
           maxx (maxit max 2 nodes)
           maxy (maxit max 3 nodes)
           minx (maxit min 2 nodes)
           miny (maxit min 3 nodes)
-
           node (fn [[n label x y]]
                  (let [an-id (gensym)
                        the-text [:text {:class       "wikilink"
@@ -261,19 +253,14 @@ Bookmarked " timestamp ",, <" url ">
                                         :text-anchor "middle"
                                         :fill        "black"
                                         } label]
-
                        final-text
                        (if for-export?
                          [:a {:href label} the-text]
-                         the-text
-                         )
+                         the-text)
                        box [:circle {:cx           x :cy y :r 20
                                      :width        100 :height 20
                                      :stroke       "orange"
-                                     :stroke-width 2 :fill "yellow"}
-                            ]
-
-                       ]
+                                     :stroke-width 2 :fill "yellow"}]]
                    (html [:g {:id an-id} box final-text])))
           arc (fn [[n1 n2]]
                 (let
@@ -285,9 +272,7 @@ Bookmarked " timestamp ",, <" url ">
                           [label x2 y2] a2]
                       (html [:line {:x1         x1 :y1 y1 :x2 x2 :y2 y2
                                     :stroke     "#000" :stroke-width 2
-                                    :marker-end "url(#arrowhead)"}])
-
-                      )
+                                    :marker-end "url(#arrowhead)"}]))
                     "")))
           svg (html [:svg {:width   "500px" :height "400px"
                            :viewBox (str "0 0 " (* 1.3 maxx) (* 1.3 maxy))}
@@ -295,12 +280,8 @@ Bookmarked " timestamp ",, <" url ">
                                       :refX "-5" :refY "3.5" :orient "auto"}
                              [:polygon {:points "-5 0, 0 3.5, -5 7"}]]]
                      (apply str (map arc arcs))
-                     (apply str (map node nodes))
-                     ])
-          ]
-
-      (common/package-card i :network :markdown data svg user-authored?)
-      )
+                     (apply str (map node nodes))])]
+      (common/package-card i :network :markdown data svg user-authored?))
     (catch Exception e (common/package-card i :network :raw data
                                             (str (exception-stack e)
                                                  "\n" data)
@@ -425,7 +406,6 @@ Bookmarked " timestamp ",, <" url ">
                (.connect dgs (InetAddress/getByName "8.8.8.8") 10002)
                (-> dgs .getLocalAddress .getHostAddress))
              (catch Exception e (str e)))]
-
     (if (.page-exists? ps page_name)
       {:page_name       page_name
        :wiki_name       wiki-name
@@ -453,19 +433,6 @@ Bookmarked " timestamp ",, <" url ">
                                                     :similarly_name_pages :system :markdown ""
                                                     (str "Here are some similarly named pages :"
                                                          (apply str sim-names)) false)]))})))
-
-;; [schema-file (io/file (System/getProperty "user.dir") "clj_ts/gql_schema.edn")]
-(def pagestore-schema
-  (->
-    "gql_schema.edn"
-    io/resource
-    slurp
-    edn/read-string
-    (attach-resolvers {:resolve-source-page resolve-source-page
-                       :resolve-page        resolve-page
-                       :resolve-card        resolve-card
-                       :resolve-text-search resolve-text-search})
-    schema/compile))
 
 ;; RecentChanges as RSS
 

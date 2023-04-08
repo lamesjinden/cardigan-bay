@@ -4,4 +4,4 @@
 (defn transcript [db]
   [:div {:class                   "transcript"
          :dangerouslySetInnerHTML {:__html (-> @db :transcript)}
-         :on-click                (fn [e] (handle/on-click-for-links db e))}])
+         :on-click                (fn [e] (handle/on-click-for-links-async! db e))}])

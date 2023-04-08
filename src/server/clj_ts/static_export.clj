@@ -1,5 +1,6 @@
 (ns clj-ts.static-export
   (:require [clojure.string :as string]
+            [clojure.java.io :as io]
             [hiccup.core :as hiccup]
             [markdown.core :as md]
             [clj-ts.common :as common]
@@ -203,6 +204,7 @@ USING DEFAULT"))))
         rc-rss (.resolve api-path "rc-rss.xml")
         link-fn (fn [p-name]
                   (str (:site-url server-state) p-name))]
+    (io/make-parents (.toString rc-rss))
     (spit (.toString rc-rss) (card-server/rss-recent-changes link-fn))))
 
 (defn export-main-css [server-state main-css]
