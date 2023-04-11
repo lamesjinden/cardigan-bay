@@ -31,15 +31,6 @@
       (resp/response)
       (resp/content-type "text/html")))
 
-;; Requests
-
-(defn save-page [request]
-  (let [form-body (-> request :body .bytes slurp edn/read-string)
-        p-name (:page form-body)
-        body (:data form-body)]
-    (card-server/write-page-to-file! p-name body)
-    (create-ok)))
-
 ; Logic using pages
 
 (defn raw-db []
@@ -147,11 +138,19 @@
         (resp/response)
         (resp/content-type "application/json"))))
 
+(defn get-page-body [page-name]
+  (let [arguments {:page_name page-name}]
+    (json/write-str (get-page-data arguments))))
+
+(defn get-page-response [page-name]
+  (-> (get-page-body page-name)
+      (resp/response)
+      (resp/content-type "application/json")))
+
 (defn handle-api-page [request]
-  (let [body (:body request)]
-    (-> (json/write-str (get-page-data body))
-        (resp/response)
-        (resp/content-type "application/json"))))
+  (let [body (:body request)
+        page-name (:page_name body)]
+    (get-page-response page-name)))
 
 (defn handle-api-search [request]
   (let [body (:body request)]
@@ -175,6 +174,13 @@
       (-> (resp/not-found (str "Page not found " page-name))
           (resp/content-type "text")))))
 
+(defn handle-api-save [request]
+  (let [form-body (-> request :body .bytes slurp edn/read-string)
+        page-name (:page form-body)
+        body (:data form-body)]
+    (card-server/write-page-to-file! page-name body)
+    (get-page-response page-name)))
+
 (defn handler [request]
   (let [uri (:uri request)]
     (cond
@@ -184,8 +190,8 @@
       (= uri "/api/search") (handle-api-search request)
       (re-matches pages-request-pattern uri) (handle-page-request request)
 
-      (= uri "/clj_ts/save")
-      (save-page request)
+      (= uri "/api/save")
+      (handle-api-save request)
 
       (= uri "/api/system/db")
       (raw-db)

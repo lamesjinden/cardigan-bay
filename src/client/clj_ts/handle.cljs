@@ -46,19 +46,22 @@
 (defn cancel-async! [db]
   (nav/reload-async! db))
 
-(defn save-page!
+(defn save-page-async!
   ([db http-callback]
    (let [page-name (-> @db :current-page)
          ace-instance (:ace-instance @db)
          new-data (.getValue ace-instance)]
      (http/http-post-async
-       "/clj_ts/save"
+       "/api/save"
        http-callback
        (pr-str {:page page-name
                 :data new-data}))))
   ([db]
-   (let [http-callback (fn [] (nav/reload-async! db))]
-     (save-page! db http-callback))))
+   (let [http-callback (fn [e] (let [load-page-response (-> e .-target .getResponseJson)]
+                                 (if (nil? load-page-response)
+                                   (nav/reload-async! db)
+                                   (nav/load-page db load-page-response))))]
+     (save-page-async! db http-callback))))
 
 (defn card-reorder-async! [db page-name hash direction]
   (http/http-post-async
@@ -104,6 +107,7 @@
   (let [editor-element (first (array-seq (.getElementsByClassName js/document "edit-box")))
         ace-instance (.edit js/ace editor-element)]
     (configure-ace-instance! ace-instance ace-mode-markdown {:fontSize "1.2rem"})
+    (.focus ace-instance)
     (swap! db assoc :ace-instance ace-instance)))
 
 (defn destroy-editor [db]
@@ -120,7 +124,7 @@
 
 (defn editor-on-key-s-press [db e]
   (.preventDefault e)
-  (save-page! db identity))
+  (save-page-async! db identity))
 
 (defn editor-on-key-press [db e]
   (when (= (-> @db :mode) :editing)

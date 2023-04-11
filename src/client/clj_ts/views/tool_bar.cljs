@@ -22,7 +22,7 @@
              {:class    "big-btn"
               :on-click (fn []
                           (swap! db assoc :mode :viewing)
-                          (handle/save-page! db))}
+                          (handle/save-page-async! db))}
              [:img {:src "/icons/save.png"}] " Save"]]]
           (paste-bar db)]
 
