@@ -46,15 +46,19 @@
 (defn cancel-async! [db]
   (nav/reload-async! db))
 
-(defn save-page! [db]
-  (let [page-name (-> @db :current-page)
-        ace-instance (:ace-instance @db)
-        new-data (.getValue ace-instance)]
-    (http/http-post-async
-      "/clj_ts/save"
-      (fn [] (nav/reload-async! db))
-      (pr-str {:page page-name
-               :data new-data}))))
+(defn save-page!
+  ([db http-callback]
+   (let [page-name (-> @db :current-page)
+         ace-instance (:ace-instance @db)
+         new-data (.getValue ace-instance)]
+     (http/http-post-async
+       "/clj_ts/save"
+       http-callback
+       (pr-str {:page page-name
+                :data new-data}))))
+  ([db]
+   (let [http-callback (fn [] (nav/reload-async! db))]
+     (save-page! db http-callback))))
 
 (defn card-reorder-async! [db page-name hash direction]
   (http/http-post-async
@@ -107,9 +111,30 @@
     (when editor
       (.destroy editor))))
 
-(defn exit-edit-mode-on-escape-press [e db]
-  (let [kc (.-keyCode e)
-        escape-code 27]
-    (when (and (= (-> @db :mode) :editing)
-               (= kc escape-code))
-      (swap! db assoc :mode :viewing))))
+(def key-escape-code 27)
+
+(defn editor-on-escape-press [db]
+  (nav/reload-async! db))
+
+(def key-s-code 83)
+
+(defn editor-on-key-s-press [db e]
+  (.preventDefault e)
+  (save-page! db identity))
+
+(defn editor-on-key-press [db e]
+  (when (= (-> @db :mode) :editing)
+    (let [key-code (.-keyCode e)
+          control? (.-ctrlKey e)]
+      (cond
+        (and (= key-code key-s-code)
+             control?)
+        (editor-on-key-s-press db e)))))
+
+(defn editor-on-key-up [db e]
+  ;; note - escape doesn't fire for key-press, only key-up
+  (when (= (-> @db :mode) :editing)
+    (let [key-code (.-keyCode e)]
+      (cond
+        (= key-code key-escape-code)
+        (editor-on-escape-press db)))))

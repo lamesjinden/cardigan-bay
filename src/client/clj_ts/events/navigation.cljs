@@ -27,8 +27,8 @@
            :start-page-name start-page-name
            :raw raw
            :cards cards
-           :system-cards system-cards))
-  ;; todo - move set mode to :viewing here - might be in upstream changes
+           :system-cards system-cards
+           :mode :viewing))
   (js/window.scroll 0 0))
 
 (defn load-page-async! [db page-name]
@@ -69,25 +69,29 @@
     "/"
     (str "/pages/" page-name)))
 
-(defn- pathname->url []
-  (let [pathname (-> js/window .-location .-pathname)
-        url (if (= "/" pathname)
-              "/"
-              (let [split (str/split pathname #"/")]
-                (str "/pages/" (last split))))]
-    url))
+(defn- get-pathname [] (-> js/window .-location .-pathname))
 
-(defn- pathname->page-name []
-  (let [pathname (-> js/window .-location .-pathname)
-        page-name (if (= "/" pathname)
-                    "/"
-                    (let [split (str/split pathname #"/")]
-                      (last split)))]
-    page-name))
+(defn- pathname->url
+  ([pathname]
+   (let [url (if (= "/" pathname)
+               "/"
+               (let [split (str/split pathname #"/")]
+                 (str "/pages/" (last split))))]
+     url))
+  ([] (pathname->url (get-pathname))))
+
+(defn- pathname->page-name
+  ([pathname]
+   (let [page-name (if (= "/" pathname)
+                     "/"
+                     (let [split (str/split pathname #"/")]
+                       (last split)))]
+     page-name))
+  ([] (pathname->page-name (get-pathname))))
 
 (defn- popstate->page-name [db popstate]
   (let [page-name (aget popstate "page-name")
-        page-name (if (= "/" page-name)
+        page-name (if (or (= "/" page-name) (= "index.html" page-name))
                     (:start-page-name @db)
                     page-name)]
     page-name))
@@ -123,9 +127,12 @@
     (push-state state url)))
 
 (defn replace-state-initial []
-  (let [url (pathname->url)
-        page-name (pathname->page-name)
-        state {:page-name page-name}]
-    (replace-state state url)))
+  (let [pathname (get-pathname)]
+    (if (= "/index.html" pathname)
+      (replace-state {:page-name "index.html"} pathname)
+      (let [url (pathname->url pathname)
+            page-name (pathname->page-name pathname)
+            state {:page-name page-name}]
+        (replace-state state url)))))
 
 ;; endregion

@@ -8,8 +8,6 @@
           type="text/css">
 <body>
 <div id="app"></div>
-<!-- the following line is crafted to work when ssr templated or not -->
-<!--   the server uses \[\" and \"\] as tags for replacement -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.16.0/ace.js"
         integrity="sha512-Km4SIAd8d2xB73+j5NmOjzIxriadCWR9xapO/YARlvfwkgrWneSpV/6GeaRzVLNckFHzUn9Iv1oGbsDW/HtTZQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -25,6 +23,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.3/mode-markdown.min.js"
         integrity="sha512-FcGoEI1B57Lhpw0AEj4lI3uQuPJQtEu0aHVr/G3iIJmM+zWIBDhp6RbsNq7b9poWqJB+q9OBHZa9wkJoSaj9tA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- the following line is crafted to work when ssr templated or not -->
+<!--   the server uses \[\" and \"\] as tags for replacement -->
 <script>init = [["identity page-config"]];</script>
 <script src="/main.js"></script>
 </head>
