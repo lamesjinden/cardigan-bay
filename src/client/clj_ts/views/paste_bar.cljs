@@ -38,9 +38,6 @@
 (defn paste-bar [db]
   [:div {:class "pastebar"}
    [:div
-    "Quick Paste Bar"]
-   [:div
-
     [:button
      {:class    "big-btn"
       :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :markdown)))}

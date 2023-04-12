@@ -1,44 +1,51 @@
 (ns clj-ts.views.tool-bar
-  (:require [clj-ts.handle :as handle]
-            [clj-ts.views.paste-bar :refer [paste-bar]]))
+  (:require [clj-ts.handle :as handle]))
 
 (defn tool-bar [db]
   (fn []
-    (let [mode (-> @db :mode)]
+    (let [mode (-> @db :mode)
+          _ (println "mode" mode)]
       [:div
+       {:class ["toolbar-container"]}
        (condp = mode
 
          :editing
          [:div
           [:div
-           [:span
+           [:span {:class ["button-container"]}
             [:button
-             {:class    "big-btn"
+             {:class    ["big-btn" "image-button"]
               :on-click (fn []
                           (swap! db assoc :mode :viewing)
                           (handle/cancel-async! db))}
-             [:img {:src "/icons/x.png"}] " Cancel"]
+             [:div
+              [:img {:src "/icons/x.png"}] [:span "Cancel"]]]
             [:button
-             {:class    "big-btn"
+             {:class    ["big-btn" "image-button"]
               :on-click (fn []
                           (swap! db assoc :mode :viewing)
                           (handle/save-page-async! db))}
-             [:img {:src "/icons/save.png"}] " Save"]]]
-          (paste-bar db)]
+             [:div
+              [:img {:src "/icons/save.png"}] [:span "Save"]]]]]]
 
          :viewing
-         [:span
+         [:span {:class ["button-container"]}
           [:button
-           {:class    "big-btn"
+           {:class    ["big-btn" "image-button"]
             :on-click #(swap! db assoc :mode :editing)}
-           [:img {:src "/icons/edit.png"}] " Edit"]
+           [:div
+            [:img {:src "/icons/edit.png"}] [:span "Edit"]]]
           [:button
-           {:class "big-btn"}
-           [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
-            [:img {:src "/icons/package.png"}] " Export"]]]
+           {:class ["big-btn" "image-button"]}
+           [:div
+            [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
+             [:img {:src "/icons/package.png"}]
+             [:span "Export"]]]]]
+
          :transcript
-         [:span
+         [:span {:class ["button-container"]}
           [:button
-           {:class    "big-btn"
+           {:class    ["big-btn" "image-button"]
             :on-click #(swap! db assoc :mode :viewing)}
-           [:img {:src "/icons/x.png"}] " Return"]])])))
+           [:div
+            [:img {:src "/icons/x.png"}] [:span "Return"]]]])])))

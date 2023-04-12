@@ -52,7 +52,7 @@
          run-dev-server (clojure "-M:run-dev-server:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
          run-dev-server-repl (clojure "-M:nrepl-main:dev-server:server:dev")
 
-         lint           (do (println "todo --- clj -A:eastwood:app"))
-         test           (do (println "todo --- clojure -A:test -m kaocha.runner --config-file test/tests.edn \"$@\""))}
+         lint           (do (clojure "-M:eastwood"))
+         test           (do (clojure "-M:test:server"))}
  }
 

@@ -8,8 +8,6 @@
     (fn []
       (let [start-page-name (-> @db :start-page-name)]
         [:div {:class "navbar"}
-         [:div {:class "breadcrumbs"}
-          [:span (-> @db :wiki-name)]]
          [:div {:id "nav1"}
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db start-page-name))} start-page-name]
           " || "
@@ -23,12 +21,15 @@
           " || "
           [:a {:href "/api/exportallpages"} "Export All Pages"]
           " || "
-          [:button {:class "big-btn"}
-           [:a {:href "/api/rss/recentchanges"} [:img {:src "/icons/rss.png"}]]]]
+          [:button {:id    "rss-button"
+                    :class "big-btn"}
+           [:a {:href "/api/rss/recentchanges"}
+            [:img {:src "/icons/rss.png"}]]]]
          [:div {:id "nav3"}
           [nav-input current]
           [:button
-           {:class    "big-btn"
+           {:id       "go-button"
+            :class    "big-btn"
             :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
            " Go!"]
           [:button

@@ -15,15 +15,11 @@
         system-cards (get server-prepared-page "system_cards")
         site-url (get server-prepared-page "site_url")
         wiki-name (get server-prepared-page "wiki_name")
-        port (get server-prepared-page "port")
-        ip (get server-prepared-page "ip")
         start-page-name (get server-prepared-page "start_page_name")]
     (swap! db assoc
            :current-page page-name
            :site-url site-url
            :wiki-name wiki-name
-           :port port
-           :ip ip
            :start-page-name start-page-name
            :raw raw
            :cards cards

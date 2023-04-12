@@ -1,6 +1,5 @@
 (ns clj-ts.client
   (:require
-    [clojure.string :as str]
     [reagent.core :as r]
     [reagent.dom :as dom]
     [promesa.core :as p]
@@ -10,8 +9,7 @@
     [clj-ts.views.tool-bar :refer [tool-bar]]
     [clj-ts.views.card-list :refer [card-list]]
     [clj-ts.views.transcript :refer [transcript]]
-    [clj-ts.views.editor :refer [editor]]
-    [clj-ts.views.footer :refer [footer]]))
+    [clj-ts.views.editor :refer [editor]]))
 
 ;; region top-level ratom
 
@@ -36,15 +34,14 @@
     [:div [nav-bar db]]]])
 
 (defn page-header []
-  [:h2
-   (if (= (-> @db :mode) :transcript)
-     "Transcript"
-     [:span
-      (-> @db :current-page)
-      [:span {:class "tslink"}
-       [:a {:href (str
-                    (str/replace (-> @db :site-url) #"/$" "")
-                    "/" (-> @db :current-page))} " (public)"]]])])
+  (let [transcript? (= (-> @db :mode) :transcript)]
+    (if transcript?
+      [:div {:class ["page-header-container"]}
+       [:div {:class ["page-title-container"]} [:h2 "Transcript"]]
+       [tool-bar db]]
+      [:div {:class ["page-header-container"]}
+       [:div {:class ["page-title-container"]} [:h2 (-> @db :current-page)]]
+       [tool-bar db]])))
 
 (defn main-container []
   (let [mode (:mode @db)]
@@ -65,12 +62,10 @@
 
 (defn content []
   [:div {:class "main-container"}
-   [header-bar]
+   [header-bar db]
    [:div {:class "context-box"}
     [page-header]
-    [:div [tool-bar db]]
-    [main-container]]
-   [footer db]])
+    [main-container]]])
 
 ;; endregion
 

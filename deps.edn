@@ -12,7 +12,7 @@
 
   :eastwood
   {:extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}
-   :main-opts  ["-m" "eastwood.lint" {:source-paths ["src"]}]}
+   :main-opts  ["-m" "eastwood.lint" {:source-paths ["src/client" "src/common" "src/server"]}]}
 
   :clj-kondo
   {:extra-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}

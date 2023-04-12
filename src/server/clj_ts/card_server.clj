@@ -399,19 +399,11 @@ Bookmarked " timestamp ",, <" url ">
         ps (:page-store (server-state))
         wiki-name (:wiki-name (server-state))
         site-url (:site-url (server-state))
-        port (:port-no (server-state))
-        start-page-name (:start-page (server-state))
-        ip (try
-             (let [dgs (new DatagramSocket)]
-               (.connect dgs (InetAddress/getByName "8.8.8.8") 10002)
-               (-> dgs .getLocalAddress .getHostAddress))
-             (catch Exception e (str e)))]
+        start-page-name (:start-page (server-state))]
     (if (.page-exists? ps page_name)
       {:page_name       page_name
        :wiki_name       wiki-name
        :site_url        site-url
-       :port            port
-       :ip              ip
        :public_root     (str site-url "/view/")
        :start_page_name start-page-name
        :cards           (load->cards page_name)
@@ -419,8 +411,6 @@ Bookmarked " timestamp ",, <" url ">
       {:page_name       page_name
        :wiki_name       wiki-name
        :site_url        site-url
-       :port            port
-       :ip              ip
        :start_page_name start-page-name
        :public_root     (str site-url "/view/")
        :cards           (raw->cards "PAGE DOES NOT EXIST" false false)

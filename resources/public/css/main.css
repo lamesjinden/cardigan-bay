@@ -1,7 +1,7 @@
 /*  CSS for running program */
 
 body {
-    font-family: serif;
+    font-family: sans;
     font-size: 1.6rem;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -9,7 +9,7 @@ body {
     margin: auto;
     color: #4a4a4a;
     padding: 13px;
-    background-color:#cccccc;
+    background-color:#F7F7F7;
 }
 
 @media only screen and (max-width: 600px) {
@@ -33,6 +33,30 @@ h1, h2, h3, h4, h5, h6 {
     hyphens: auto;
 }
 
+button {
+    font-size: 1.2rem;
+
+    color: #339933;
+    margin:5px;
+    background-repeat: no-repeat;
+    padding: 5px;
+
+    border-width: 1px;
+    border-color: #DFDFDF;
+}
+
+input {
+    font-size: 1.2rem;
+    font-family: sans;
+    border-width: 1px;
+    border-color: #F7F7F7;
+    padding: 8px;
+}
+
+input:focus-visible {
+    outline: none;
+}
+
 #nav1 span {
       cursor: pointer;
 }
@@ -51,11 +75,98 @@ h1, h2, h3, h4, h5, h6 {
 
 .headerbar a {color:black;}
 
+.big-btn {
+    border-style: solid;
+    height: 40px;
+    min-width: 70px;
+
+    font-size: 1.2rem;
+    padding: 4px 8px;
+}
+
+.page-header-container {
+    display: grid;
+
+    background: white;
+
+    border-width: 0px;
+
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-left-color: lightgrey;
+
+    border-top-style: solid;
+    border-top-width: 0px;
+    border-top-color: lightgrey;
+
+    border-right-style: solid;
+    border-right-width: -px;
+    border-right-color: lightgrey;
+
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-color: lightgrey;
+
+    margin: 15px 0 0 0;
+    padding: 0 4px;
+}
+
+.page-title-container {
+    grid-column: 1;
+
+    display: flex;
+    align-items: center;
+}
+
+.toolbar-container {
+    grid-column: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.button-container {
+    display: flex;
+}
+
+.image-button > div {
+    display: table;
+}
+
+.image-button > div > img {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.image-button > div > span {
+    display: table-cell;
+    vertical-align: middle;
+    padding-left: 8px;
+}
+
+.image-button > div > a {
+    display: table-row;
+}
+
+.image-button > div > a > img {
+    display: table-cell;
+        vertical-align: middle;
+}
+
+.image-button > div > a > span {
+    display: table-cell;
+    vertical-align: middle;
+
+    padding-left: 8px;
+}
+
 .card-outer {
-    border-radius: 15px;
-    background: #eeeeee;
-    padding: 15px;
-    margin-bottom:1.5em;
+    margin: 0 0 15px 0;
+    padding: 15px 0;
 }
 
 @media only screen and (max-width: 600px) {
@@ -95,18 +206,12 @@ blockquote {
 }
 
 .main-container {
-   background-color:#cccccc;
    padding: 0% 2%;
 }
 
 .context-box {
-    border-style:solid;
-    border-width:3px;
-    border-color:#111111;
-    background-color:#eeeeee;
     padding: 5px;
     margin: 5px;
-    border-radius: 10px;
 }
 
 a {
@@ -124,27 +229,28 @@ div textarea {
     font-size: 1.1rem;
 }
 
-button {
-    color: #339933;
-    margin:5px;
-    background-repeat: no-repeat;
-    background-position: <left|right>;
-    padding: 5px;
-}
-
-button:hover {
-   background-color: #;
-}
-
 .navbar {
     border:10px;
     Background:dark-blue;
 }
 
+#go-button {
+    margin-left: 0;
+}
+
+#rss-button {
+    min-width: unset;
+    height: unset;
+}
+
 .pastebar {
+    display: flex;
+    justify-content: center;
+
     border:10px;
     background-color:#777788;
     padding:10px;
+    margin: 15px 0 0 0;
 }
 
 #navinputbox {
@@ -193,7 +299,7 @@ button:hover {
 .embed_div {
     display: flex;
     align-items: center;
-    justify-content:center;
+    justify-content: center;
     width:100%;
 }
 
@@ -239,7 +345,8 @@ button:hover {
 
 .edit-box {
     box-sizing: border-box;
-    width: 100%;
+    width: auto;
     height: 100%;
-    padding: 10px;
+    padding: 0;
+    margin: 0;
 }
