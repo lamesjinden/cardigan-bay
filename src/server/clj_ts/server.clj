@@ -55,6 +55,15 @@
     (card-server/reorder-card page-name hash direction)
     (create-ok)))
 
+(defn replace-card-handler [request]
+  (let [form-body (-> request :body .bytes slurp edn/read-string)
+        page-name (:page form-body)
+        hash (:hash form-body)
+        source-type (:source_type form-body)
+        new-val (:data form-body)]
+    (card-server/replace-card page-name hash source-type new-val)
+    (create-ok)))
+
 (defn bookmarklet-handler [request]
   (let [url (-> request :params :url)
         data (embed/boilerplate url (LocalDateTime/now))]
@@ -71,6 +80,10 @@
 (defn export-all-pages-handler [_request]
   (export/export-all-pages (card-server/server-state))
   (resp/redirect (str "/view/" (-> card-server/server-state :start-page)) :see-other))
+
+(defn export-recent-pages-handler [_request]
+  (export/export-recent-pages (card-server/server-state))
+  (resp/redirect "/view/RecentChanges" :see-other))
 
 (defn media-file-handler [request]
   (let [uri (:uri request)
@@ -125,6 +138,8 @@
    (render-page-config index-local-path page-name)))
 
 (defn handle-root-request [_request]
+  (println "server-state")
+  (prn (card-server/server-state))
   (-> index-local-path
       (render-page-config (.start-page (card-server/server-state)))
       (resp/response)
@@ -202,6 +217,9 @@
       (= uri "/api/reordercard")
       (reorder-card-handler request)
 
+      (= uri "/api/replacecard")
+      (replace-card-handler request)
+
       (= uri "/api/rss/recentchanges")
       (-> (card-server/rss-recent-changes (fn [page-name]
                                             (str (-> (card-server/server-state)
@@ -221,6 +239,10 @@
       ;; todo - redirects to /view, why?
       (= uri "/api/exportallpages")
       (export-all-pages-handler request)
+
+      ;; todo - redirects to /view, why?
+      (= uri "/api/exportrecentpages")
+      (export-recent-pages-handler request)
 
       (re-matches #"/media/(\S+)" uri)
       (media-file-handler request)

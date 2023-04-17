@@ -35,8 +35,7 @@
                                 clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
                                           out-dir
                                           out-file)]
-                            (clojure clj-arg)
-                            (fs/delete-tree out-dir)))
+                            (clojure clj-arg)))
 
          build-server   (do
                           (println "Compiling Clojure")

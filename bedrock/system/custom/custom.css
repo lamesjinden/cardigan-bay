@@ -1,30 +1,48 @@
-/*  CSS for running program */
+/*  This is custom CSS for the your sepecific
+    CardiganBay installation.
+
+    Developers working on the original source code should note
+    the main css is at resources/clj_ts/main.css
+ */
+
 
 body {
-    font-family: Roboto,Noto,sans-serif;
     font-size: 1.6rem;
+    font-family: Roboto,Noto,sans-serif;
     overflow-wrap: break-word;
     word-wrap: break-word;
+
     line-height: 1.618;
+    /*max-width: 48em;*/
     margin: auto;
-    color: #4a4a4a;
+    background-color: #ffffff;
+    font-color: #333333;
+
+
     padding: 13px;
-    background-color:#F7F7F7;
+
+
+    background-color:#eeeeee;
+
 }
 
+
+
 h1, h2, h3, h4, h5, h6 {
-    line-height: 1.1;
-    font-family: Verdana, Geneva, sans-serif;
-    font-weight: 700;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    -ms-word-break: break-all;
-    word-break: break-word;
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
-    hyphens: auto;
+  line-height: 1.1;
+  /*font-family: Inconsolata, Verdana, Geneva, sans-serif;*/
+
+  font-weight: 700;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  -ms-word-break: break-all;
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
+
 
 nav {
     overflow: hidden;
@@ -35,11 +53,12 @@ nav {
     font-size: medium;
 }
 
+
 .navbar-spacer {
     padding-top: 50px;
 }
 
-#clickable {
+.clickable  {
     cursor: pointer;
 }
 
@@ -47,134 +66,18 @@ nav {
 
 .wikiname {color: #555555; text-align: right;}
 
-button {
-    font-size: 1.2rem;
 
-    color: #339933;
-    margin:5px;
-    background-repeat: no-repeat;
-    padding: 5px;
-
-    border-width: 1px;
-    border-color: #DFDFDF;
-}
-
-input {
-    font-size: 1.2rem;
-    font-family: sans;
-    border-width: 1px;
-    border-color: #F7F7F7;
-    padding: 8px;
-}
-
-input:focus-visible {
-    outline: none;
-}
-
-#nav1 span {
-      cursor: pointer;
-}
-
-.headerbar {
-	padding:10px;
-	margin: 0;
-}
 
 .headerbar a {color:black;}
 
-.big-btn {
-    border-style: solid;
-    height: 40px;
-    min-width: 70px;
-
-    font-size: 1.2rem;
-    padding: 4px 8px;
-}
-
-.page-header-container {
-    display: grid;
-
-    background: white;
-
-    border-width: 0px;
-
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-
-    border-left-style: solid;
-    border-left-width: 1px;
-    border-left-color: lightgrey;
-
-    border-top-style: solid;
-    border-top-width: 0px;
-    border-top-color: lightgrey;
-
-    border-right-style: solid;
-    border-right-width: -px;
-    border-right-color: lightgrey;
-
-    border-bottom-style: solid;
-    border-bottom-width: 1px;
-    border-bottom-color: lightgrey;
-
-    margin: 15px 0 0 0;
-    padding: 0 4px;
-}
-
-.page-title-container {
-    grid-column: 1;
-
-    display: flex;
-    align-items: center;
-}
-
-.toolbar-container {
-    grid-column: 2;
-
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.button-container {
-    display: flex;
-}
-
-.image-button > div {
-    display: table;
-}
-
-.image-button > div > img {
-    display: table-cell;
-    vertical-align: middle;
-}
-
-.image-button > div > span {
-    display: table-cell;
-    vertical-align: middle;
-    padding-left: 8px;
-}
-
-.image-button > div > a {
-    display: table-row;
-}
-
-.image-button > div > a > img {
-    display: table-cell;
-        vertical-align: middle;
-}
-
-.image-button > div > a > span {
-    display: table-cell;
-    vertical-align: middle;
-
-    padding-left: 8px;
-}
 
 .card-outer {
-    margin: 0 0 15px 0;
-    padding: 15px 0;
+    border-radius: 15px;
+    background: #eeeeee;
+    padding: 15px;
+    margin-bottom:1.5em;
 }
+
 
 .card-meta {
     font-size: 1rem;
@@ -193,65 +96,100 @@ input:focus-visible {
 }
 
 blockquote {
-    background: #f9f9f9;
-    border-left: 10px solid #fada96;
-    margin: 1.5em 10px;
-    padding: 0.5em 10px;
-    quotes: "\201C""\201D""\2018""\2019";
+  background: #f9f9f9;
+  border-left: 10px solid #fada96;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  quotes: "\201C""\201D""\2018""\2019";
 }
 
 .transcluded {
-    background-color: #eeeeff;
-    padding:10px;
-    border-left: 10px solid #faaa96;
+  background-color: #eeeeff;
+  padding:10px;
+
+  border-left: 10px solid #faaa96;
+
 }
+
+
 
 .main-container {
-   padding: 0% 2%;
+   background-color:#ffffff;
+   padding-top:200px;
+   padding:2%;
 }
 
-.context-box {
+.context-box, .headerbar {
+    border-style:solid;
+    border-width:3px;
+    border-color:#111111;
+    background-color:#eeeeee;
+
     padding: 5px;
     margin: 5px;
+    border-radius: 10px;
 }
 
-a {
-    color:39cccc;
+text {
+    /*      font-family:Verdana; */
 }
 
-.wikilink {
-    color:#85144b;
-}
+a {color:39cccc;}
+
+.wikilink {color:#85144b;}
 
 div textarea {
-    box-sizing: border-box;
-    width: 100%;
-    padding: 10px;
-    font-size: 1.1rem;
+  box-sizing: border-box;
+  max-width: 90%;
+  padding: 10px;
+  font-size: 1.1rem;
+}
+
+button {
+
+    color: #666666;
+    background-color:#ffffff;
+
+    margin:3px;
+
+    background-repeat: no-repeat;
+    background-position: <left|right>;
+
+    padding: 3px;
+
+    font-size:medium;
+    text-align:top;
+    border-style:solid;
+    border-width:1;
+    border-color:#333333;
+}
+
+
+button:hover {
+   background-color: #;
+}
+
+
+.mini-button {
+    margin:3px;
+    padding:3px;
+    border-style:solid;
+    border-width:1;
+    border-color:#333333;
+    cursor:pointer;
+
 }
 
 .navbar {
+    /*padding:20px;*/
     border:10px;
     Background:dark-blue;
 }
 
-#go-button {
-    margin-left: 0;
-}
-
-#rss-button {
-    min-width: unset;
-    height: unset;
-}
-
 .pastebar {
-    display: flex;
-    justify-content: center;
-
     border:10px;
-    background-color:#777788;
+    background-color:#aaaaaa;
     padding:10px;
-    margin: 15px 0 0 0;
 }
 
 #navinputbox {
@@ -293,27 +231,44 @@ div textarea {
     font-size: 1rem;
 }
 
+
 .twin_pages {
     color:#333333;
 }
 
+
 .embed_div {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content:center;
     width:100%;
 }
+
+
 
 .youtube-embedded {
     width:100%;
     position: relative;
+    /*
+    padding-bottom: 56.25%;
+    padding-top: 25px;
+*/
     height: 20em;
 }
+
 
 .vimeo-embedded {
     width:100%;
     position: relative;
+    /*
+    padding-bottom: 56.25%;
+    padding-top: 25px;
+*/
     height: 20em;
+}
+
+.bandcamp-embedded {
+
 }
 
 .manual-copy {
@@ -321,36 +276,27 @@ div textarea {
     padding: 5px;
     margin: 2px;
     border-radius: 10px;
+
 }
 
+
 .code {
-    font-size : 1.6rem;
+    font-size : 1.4rem;
 }
 
 .calculated-out {
-    font-size : 1rem;
+    font-size : 1.2rem;
 }
 
 .results {
-    font-size : 1rem;
+    font-size : 1.5rem;
 }
 
 .workspace-note {
     font-size : 0.8rem;
 }
 
-.workspace-editor {
-    min-height: 20em;
-    width: 100%;
-}
 
-.edit-box {
-    box-sizing: border-box;
-    width: auto;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-}
 
 .fixed-menu {
   position: fixed;
@@ -420,17 +366,28 @@ nav ul li a:hover {
   color: #0078d7;
 }
 
+
+
 @media screen and (max-width: 768px) {
 
-  .left-menu li {
-    display: block; /* Ensure each item inside .left-menu stacks vertically */
+  body {
+      font-size: 1rem;
   }
 
+  .left-menu li {
+      display: block; /* Ensure each item inside .left-menu stacks vertically */
+  }
+
+
+
   .fixed-menu {
+
       height: 0px;
   }
 
+
   .nav-wrapper {
+      /*display: none;*/
       height: 0;
   }
 
@@ -446,6 +403,8 @@ nav ul li a:hover {
     right: 16px; /* Adjust right position */
   }
 
+
+
   nav ul li {
     text-align: center;
   }
@@ -454,6 +413,8 @@ nav ul li a:hover {
     display: none;
     flex-direction: column;
   }
+
+
 
   #menu-toggle:checked ~ ul {
     display: flex;
@@ -469,17 +430,10 @@ nav ul li a:hover {
   .card-outer {
       background: #ddddff;
   }
-}
 
-// from custom.css
-/*
-.mini-button {
-    margin:3px;
-    padding:3px;
-    border-style:solid;
-    border-width:1;
-    border-color:#333333;
-    cursor:pointer;
+  .code {
+      font-size : 0.9rem;
+  }
+
 
 }
-*/

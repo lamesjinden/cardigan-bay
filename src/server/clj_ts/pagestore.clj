@@ -2,7 +2,8 @@
   (:require
     [clojure.string :as string]
     [clojure.java.io :as io]
-    [clojure.core.memoize :refer [memo memo-clear!]]))
+    [clojure.core.memoize :refer [memo memo-clear!]]
+    [clj-ts.common :refer [raw-text->card-maps find-card-by-hash]]))
 
 ;; Diagnostic T
 (defn P [x label] (do (println (str label " :: " x)) x))
@@ -19,7 +20,11 @@
   (page-exists? [ps page-name])
   (system-file-exists? [ps name])
   (last-modified [ps page-name])
-  (read-page [ps page])
+  ;; note - renamed read-page to load-page to avoid collision with pagestore/read-page
+  (load-page [ps page])
+  (get-page-as-card-maps [ps page-name])
+  (get-card [ps page-name card-hash])
+  (get-cards-from-page [ps page-name card-hashes])
   (write-page! [ps page data])
   (read-system-file [ps name])
   (write-system-file! [ps name data])
@@ -29,6 +34,7 @@
   (media-files-as-new-directory-stream [ps])
   (media-export-path [ps])
   (read-recent-changes [ps])
+  (recent-changes-as-page-list [ps])
   (write-recent-changes! [ps new-rc])
   (load-media-file [ps file-name])
   (load-custom-file [ps file-name]))
@@ -57,10 +63,23 @@
   (last-modified [this p-name]
     (-> (.page-name->path this p-name) .toFile .lastModified (#(java.util.Date. %))))
 
-  (read-page [this page]
+  (load-page [this page]
     (if (instance? java.nio.file.Path page)
       (-> page .toFile slurp)
       (-> page (#(.page-name->path this %)) .toFile slurp)))
+
+  (get-page-as-card-maps [this page-name]
+    (->> page-name
+         (.page-name->path this)
+         (.load-page this)
+         (raw-text->card-maps)))
+
+  (get-card [this page-name hash]
+    (-> (.get-page-as-card-maps this page-name)
+        (find-card-by-hash hash)))
+
+  (get-cards-from-page [this page-name card-hashes]
+    (remove nil? (map #(.get-card this page-name %) card-hashes)))
 
   (write-page! [this page data]
     (if (instance? java.nio.file.Path page)
@@ -110,6 +129,11 @@
   (read-recent-changes [ps]
     (.read-system-file ps "recentchanges"))
 
+  (recent-changes-as-page-list [ps]
+    (->> (clojure.string/split-lines (.read-recent-changes ps))
+         (map (fn [line] (first (re-seq #"\[\[(.+?)\]\]" line))))
+         (map second)))
+
   (write-recent-changes! [ps new-rc]
     (.write-system-file! ps "recentchanges" new-rc))
 
@@ -144,7 +168,7 @@
     (assert (-> page-dir-path .toFile .isDirectory)
             (str "page-store " page-dir-as-string " is not a directory."))
     (assert (-> system-dir-path .toFile .exists)
-            (str "There is no system director. Please make a directory called 'system' under the directory "
+            (str "There is no system directory. Please make a directory called 'system' under the page directory "
                  page-dir-as-string))
     (assert (-> system-dir-path .toFile .isDirectory)
             (str "There is a file called 'system' under " page-dir-as-string
@@ -181,7 +205,7 @@
 ;; API for writing a file
 
 (defn m-read-page [page-store p-name]
-  (.read-page page-store p-name))
+  (.load-page page-store p-name))
 
 (def memoized-read-page (memo m-read-page))
 
@@ -196,14 +220,17 @@
     (memo-clear! memoized-read-page [ps p-name])))
 
 ;; Search
+;; Full Text Search
 (defn text-search [server-state page-names pattern]
-  (let [title-contains-pattern? (fn [page-name] (re-matches pattern page-name))
-        page-contains-pattern? (fn [page-name]
-                                 (let [text (read-page server-state page-name)]
-                                   (not (nil? (re-find pattern text)))))
-        res (filter #(or (title-contains-pattern? %)
-                         (page-contains-pattern? %)) page-names)]
+  (let [contains-pattern? (fn [page-name]
+                            (let [text (read-page server-state page-name)]
+                              (not (nil? (re-find pattern text)))))
+        res (filter contains-pattern? page-names)]
     res))
+
+;; Name Search - finds names containing substring
+(defn name-search [page-names pattern]
+  (filter #(not (nil? (re-find pattern %))) page-names))
 
 ;; Global Search and replace
 ;; Be careful with this.

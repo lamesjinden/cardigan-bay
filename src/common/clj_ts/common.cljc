@@ -1,33 +1,48 @@
 (ns clj-ts.common
   (:require [clojure.string :as string]
-            [markdown.core :as md]
             [hasch.core :refer [uuid5 edn-hash]]
             [clj-ts.command-line :as command-line]))
 
-;; Cards
+(defn split-by-hyphens [input]
+  (->> (string/split input #"-{4,}")
+       (map string/trim)
+       (remove string/blank?)))
 
-(defn raw-card-text->raw-card-map [c]
+(defn hash-it [card-data]
+  (-> card-data (edn-hash) (uuid5)))
+
+(defn raw-card-text->card-map [c]
   (let [card (string/trim c)
-        rex #"^\s+:(\S+)"]
+        rex #"^:(\S+)"
+        data (string/replace-first card rex "")]
     (if
-      (not (re-find rex c))
-      [:markdown c]
-      [(->> c (re-find rex) second keyword)
-       (string/replace-first c rex "")])))
+      (not (re-find rex card))
+      {:source_type :markdown
+       :source_data card
+       :hash        (hash-it card)}
+      {:source_type (->> c (re-find rex) second keyword)
+       :source_data data
+       :hash        (hash-it data)})))
 
-(defn package-card [id source-type render-type source-data server-prepared-data user_authored?]
+(defn raw-text->card-maps [raw]
+  (->> raw split-by-hyphens
+       (map raw-card-text->card-map)))
+
+(defn package-card [id source-type render-type source-data server-prepared-data render-context]
   {:source_type          source-type
    :render_type          render-type
    :source_data          source-data
    :server_prepared_data server-prepared-data
    :id                   id
-   :hash                 (-> source-data (edn-hash) (uuid5))
-   :user_authored?       user_authored?})
+   :hash                 (hash-it source-data)
+   :user_authored?       (:user-authored? render-context)})
 
-(defn card->raw [{:keys [id source_type source_data]}]
+
+(defn card->raw [{:keys [source_type source_data]}]
   (if (= source_type :markdown)
     source_data
-    (str "\n" source_type "\n" (string/trim source_data))))
+    (str source_type "\n\n" (string/trim source_data))))
+
 
 (defn card-is-blank? [{:keys [source_data]}]
   (= "" (string/trim source_data)))
@@ -36,7 +51,7 @@
   (= (.toString (:hash card))
      (.toString hash)))
 
-(defn neh [card hash]
+(defn neh [card hash]                                       ;; Not equal hash
   (not (match-hash card hash)))
 
 ;; Cards in card list
@@ -54,7 +69,7 @@
   [cards hash]
   (remove #(match-hash % hash) cards))
 
-(defn sub-card
+(defn replace-card
   "Replace the first card that matches p with new-card. If no card matches, return cards unchanged"
   [cards p new-card]
   (let [un-p #(not (p %))
@@ -130,27 +145,20 @@
             (recur (rest lines) false (conj build "</table></div>" line))
             (recur (rest lines) false (conj build line))))))))
 
-#?(:clj (defn md->html [s]
-          (-> s
-              (double-comma-table)
-              (md/md-to-html-string)
-              (auto-links)
-              (double-bracket-links))))
-
 ;; Cards with commands
 
 (defn contains-commands? [card]
-  (let [[_type data] (raw-card-text->raw-card-map card)
-        lines (string/split-lines data)]
+  (let [{:keys [source_type source_data]} (raw-card-text->card-map card)
+        lines (string/split-lines source_data)]
     (if
       (some command-line/command-line? lines) true false)))
 
 (defn gather-all-commands [card]
-  (let [[type data] (raw-card-text->raw-card-map card)
-        lines (string/split-lines data)
+  (let [{:keys [source_type source_data]} (raw-card-text->card-map card)
+        lines (string/split-lines source_data)
         pseq (command-line/parsed-seq lines)]
     (conj pseq
-          {:type     type
+          {:type     source_type
            :stripped (string/join "\n" (:non-commands pseq))})))
 
 ;;;
@@ -162,7 +170,6 @@
     :markdown
     "
 ----
-
 "
 
     :youtube
@@ -175,7 +182,6 @@
  :title \"\"
  :caption \"\"
 }
-
 "
 
     :vimeo
@@ -188,7 +194,6 @@
  :title \"\"
  :caption \"\"
 }
-
 "
 
     :media-img
@@ -209,9 +214,9 @@
 :embed
 
 {:type :img
-:url \"URL GOES HERE\"
-:title \"\"
-:caption \"\"
+ :url \"URL GOES HERE\"
+ :title \"\"
+ :caption \"\"
 }
 "
 
@@ -224,9 +229,7 @@
  :url \"URL GOES HERE\"
  :title \"\"
  :caption \"\"
-
 }
-
 "
 
     :bandcamp
@@ -240,9 +243,7 @@
  :description \"DESCRIPTION GOES HERE\"
  :title \"\"
  :caption \"\"
-
 }
-
 "
 
     :twitter
@@ -255,21 +256,19 @@
  :title \"\"
  :caption \"\"
 }
-
 "
 
     :mastodon
     "
-   ----
-   :embed
+----
+:embed
 
-   {:type :mastodon
-    :url \"URL GOES HERE\"
-    :title \"\"
-    :caption \"\"
-   }
-
-   "
+{:type :mastodon
+ :url \"URL GOES HERE\"
+ :title \"\"
+ :caption \"\"
+}
+"
 
     :codepen
     "
@@ -281,11 +280,9 @@
  :title \"\"
  :caption \"\"
 }
-
 "
 
     :rss
-
     "
 ----
 :embed

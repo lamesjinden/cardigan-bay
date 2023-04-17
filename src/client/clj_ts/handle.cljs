@@ -63,6 +63,13 @@
                                    (nav/load-page db load-page-response))))]
      (save-page-async! db http-callback))))
 
+(defn save-card-async! [page-name hash source-type new-val]
+  (let [body (pr-str {:page        page-name
+                      :data        new-val
+                      :hash        hash
+                      :source_type source-type})]
+    (http/http-post-async "/api/replacecard" identity body)))
+
 (defn card-reorder-async! [db page-name hash direction]
   (http/http-post-async
     "/api/reordercard"
@@ -142,3 +149,18 @@
       (cond
         (= key-code key-escape-code)
         (editor-on-escape-press db)))))
+
+(defn on-edit-card-clicked [db card]
+  ;; todo - needs to be reworked to load the card updates
+  ;; todo - will require the server to respond back with card updates, then reload and render
+  (save-card-async!
+    (-> @db :current-page)
+    (get card "hash")
+    (get card "source_type")
+    (-> js/document
+        (.getElementById (str "edit-" (get card "hash")))
+        .-value))
+  (swap! db assoc :mode :viewing))
+
+(defn on-edit-card-cancel-clicked [db]
+  (nav/reload-async! db))

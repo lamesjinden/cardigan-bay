@@ -7,10 +7,9 @@
     [clj-ts.embed :as embed]
     [clj-ts.patterning :as patterning]
     [clj-rss.core :as rss]
+    [markdown.core :as md]
     [sci.core :as sci]
-    [hiccup.core :refer [html]]]
-  (:import (java.net InetAddress)
-           (java.net DatagramSocket)))
+    [hiccup.core :refer [html]]])
 
 ;; Card Server State is ALL the global state for the application.
 ;; NOTHING mutable should be stored anywhere else but in the card-server-state atom.
@@ -41,6 +40,7 @@
 
 ;; State Management is done at the card-server level
 
+;; todo - def doesn't play well with wrap-reload
 (def the-server-state (atom :dummy))
 
 (defn initialize-state! [wiki-name site-url port-no start-page logic-db page-store page-exporter]
@@ -87,7 +87,12 @@
 
 ;; PageStore delegation
 
-(declare regenerate-db!)
+(defn regenerate-db! []
+  (future
+    (println "Starting to rebuild logic db")
+    (let [f (ldb/regenerate-db (server-state))]
+      (set-facts-db! f)
+      (println "Finished building logic db"))))
 
 (defn write-page-to-file! [p-name body]
   (pagestore/write-page-to-file! (server-state) p-name body)
@@ -107,16 +112,7 @@
 
 (defn read-page [page-name]
   (-> (.page-store (server-state))
-      (.read-page page-name)))
-
-;; Logic delegation
-
-(defn regenerate-db! []
-  (future
-    (println "Starting to rebuild logic db")
-    (let [f (ldb/regenerate-db (server-state))]
-      (set-facts-db! f)
-      (println "Finished building logic db"))))
+      (.load-page page-name)))
 
 ;; Useful for errors
 
@@ -126,10 +122,41 @@
     (.printStackTrace e pw)
     (str "Exception :: " (.getMessage e) (-> sw .toString))))
 
+;; Other functions
+
+(defn search [pattern term]
+  (let [db (-> (server-state) :facts-db)
+        all-pages (.all-pages db)
+        name-res (pagestore/name-search all-pages (re-pattern pattern))
+        count-names (count name-res)
+        res (pagestore/text-search (server-state) all-pages
+                                   (re-pattern pattern))
+        count-res (count res)
+        name-list (apply str (map #(str "* [[" % "]]\n") name-res))
+        res-list (apply str (map #(str "* [[" % "]]\n") res))
+        out (str "
+
+*" count-names " PageNames containing \"" term "\"*\n
+" name-list "
+
+*" count-res " Pages containing \" " term "\"*\n "
+                 res-list)]
+    out))
+
 ;; Card Processing
 
+;; We're going to use a map to store flags and other gubbins needed
+;; in the rendering pipeline. Particularly to track whether we're
+;; doing something in a normal rendering context or an export context
+;; And whether a card is system generated or human generated.
+
+;; We'll call it render-context
+;; {:for-export false :user-authored? true}
+
 (defn server-eval
-  "Evaluate Clojure code embedded in a card. Evaluated on the server. Be careful."
+  "Evaluate Clojure code embedded in a card. Evaluated with SCI
+   but on the server. I hope there's no risk for this ...
+   BUT ..."
   [data]
   (let [code data
         evaluated
@@ -144,54 +171,52 @@
   (println "In server-custom-script")
   (str "This will (eventually) run a custom script: " data))
 
-(defn ldb-query->mdlist-card [i title result qname f user-authored?]
+(defn ldb-query->mdlist-card [i source_data title result qname f render-context]
   (let [items (apply str (map f result))
         body (str "*" title "* " "*(" (count result) " items)*\n\n" items)]
-    (common/package-card i :system :markdown body body user-authored?)))
+    (common/package-card i :system :markdown source_data body render-context)))
 
 (defn item1 [s] (str "* [[" s "]]\n"))
 
-(defn system-card [i data user-authored?]
-  (let [info (read-string data)
+(defn system-card [i data render-context]
+  (let [
+        info (read-string data)
         cmd (:command info)
         db (-> (server-state) :facts-db)
         ps (-> (server-state) :page-store)]
 
     (condp = cmd
       :allpages
-      (ldb-query->mdlist-card i "All Pages" (.all-pages db) :allpages item1 user-authored?)
+      (ldb-query->mdlist-card i data "All Pages" (.all-pages db) :allpages item1 render-context)
 
       :alllinks
       (ldb-query->mdlist-card
-        i "All Links" (.all-links db) :alllinks
+        i data "All Links" (.all-links db) :alllinks
         (fn [[a b]] (str "[[" a "]],, &#8594;,, [[" b "]]\n"))
-        user-authored?)
+        render-context)
 
       :brokenlinks
       (ldb-query->mdlist-card
-        i "Broken Internal Links" (.broken-links db) :brokenlinks
+        i data "Broken Internal Links" (.broken-links db) :brokenlinks
         (fn [[a b]] (str "[[" a "]],, &#8603;,, [[" b "]]\n"))
-        user-authored?)
+        render-context)
 
       :orphanpages
       (ldb-query->mdlist-card
-        i "Orphan Pages" (.orphan-pages db) :orphanpages item1
-        user-authored?)
+        i data "Orphan Pages" (.orphan-pages db) :orphanpages item1
+        render-context)
 
       :recentchanges
       (let [src (.read-recent-changes ps)]
         (common/package-card
-          "recentchanges" :system :markdown src src user-authored?))
+          "recentchanges" :system :markdown src src render-context))
 
       :search
-      (let [pattern-str (str "(?i)" (:query info))
-            _ (println "pattern-str" pattern-str)
-            res (pagestore/text-search (server-state)
-                                       (.all-pages db)
-                                       (re-pattern pattern-str))
-            out (str "*Searching pages containing \" " (:query info) "\"*\n "
-                     (apply str (map #(str "* [[" % "]]\n") res)))]
-        (common/package-card (str "search " i) :system :markdown out out user-authored?))
+      ;; note/todo - if this path is used, then the first arg needs to be made case-insensitive (see resolve-text-search below)
+      (let [res (search (:query info) (:query info))]
+        (common/package-card
+          "search" :system :markdown
+          data res render-context))
 
       :about
       (let [sr (str "### System Information
@@ -203,29 +228,21 @@
 **Export Dir** ,, " (.export-path ps) "
 **Number of Pages** ,, " (count (.all-pages db))
                     )]
-        (common/package-card i :system :markdown sr sr user-authored?))
+        (common/package-card i :system :markdown data sr render-context))
 
       :customscript
       (let [return-type (or (:return-type data) :markdown)
             sr (server-custom-script data)]
-        (common/package-card i :customscript return-type sr sr user-authored?))
+        (common/package-card i :customscript return-type data sr render-context))
 
       ;; not recognised
       (let [d (str "Not recognised system command in " data " -- cmd " cmd)]
-        (common/package-card i :system :raw d d user-authored?)))))
-
-(defn transclude [i data user-authored?]
-  (let [{:keys [from process]} (read-string data)
-        raw (-> from (#(pagestore/read-page (server-state) %)))
-        return-type (if (nil? process) :markdown process)
-        head (str "*Transcluded from [[" from "]]* \n")
-        body (str head raw)]
-    (common/package-card i :transclude return-type body body user-authored?)))
+        (common/package-card i :system :raw data d render-context)))))
 
 (defn bookmark-card [data]
   (let [{:keys [url timestamp]} (read-string data)]
     (str "
-Bookmarked " timestamp ",, <" url ">
+Bookmarked " timestamp ": <" url ">
 
 ")))
 
@@ -235,7 +252,7 @@ Bookmarked " timestamp ",, <" url ">
         (-> ns first rest)
         :otherwise (afind n (rest ns))))
 
-(defn network-card [i data for-export? user-authored?]
+(defn network-card [i data render-context]
   (try
     (let [nodes (-> data read-string :nodes)
           arcs (-> data read-string :arcs)
@@ -254,7 +271,7 @@ Bookmarked " timestamp ",, <" url ">
                                         :fill        "black"
                                         } label]
                        final-text
-                       (if for-export?
+                       (if (:for-export? render-context)
                          [:a {:href label} the-text]
                          the-text)
                        box [:circle {:cx           x :cy y :r 20
@@ -281,167 +298,96 @@ Bookmarked " timestamp ",, <" url ">
                              [:polygon {:points "-5 0, 0 3.5, -5 7"}]]]
                      (apply str (map arc arcs))
                      (apply str (map node nodes))])]
-      (common/package-card i :network :markdown data svg user-authored?))
+      (common/package-card i :network :markdown data svg render-context))
     (catch Exception e (common/package-card i :network :raw data
                                             (str (exception-stack e)
                                                  "\n" data)
-                                            user-authored?))))
+                                            render-context))))
 
-(defn process-card
-  [i card for-export? user-authored?]
-  (let [[source-type, data] (common/raw-card-text->raw-card-map card)]
-    (condp = source-type
-      :markdown (common/package-card i source-type :markdown data data user-authored?)
-      :manual-copy (common/package-card i source-type :manual-copy data data user-authored?)
-      :raw (common/package-card i source-type :raw data data user-authored?)
+(defn md->html [s]
+  (-> s
+      (common/double-comma-table)
+      (md/md-to-html-string)
+      (common/auto-links)
+      (common/double-bracket-links)))
 
-      :code
-      (do
-        (println "Exporting :code card ")
-        (common/package-card i :code :code data data user-authored?))
+(defn process-card-map
+  [i {:keys [source_type source_data]} render-context]
+  (try
+    [(condp = source_type
+       :markdown (common/package-card i source_type :markdown source_data source_data render-context)
+       :manual-copy (common/package-card i source_type :manual-copy source_data source_data render-context)
+       :raw (common/package-card i source_type :raw source_data source_data render-context)
 
-      :evalraw
-      (common/package-card i :evalraw :raw data (server-eval data) user-authored?)
+       :code
+       (do
+         (println "Exporting :code card ")
+         (common/package-card i :code :code source_data source_data render-context))
 
-      :evalmd
-      (common/package-card i :evalmd :markdown data (server-eval data) user-authored?)
+       :evalraw
+       (common/package-card i :evalraw :raw source_data (server-eval source_data) render-context)
 
-      :workspace
-      (common/package-card i source-type :workspace data data user-authored?)
+       :evalmd
+       (common/package-card i :evalmd :markdown source_data (server-eval source_data) render-context)
 
-      :system
-      (system-card i data user-authored?)
+       :workspace
+       (common/package-card i source_type :workspace source_data source_data render-context)
 
-      :embed
-      (common/package-card i source-type :html data
-                           (embed/process data for-export?
-                                          (fn [s] (common/md->html s))
-                                          (server-state))
-                           user-authored?)
+       :system
+       (system-card i source_data render-context)
 
-      :transclude
-      (transclude i data user-authored?)
+       :embed
+       (common/package-card i source_type :html source_data
+                            (embed/process source_data
+                                           render-context
+                                           (if (:for-export? render-context)
+                                             (:link-renderer render-context)
+                                             (fn [s] (md->html s)))
+                                           (server-state))
+                            render-context)
 
-      :bookmark
-      (common/package-card i :bookmark :markdown data (bookmark-card data) user-authored?)
+       :bookmark
+       (common/package-card i :bookmark :markdown source_data (bookmark-card source_data) render-context)
 
 
-      :network
-      (network-card i data for-export? user-authored?)
+       :network
+       (network-card i source_data render-context)
 
-      :patterning
-      (common/package-card i :patterning :html data
-                           (patterning/one-pattern data) user-authored?)
+       :patterning
+       (common/package-card i :patterning :html source_data
+                            (patterning/one-pattern source_data) render-context)
 
-      ;; not recognised
-      (common/package-card i source-type source-type data data user-authored?))))
+       ;; not recognised
+       (common/package-card i source_type source_type source_data source_data render-context))]
+    (catch
+      Exception e
+      [(common/package-card
+         i :raw :raw source_data
+         (str "Error \n\nType was\n" source_type
+              "\nSource was\n" source_data
+              "\n\nStack trace\n"
+              (exception-stack e))
+         render-context)])))
 
-(defn raw->cards [raw for-export? user-authored?]
-  (let [cards (string/split raw #"----")]
-    (map process-card (iterate inc 0) cards (repeat for-export?) (repeat user-authored?))))
+(defn transclude [i source-data render-context]
+  (let [{:keys [from _process ids]} (read-string source-data)
+        ps (.page-store (server-state))
+        matched-cards (.get-cards-from-page ps from ids)
+        card-maps->processed (fn [id-start card-maps render-context]
+                               (mapcat process-card-map (iterate inc id-start) card-maps (repeat render-context)))
+        ;; todo - may have broken transclusion here while attempting to avoid forward declaring card-maps->processed
+        cards (card-maps->processed (* 100 i) matched-cards render-context)
+        body (str "## Transcluded from [[" from "]]")]
+    (concat [(common/package-card i :transclude :markdown body body render-context)] cards)))
 
-(declare backlinks)
+(defn process-card [i {:keys [source_type source_data] :as card-maps} render-context]
+  (if (= source_type :transclude)
+    (transclude i source_data render-context)
+    (process-card-map i card-maps render-context)))
 
-(defn load->cards [page-name]
-  (-> (server-state) .page-store
-      (.read-page page-name)
-      (raw->cards false true)))
-
-(defn load->cards-for-export [page-name]
-  (-> (server-state) .page-store
-      (.read-page page-name)
-      (raw->cards true true)))
-
-(defn generate-system-cards [page-name]
-  [(backlinks page-name)])
-
-(defn load-one-card [page-name hash]
-  (let [cards (load->cards page-name)]
-    (common/find-card-by-hash cards hash)))
-
-;; GraphQL resolvers
-
-(defn resolve-text-search [_context arguments _value]
-  (let [{:keys [query_string]} arguments
-        query-pattern-str (str "(?i)" query_string)
-        res (pagestore/text-search
-              (server-state)
-              (.all-pages (-> (server-state) :facts-db))
-              (re-pattern query-pattern-str))
-        header (str "#### " (count res) " pages containing \"" query_string "\"\n")
-        out (str header (apply str (map #(str "* [[" % "]]\n") res)))]
-    {:result_text out}))
-
-(defn resolve-card
-  "Not yet tested"
-  [context arguments value user-authored?]
-  (let [{:keys [page_name hash]} arguments
-        ps (.page-store (server-state))]
-    (if (.page-exists? ps page_name)
-      (-> (load->cards page_name)
-          (common/find-card-by-hash hash))
-      (common/package-card 0 :markdown :markdown
-                           (str "Card " hash " doesn't exist in " page_name)
-                           (str "Card " hash " doesn't exist in " page_name)
-                           user-authored?))))
-
-(defn resolve-source-page [context arguments value]
-  (let [{:keys [page_name]} arguments
-        ps (.page-store (server-state))]
-    (if (.page-exists? ps page_name)
-      {:page_name page_name
-       :body      (pagestore/read-page (server-state) page_name)}
-      {:page_name page_name
-       :body      "PAGE DOES NOT EXIST"})))
-
-(defn resolve-page [_context arguments _value]
-  (let [{:keys [page_name]} arguments
-        ps (:page-store (server-state))
-        wiki-name (:wiki-name (server-state))
-        site-url (:site-url (server-state))
-        start-page-name (:start-page (server-state))]
-    (if (.page-exists? ps page_name)
-      {:page_name       page_name
-       :wiki_name       wiki-name
-       :site_url        site-url
-       :public_root     (str site-url "/view/")
-       :start_page_name start-page-name
-       :cards           (load->cards page_name)
-       :system_cards    (generate-system-cards page_name)}
-      {:page_name       page_name
-       :wiki_name       wiki-name
-       :site_url        site-url
-       :start_page_name start-page-name
-       :public_root     (str site-url "/view/")
-       :cards           (raw->cards "PAGE DOES NOT EXIST" false false)
-       :system_cards    (let [sim-names (map
-                                          #(str "\n- [[" % "]]")
-                                          (.similar-page-names
-                                            ps page_name))]
-                          (if (empty? sim-names) []
-                                                 [(common/package-card
-                                                    :similarly_name_pages :system :markdown ""
-                                                    (str "Here are some similarly named pages :"
-                                                         (apply str sim-names)) false)]))})))
-
-;; RecentChanges as RSS
-
-(defn rss-recent-changes [link-fn]
-  (let [ps (:page-store (server-state))
-        make-link (fn [s]
-                    (let [m (re-matches #"\* \[\[(\S+)\]\] (\(.+\))" s)
-                          [pname date] [(second m) (nth m 2)]]
-                      {:title (str pname " changed on " date)
-                       :link  (link-fn pname)}))
-        rc (-> (.read-recent-changes ps)
-               string/split-lines
-               (#(map make-link %)))]
-    (rss/channel-xml {:title       "RecentChanges"
-                      :link        (-> (server-state) :site-url)
-                      :description "Recent Changes in CardiganBay Wiki"}
-                     rc)))
-
-;; Backlinks
+(defn raw->cards [raw render-context]
+  (let [card-maps (common/raw-text->card-maps raw)]
+    (mapcat process-card (iterate inc 0) card-maps (repeat render-context))))
 
 (defn backlinks [page-name]
   (let [bl (.links-to (server-state) page-name)]
@@ -462,10 +408,119 @@ Bookmarked " timestamp ",, <" url ">
 
       :otherwise
       (ldb-query->mdlist-card
-        "backlinks" "Backlinks" bl
+        "backlinks" "backlinks" "Backlinks" bl
         :calculated
         (fn [[a b]] (str "* [[" a "]] \n"))
         false))))
+
+(defn load->cards [page-name]
+  (-> (server-state) .page-store
+      (.load-page page-name)
+      (raw->cards {:user-authored? true :for-export? false})))
+
+(defn load->cards-for-export [page-name link-renderer]
+  (-> (server-state) .page-store
+      (.load-page page-name)
+      (raw->cards {:user-authored? true
+                   :for-export?    true
+                   :link-renderer  link-renderer})))
+
+(defn generate-system-cards [page-name]
+  [(backlinks page-name)])
+
+(defn load-one-card [page-name hash]
+  (let [cards (load->cards page-name)]
+    (common/find-card-by-hash cards hash)))
+
+;; GraphQL resolvers
+
+(defn resolve-text-search [_context arguments _value]
+  (let [{:keys [query_string]} arguments
+        query-pattern-str (str "(?i)" query_string)
+        out (search query-pattern-str query_string)]
+    {:result_text out}))
+
+(defn resolve-card
+  "Not yet tested"
+  [context arguments value render-context]
+  (let [{:keys [page_name hash]} arguments
+        ps (.page-store (server-state))]
+    (if (.page-exists? ps page_name)
+      (-> (load->cards page_name)
+          (common/find-card-by-hash hash))
+      (common/package-card 0 :markdown :markdown
+                           (str "Card " hash " doesn't exist in " page_name)
+                           (str "Card " hash " doesn't exist in " page_name)
+                           render-context))))
+
+(defn resolve-source-page [_context arguments _value]
+  (let [{:keys [page_name]} arguments
+        ps (.page-store (server-state))]
+    (if (.page-exists? ps page_name)
+      {:page_name page_name
+       :body      (pagestore/read-page (server-state) page_name)}
+      {:page_name page_name
+       :body
+       (str "A PAGE CALLED " page_name " DOES NOT EXIST
+Check if the name you typed, or in the link you followed is correct.
+If you would *like* to create a page with this name, simply click the [Edit] button to edit this text. When you save, you will create the page")})))
+
+(defn resolve-page [_context arguments _value]
+  (let [{:keys [page_name]} arguments
+        ps (:page-store (server-state))
+        wiki-name (:wiki-name (server-state))
+        site-url (:site-url (server-state))
+        start-page-name (:start-page (server-state))]
+    (if (.page-exists? ps page_name)
+      {:page_name       page_name
+       :wiki_name       wiki-name
+       :site_url        site-url
+       :public_root     (str site-url "/view/")
+       :start_page_name start-page-name
+       :cards           (load->cards page_name)
+       :system_cards    (generate-system-cards page_name)}
+      {:page_name       page_name
+       :wiki_name       wiki-name
+       :site_url        site-url
+       :start_page_name start-page-name
+       :public_root     (str site-url "/view/")
+       :cards           (raw->cards
+                          (str "<div style='color:#990000'>A PAGE CALLED " page_name " DOES NOT EXIST
+
+
+Check if the name you typed, or in the link you followed is correct.
+
+If you would *like* to create a page with this name, simply click the [Edit] button to edit this text. When you save, you will create the page
+</div>")
+                          {:user-authored? false :for-export? false})
+       :system_cards
+       (let [sim-names (map
+                         #(str "\n- [[" % "]]")
+                         (.similar-page-names
+                           ps page_name))]
+         (if (empty? sim-names) []
+                                [(common/package-card
+                                   :similarly_name_pages :system :markdown ""
+                                   (str "Here are some similarly named pages :"
+                                        (apply str sim-names)) false)]))
+       })))
+
+;; RecentChanges as RSS
+
+(defn rss-recent-changes [link-fn]
+  (let [ps (:page-store (server-state))
+        make-link (fn [s]
+                    (let [m (re-matches #"\* \[\[(\S+)\]\] (\(.+\))" s)
+                          [pname date] [(second m) (nth m 2)]]
+                      {:title (str pname " changed on " date)
+                       :link  (link-fn pname)}))
+        rc (-> (.read-recent-changes ps)
+               string/split-lines
+               (#(map make-link %)))]
+    (rss/channel-xml {:title       "RecentChanges"
+                      :link        (-> (server-state) :site-url)
+                      :description "Recent Changes in CardiganBay Wiki"}
+                     rc)))
 
 ;; transforms on pages
 
@@ -493,20 +548,33 @@ Bookmarked " timestamp ",, <" url ">
     (write-page-to-file! page-name new-body)))
 
 (defn move-card [page-name hash destination-name]
-  (let [from-cards (load->cards page-name)
-        card (common/find-card-by-hash from-cards hash)
-        stripped (into [] (common/remove-card-by-hash from-cards hash))
-        stripped_raw (common/cards->raw stripped)]
-    (when (not (nil? card))
-      (do
+  (if (= page-name destination-name)
+    nil                                                     ;; don't try to move to self
+    (let [ps (.page-store (server-state))
+          from-cards (.get-page-as-card-maps ps page-name)
+          card (common/find-card-by-hash from-cards hash)
+          stripped (into [] (common/remove-card-by-hash from-cards hash))
+          stripped_raw (common/cards->raw stripped)]
+      (when (not (nil? card))
         (append-card-to-page! destination-name (:source_type card) (:source_data card))
         (write-page-to-file! page-name stripped_raw)))))
 
 (defn reorder-card [page-name hash direction]
-  (let [cards (load->cards page-name)
+  (let [ps (.page-store (server-state))
+        cards (.get-page-as-card-maps ps page-name)
         new-cards (if (= "up" direction)
                     (common/move-card-up cards hash)
                     (common/move-card-down cards hash))]
+    (write-page-to-file! page-name (common/cards->raw new-cards))))
+
+(defn replace-card [page-name hash source-type new-body]
+  (let [ps (.page-store (server-state))
+        cards (.get-page-as-card-maps ps page-name)
+        new-card (common/raw-card-text->card-map (str source-type "\n" new-body))
+        new-cards (common/replace-card
+                    cards
+                    #(common/match-hash % hash)
+                    new-card)]
     (write-page-to-file! page-name (common/cards->raw new-cards))))
 
 ;;;; Media and Custom files

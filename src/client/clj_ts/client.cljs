@@ -80,6 +80,7 @@
     resolved
     (let [init (first (.-init js/window))
           loaded-p (if (object? init)
+                     ;; todo - delete window["init"]
                      (p/resolved (nav/load-page db init))
                      (nav/load-start-page-async! db))]
       (p/then loaded-p (fn []

@@ -3,8 +3,7 @@
 
 (defn tool-bar [db]
   (fn []
-    (let [mode (-> @db :mode)
-          _ (println "mode" mode)]
+    (let [mode (-> @db :mode)]
       [:div
        {:class ["toolbar-container"]}
        (condp = mode

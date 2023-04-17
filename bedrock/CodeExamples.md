@@ -1,5 +1,5 @@
 
-### Evaluation Examples
+### Code Examples
 
 [[CardiganBay]] is written in [Clojure](https://clojure.org/), a language which I'm a big fan of, and want to use for scripting within the wiki.
 
@@ -10,8 +10,16 @@ There are two ways to embed Clojure code in your wiki.
 
 In both cases, the code needs to be correct (without bugs or causing exceptions). And can't use external resources or include libraries etc.
 
-For more on running ClojureScript in the client / browser, see 
-[[WorkspaceExample]]
+----
+
+### Evaluation in the Browser
+
+You can run code in the browser in two ways.
+
+1) To evaluate small Clojure expressions, for example to do simple ad hoc calculations you can just type them into the [[TheNavBar]] and press the [Run It] button. The result will be printed to [[TheTranscript]] 
+
+2) There is a Workspace card into which you can type longer Clojure code and have it run. Full details are on  [[WorkspaceExample]]. You can also look at the  [[GraphingExample]] which shows you how to implement a simple "graphing calculator" using a workspace.
+
 ----
 ### Evaluation on the Server
 
@@ -22,7 +30,6 @@ The card-types :evalraw and :evalmd allow us to embed Clojure code in a page whi
 :evalmd assumes that the code returned will itself be in markdown format and therefore should be run through the markdown renderer.
 
 The next cards have examples of :evalraw and :evalmd
-
 ----
 :evalraw
 (map 
@@ -45,7 +52,7 @@ The next cards have examples of :evalraw and :evalmd
 
 
 ----
-See [[PatterningExamples]]
+See also [[PatterningExamples]]
 
 ----
 ### IMPORTANT

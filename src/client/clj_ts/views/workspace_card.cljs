@@ -75,15 +75,16 @@
                                         {:class    :workspace-button
                                          :on-click (fn [] (format-workspace state))}
                                         "Format"]]]
-
                                      [:div {:class ["workspace-editor"]} (str/trim (-> @state :code))]]
                                     [:div {:class :calculated-out :style {:padding "3px"
                                                                           :display (->display (-> @state :calc-toggle))}}
+                                     [:hr]
                                      [:h4 "Calculated"]
                                      [:pre
                                       (with-out-str (pprint (str (-> @state :calc))))]]
                                     [:div {:class :results :style {:padding "3px"
                                                                    :display (->display (-> @state :result-toggle))}}
+                                     [:hr]
                                      [:h4 "Result"]
                                      [:div
                                       (let [result (-> @state :result)]
