@@ -1,57 +1,57 @@
-{:deps  {org.clojure/clojurescript {:mvn/version "1.10.439"}}
- :tasks {:init          (do (def global "global"))
+{:tasks {:init               (do (def global "global"))
 
-         clean-client   {:requires ([babashka.fs :as fs])
-                         :task     (let [resources-out "resources/out"
-                                         resources-public-js "resources/public/js"
-                                         target "target"
-                                         dirs [resources-out resources-public-js target]
-                                         main-js "resources/public/main.js"
-                                         files [main-js]]
-                                     (println "Cleaning (client)")
-                                     (println "  " (clojure.string/join ", " dirs))
-                                     (doseq [dir dirs]
-                                       (fs/delete-tree dir))
-                                     (println "  " (clojure.string/join ", " files))
-                                     (doseq [file files]
-                                       (fs/delete-if-exists "resources/public/main.js")))}
+         clean-client        {:requires ([babashka.fs :as fs])
+                              :task     (let [resources-out "resources/out"
+                                              resources-public-js "resources/public/js"
+                                              target "target"
+                                              dirs [resources-out resources-public-js target]
+                                              main-js "resources/public/main.js"
+                                              files [main-js]]
+                                          (println "Cleaning (client)")
+                                          (println "  " (clojure.string/join ", " dirs))
+                                          (doseq [dir dirs]
+                                            (fs/delete-tree dir))
+                                          (println "  " (clojure.string/join ", " files))
+                                          (doseq [file files]
+                                            (fs/delete-if-exists "resources/public/main.js")))}
 
-         clean-server   {:requires ([babashka.fs :as fs])
-                         :task
-                         (let [target-dir "target"]
-                           (println "Cleaning (server)")
-                           (println "  " target-dir)
-                           (fs/delete-tree target-dir))}
+         clean-server        {:requires ([babashka.fs :as fs])
+                              :task     (let [target-dir "target"]
+                                          (println "Cleaning (server)")
+                                          (println "  " target-dir)
+                                          (fs/delete-tree target-dir))}
 
-         clean          {:requires ([babashka.fs :as fs])
-                         :task     (do
-                                     (run 'clean-client)
-                                     (run 'clean-server))}
+         clean               {:requires ([babashka.fs :as fs])
+                              :task     (do
+                                          (run 'clean-client)
+                                          (run 'clean-server))}
 
-         build-client   (do
-                          (println "Compiling ClojureScript")
-                          (let [out-file "resources/public/main.js"
-                                out-dir "resources/public/js/compiled/out"
-                                clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
-                                          out-dir
-                                          out-file)]
-                            (clojure clj-arg)))
+         build-client        {:requires ([babashka.fs :as fs])
+                              :task     (do
+                                          (println "Compiling ClojureScript")
+                                          (let [out-file "resources/public/main.js"
+                                                out-dir "resources/public/js/compiled/out"
+                                                clj-arg (format "-M:client -m cljs.main -co '{:infer-externs true}' --output-dir %s --optimizations advanced --output-to %s --compile 'clj-ts.client"
+                                                          out-dir
+                                                          out-file)]
+                                            (clojure clj-arg)
+                                            (fs/delete-tree out-dir)))}
 
-         build-server   (do
-                          (println "Compiling Clojure")
-                          (clojure "-T:uberjar uber"))
+         build-server        (do
+                               (println "Compiling Clojure")
+                               (clojure "-T:uberjar uber"))
 
-         all            (do (run 'clean-client)
-                            (run 'build-client)
-                            (run 'clean-server)
-                            (run 'build-server))
+         all                 (do (run 'clean-client)
+                                 (run 'build-client)
+                                 (run 'clean-server)
+                                 (run 'build-server))
 
-         run-dev-client (clojure "-M:figwheel-main:client:dev")
+         run-dev-client      (clojure "-M:figwheel-main:client:dev")
          run-dev-client-repl (clojure "-M:rebel-main:client:dev")
-         run-dev-server (clojure "-M:run-dev-server:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
+         run-dev-server      (clojure "-M:run-dev-server:dev-server:server:dev --directory '../../Documents/wiki/bedrock/'")
          run-dev-server-repl (clojure "-M:nrepl-main:dev-server:server:dev")
 
-         lint           (do (clojure "-M:eastwood"))
-         test           (do (clojure "-M:test:server"))}
+         lint                (do (clojure "-M:eastwood"))
+         test                (do (clojure "-M:test:server"))}
  }
 
