@@ -20,8 +20,6 @@
 ;; page-store has all the file-system information that the wiki reads and writes.
 ;; page-exporter the other info for exporting flat files
 
-(defprotocol ICardServerRecord)
-
 (defmacro dnn [cs m & args]
   `(let [db# (:facts-db ~cs)]
      (if (nil? db#) :not-available
@@ -94,8 +92,8 @@
       (set-facts-db! f)
       (println "Finished building logic db"))))
 
-(defn write-page-to-file! [p-name body]
-  (pagestore/write-page-to-file! (server-state) p-name body)
+(defn write-page-to-file! [page-name body]
+  (pagestore/write-page-to-file! (server-state) page-name body)
   (regenerate-db!))
 
 (defn update-pagedir! [new-pd new-ed]
@@ -178,6 +176,12 @@
 
 (defn item1 [s] (str "* [[" s "]]\n"))
 
+(defn file-link [data]
+  (let [{:keys [file-name label]} (-> data read-string)]
+    (str "<a href='" "/media/" file-name "'>"
+         (if label label file-name)
+         "</a>")))
+
 (defn system-card [i data render-context]
   (let [
         info (read-string data)
@@ -235,6 +239,17 @@
             sr (server-custom-script data)]
         (common/package-card i :customscript return-type data sr render-context))
 
+      :filelist
+      (let [file-names (-> (.page-store (server-state))
+                           .media-list)
+            file-list (str "<ul>\n"
+                           (apply
+                             str
+                             (map #(str "<li> <a href='/media/" % "'>" % "</a></li>\n")
+                                  file-names))
+                           "</ul>")]
+        (common/package-card i :system :html data file-list render-context))
+
       ;; not recognised
       (let [d (str "Not recognised system command in " data " -- cmd " cmd)]
         (common/package-card i :system :raw data d render-context)))))
@@ -252,57 +267,75 @@ Bookmarked " timestamp ": <" url ">
         (-> ns first rest)
         :otherwise (afind n (rest ns))))
 
+(defn calculate-node-size [label {:keys [font-size padding]}]
+  (let [text-width (* (count label) font-size 0.6)          ; Assuming each character has a width of 0.6 * font-size
+        rect-width (+ text-width (* 2 padding))
+        rect-height 40]
+    [rect-width rect-height]))
+
+(defn node->svg [node style-map]
+  (let [[id label x y] node
+        font-size (:font-size style-map)
+        font-family (:font-family style-map)
+        text-anchor (:text-anchor style-map)
+        text-y-offset (/ font-size 2)
+        [rect-width rect-height] (calculate-node-size label style-map)]
+    [:g {:key id}
+     [:rect {:x      (- x (/ rect-width 2)) :y (- y (/ rect-height 2))
+             :width  rect-width :height rect-height
+             :stroke "black" :fill "white"}]
+     [:text {:x         x :y (+ y text-y-offset) :font-family font-family
+             :font-size font-size :text-anchor text-anchor
+             :class     "wikilink" :data label}
+      label]]))
+
+(defn line-rect-intersect [x1 y1 x2 y2 w h]
+  (let [dx (- x2 x1)
+        dy (- y2 y1)
+        half-w (/ w 2)
+        half-h (/ h 2)
+        left (- x2 half-w)
+        right (+ x2 half-w)
+        top (- y2 half-h)
+        bottom (+ y2 half-h)
+        t-min-x (if (not= dx 0) (/ (- left x1) dx) Double/POSITIVE_INFINITY)
+        t-max-x (if (not= dx 0) (/ (- right x1) dx) Double/NEGATIVE_INFINITY)
+        t-min-y (if (not= dy 0) (/ (- top y1) dy) Double/POSITIVE_INFINITY)
+        t-max-y (if (not= dy 0) (/ (- bottom y1) dy) Double/NEGATIVE_INFINITY)
+        t-enter (max (min t-min-x t-max-x) (min t-min-y t-max-y))]
+    [(+ x1 (* t-enter dx)) (+ y1 (* t-enter dy))]))
+
+(defn arc->svg [arc nodes style-map]
+  (let [[n1 n2] arc
+        node1 (some #(when (= (first %) n1) %) nodes)
+        node2 (some #(when (= (first %) n2) %) nodes)
+        [x1 y1] [(nth node1 2) (nth node1 3)]
+        [x2 y2] [(nth node2 2) (nth node2 3)]
+        [w1 h1] (calculate-node-size (nth node1 1) style-map)
+        [w2 h2] (calculate-node-size (nth node2 1) style-map)
+        [src-x src-y] (line-rect-intersect x2 y2 x1 y1 w1 h1) ; Reversed the origin and destination nodes
+        [dest-x dest-y] (line-rect-intersect x1 y1 x2 y2 w2 h2)]
+    [:line {:x1     src-x :y1 src-y :x2 dest-x :y2 dest-y
+            :stroke "black" :stroke-width 2 :marker-end "url(#arrow)"}]))
+
+(defn network->svg [network]
+  (let [style-map {:font-size   20
+                   :font-family "Arial"
+                   :text-anchor "middle"
+                   :padding     10}]
+    [:svg {:width "100%" :height "100%" :viewBox "0 0 500 500"}
+     [:defs
+      [:marker {:id     "arrow" :markerWidth 10 :markerHeight 10 :refX 9 :refY 3
+                :orient "auto" :markerUnits "strokeWidth"}
+       [:path {:d "M0,0 L0,6 L9,3 z" :fill "black"}]]]
+     (map #(node->svg % style-map) (network :nodes))
+     (map #(arc->svg % (network :nodes) style-map) (network :arcs))]))
+
 (defn network-card [i data render-context]
-  (try
-    (let [nodes (-> data read-string :nodes)
-          arcs (-> data read-string :arcs)
-          maxit (fn [f i xs]
-                  (apply f (map #(nth % i) xs)))
-          maxx (maxit max 2 nodes)
-          maxy (maxit max 3 nodes)
-          minx (maxit min 2 nodes)
-          miny (maxit min 3 nodes)
-          node (fn [[n label x y]]
-                 (let [an-id (gensym)
-                       the-text [:text {:class       "wikilink"
-                                        :data        label
-                                        :x           x :y (+ y 20)
-                                        :text-anchor "middle"
-                                        :fill        "black"
-                                        } label]
-                       final-text
-                       (if (:for-export? render-context)
-                         [:a {:href label} the-text]
-                         the-text)
-                       box [:circle {:cx           x :cy y :r 20
-                                     :width        100 :height 20
-                                     :stroke       "orange"
-                                     :stroke-width 2 :fill "yellow"}]]
-                   (html [:g {:id an-id} box final-text])))
-          arc (fn [[n1 n2]]
-                (let
-                  [a1 (afind n1 nodes)
-                   a2 (afind n2 nodes)]
-                  (if
-                    (and a1 a2)
-                    (let [[label x1 y1] a1
-                          [label x2 y2] a2]
-                      (html [:line {:x1         x1 :y1 y1 :x2 x2 :y2 y2
-                                    :stroke     "#000" :stroke-width 2
-                                    :marker-end "url(#arrowhead)"}]))
-                    "")))
-          svg (html [:svg {:width   "500px" :height "400px"
-                           :viewBox (str "0 0 " (* 1.3 maxx) (* 1.3 maxy))}
-                     [:defs [:marker {:id   "arrowhead" :markerWidth "10" :markerHeight "7"
-                                      :refX "-5" :refY "3.5" :orient "auto"}
-                             [:polygon {:points "-5 0, 0 3.5, -5 7"}]]]
-                     (apply str (map arc arcs))
-                     (apply str (map node nodes))])]
-      (common/package-card i :network :markdown data svg render-context))
-    (catch Exception e (common/package-card i :network :raw data
-                                            (str (exception-stack e)
-                                                 "\n" data)
-                                            render-context))))
+  (let [svg (html (network->svg (read-string data)))]
+    (common/package-card
+      i :network :markdown data
+      svg render-context)))
 
 (defn md->html [s]
   (-> s
@@ -356,6 +389,10 @@ Bookmarked " timestamp ": <" url ">
        :patterning
        (common/package-card i :patterning :html source_data
                             (patterning/one-pattern source_data) render-context)
+
+       :filelink
+       (common/package-card i :filelink :html source_data
+                            (file-link source_data) render-context)
 
        ;; not recognised
        (common/package-card i source_type source_type source_data source_data render-context))]

@@ -4,7 +4,8 @@
             [reagent.core :as r]
             [sci.core :as sci]
             [clj-ts.ace :as ace]
-            [cljfmt.core :as format]))
+            [cljfmt.core :as format]
+            [clj-ts.handle :as handle]))
 
 (defn execute-code [state]
   (let [code (.getValue (:editor @state))
@@ -35,13 +36,21 @@
         formatted (format/reformat-string code)]
     (.setValue editor formatted)))
 
-(defn workspace [card]
+(defn save-code-async! [db state]
+  (handle/save-card-async! (-> @db :current-page)
+                            (-> @state :hash)
+                            (-> @state :source_type)
+                            (-> @state :code)))
+
+(defn workspace [db card]
   (let [state (r/atom {:code-toggle   true
                        :calc-toggle   false
                        :result-toggle true
                        :code          (get card "server_prepared_data")
                        :calc          []
                        :result        ""
+                       :hash          (get card "hash")
+                       :source_type   (get card "source_type")
                        :editor        (atom nil)})]
     (reagent.core/create-class
       {:component-did-mount    (fn [] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
@@ -63,6 +72,8 @@
                                                              You'll need to  edit the page fully to make permanent changes to the code. "]]
                                     [:div {:class :workspace-buttons}
                                      [:button {:class :workspace-button :on-click (fn [] (execute-code state))} "Run"]
+                                     [:button {:class :workspace-button :on-click (fn [] (save-code-async! db state))} "Save Changes"]]
+                                    [:div
                                      [:button {:class :workspace-button :on-click (fn [] (toggle-code! state))} "Code"]
                                      [:button {:class :workspace-button :on-click (fn [] (toggle-calc! state))} "Calculated"]
                                      [:button {:class :workspace-button :on-click (fn [] (toggle-result! state))} "Output"]]

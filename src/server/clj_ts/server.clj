@@ -295,9 +295,40 @@
     :default false
     :parse-fn boolean]])
 
+(defn cli-options2 [configs]
+  [["-p" "--port PORT" "Port number"
+    :default (:port configs)
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
+   ["-d" "--directory DIR" "Pages directory"
+    :default (:directory configs)
+    :parse-fn str]
+   ["-n" "--name NAME" "Wiki Name"
+    :default (:name configs)
+    :parse-fn str]
+   ["-s" "--site SITE" "Site URL "
+    :default (:site configs)
+    :parse-fn str]
+   ["-i" "--init INIT" "Start Page"
+    :default (:init configs)
+    :parse-fn str]
+   ["-l" "--links LINK" "Export Links"
+    :default (:links configs)
+    :parse-fn str]
+   ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"
+    :default (:extension configs)
+    :parse-fn str]
+   ["-e" "--export-dir DIR" "Export Directory"
+    :default (:export-dir configs)
+    :parse-fn str]
+   ["-b" "--beginner IS_BEGINNER" "Is Beginner Rather Than Expert"
+    :default (:beginner configs)
+    :parse-fn boolean]])
+
 (defn args->opts [args]
   (let [as (if *command-line-args* *command-line-args* args)
         xs (cli/parse-opts as cli-options)
+        #_xs #_(cli/parse-opts as (cli-options2 configs))
         opts (get xs :options)]
     opts))
 
@@ -340,8 +371,19 @@
 
     (card-server/regenerate-db!)))
 
+(defn check-and-read-config-file []
+  (try
+    (-> "config.edn"
+        slurp
+        edn/read-string)
+    (catch Exception e
+      (do
+        (println "No config file")
+        {}))))
+
 (defn -main [& args]
-  (let [opts (args->opts args)
+  (let [#_configs #_(check-and-read-config-file)
+        opts (args->opts args)
         server-opts (select-keys opts [:port])]
     (init-app opts)
     (let [app (create-app)]

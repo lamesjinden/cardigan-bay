@@ -9,6 +9,7 @@
     [clj-ts.views.tool-bar :refer [tool-bar]]
     [clj-ts.views.card-list :refer [card-list]]
     [clj-ts.views.transcript :refer [transcript]]
+    [clj-ts.networks :refer [network-canvas]]
     [clj-ts.views.editor :refer [editor]]))
 
 ;; region top-level ratom
@@ -58,7 +59,11 @@
 
         :transcript
         [:div
-         [transcript db]])]]))
+         [transcript db]]
+
+        :network-editor
+        [:div
+         [network-canvas]])]]))
 
 (defn content []
   [:div {:class "main-container"}

@@ -3,7 +3,8 @@
     [clojure.string :as string]
     [clojure.java.io :as io]
     [clojure.core.memoize :refer [memo memo-clear!]]
-    [clj-ts.common :refer [raw-text->card-maps find-card-by-hash]]))
+    [clj-ts.common :refer [raw-text->card-maps find-card-by-hash]])
+  (:import (java.nio.file Paths)))
 
 ;; Diagnostic T
 (defn P [x label] (do (println (str label " :: " x)) x))
@@ -37,12 +38,13 @@
   (recent-changes-as-page-list [ps])
   (write-recent-changes! [ps new-rc])
   (load-media-file [ps file-name])
-  (load-custom-file [ps file-name]))
+  (load-custom-file [ps file-name])
+  (media-list [ps]))
 
 (deftype PageStore [page-path system-path export-path git-repo?]
   IPageStore
 
-  (as-map [this]
+  (as-map [_this]
     {:page-path   page-path
      :system-path system-path
      :export-path export-path
@@ -54,14 +56,14 @@
   (name->system-path [_this name]
     (.resolve system-path name))
 
-  (page-exists? [this p-name]
-    (-> (.page-name->path this p-name) .toFile .exists))
+  (page-exists? [this page-name]
+    (-> (.page-name->path this page-name) .toFile .exists))
 
   (system-file-exists? [this name]
     (-> (.name->system-path this name) .toFile .exists))
 
-  (last-modified [this p-name]
-    (-> (.page-name->path this p-name) .toFile .lastModified (#(java.util.Date. %))))
+  (last-modified [this page-name]
+    (-> (.page-name->path this page-name) .toFile .lastModified (#(java.util.Date. %))))
 
   (load-page [this page]
     (if (instance? java.nio.file.Path page)
@@ -105,7 +107,7 @@
          "Export Directory :\t" (str export-path) "\n"))
 
 
-  (similar-page-names [this p-name]
+  (similar-page-names [this page-name]
     (let [all-pages (.pages-as-new-directory-stream this)
           all-names (map #(-> (.getFileName %)
                               .toString
@@ -113,7 +115,7 @@
                               butlast
                               last)
                          all-pages)]
-      (filter #(= (string/lower-case %) (string/lower-case p-name)) all-names)))
+      (filter #(= (string/lower-case %) (string/lower-case page-name)) all-names)))
 
 
   (pages-as-new-directory-stream [_this]
@@ -126,42 +128,46 @@
   (media-export-path [_this]
     (.resolve export-path "media"))
 
-  (read-recent-changes [ps]
-    (.read-system-file ps "recentchanges"))
+  (read-recent-changes [this]
+    (.read-system-file this "recentchanges"))
 
-  (recent-changes-as-page-list [ps]
-    (->> (clojure.string/split-lines (.read-recent-changes ps))
+  (recent-changes-as-page-list [page-store]
+    (->> (clojure.string/split-lines (.read-recent-changes page-store))
          (map (fn [line] (first (re-seq #"\[\[(.+?)\]\]" line))))
          (map second)))
 
-  (write-recent-changes! [ps new-rc]
-    (.write-system-file! ps "recentchanges" new-rc))
+  (write-recent-changes! [this recent-changes]
+    (.write-system-file! this "recentchanges" recent-changes))
 
-  (load-media-file [_ps file-name]
+  (load-media-file [_this file-name]
     (let [media-dir (.toString (.resolve page-path "media"))]
       (io/file media-dir file-name)))
 
-  (load-custom-file [_ps file-name]
+  (load-custom-file [_this file-name]
     (let [dir (.toString (.resolve page-path "system/custom"))]
-      (io/file dir file-name))))
+      (io/file dir file-name)))
+
+  (media-list [this]
+    (let [files (.media-files-as-new-directory-stream this)]
+      (map #(.getFileName %) files))))
 
 ;; Constructing
 
 (defn make-page-store [page-dir-as-string export-dir-as-string]
-  (let [page-dir-path (-> (java.nio.file.Paths/get page-dir-as-string (make-array String 0))
+  (let [page-dir-path (-> (Paths/get page-dir-as-string (make-array String 0))
                           (.toAbsolutePath)
                           (.normalize))
-        system-dir-path (-> (java.nio.file.Paths/get page-dir-as-string (into-array String ["system"]))
+        system-dir-path (-> (Paths/get page-dir-as-string (into-array String ["system"]))
                             (.toAbsolutePath)
                             (.normalize))
-        export-dir-path (-> (java.nio.file.Paths/get export-dir-as-string (make-array String 0))
+        export-dir-path (-> (Paths/get export-dir-as-string (make-array String 0))
                             (.toAbsolutePath)
                             (.normalize))
         ;; note -- only verifies page-dir-path is a git root
         ;; todo -- check if within a git repo
         git-path (.resolve page-dir-path ".git")
         git-repo? (-> git-path .toFile .exists)
-        ps (->PageStore page-dir-path system-dir-path export-dir-path git-repo?)]
+        page-store (->PageStore page-dir-path system-dir-path export-dir-path git-repo?)]
 
     (assert (-> page-dir-path .toFile .exists)
             (str "Given page-store directory " page-dir-as-string " does not exist."))
@@ -177,7 +183,7 @@
             (str "Given export-dir-path " export-dir-as-string " does not exist."))
     (assert (-> export-dir-path .toFile .isDirectory)
             (str "export-path " export-dir-as-string " is not a directory."))
-    ps))
+    page-store))
 
 ;; Basic functions
 
@@ -192,32 +198,32 @@
 ;; RecentChanges
 ;; We store recent-changes in a system file called "recentchanges".
 
-(defn update-recent-changes! [ps pagename]
-  (let [rcc (.read-recent-changes ps)
-        filter-step (fn [xs] (filter #(not (string/includes? % (str "[[" pagename "]]"))) xs))
+(defn update-recent-changes! [page-store page-name]
+  (let [rcc (.read-recent-changes page-store)
+        filter-step (fn [xs] (filter #(not (string/includes? % (str "[[" page-name "]]"))) xs))
         curlist (-> rcc string/split-lines filter-step)
         newlist (cons
-                  (str "* [[" pagename "]] (" (.toString (java.util.Date.)) ")")
+                  (str "* [[" page-name "]] (" (.toString (java.util.Date.)) ")")
                   curlist)]
-    (println "Updating recentchanges ... adding " pagename)
-    (.write-recent-changes! ps (string/join "\n" (take 80 newlist)))))
+    (println "Updating recentchanges ... adding " page-name)
+    (.write-recent-changes! page-store (string/join "\n" (take 80 newlist)))))
 
 ;; API for writing a file
 
-(defn m-read-page [page-store p-name]
-  (.load-page page-store p-name))
+(defn m-read-page [page-store page-name]
+  (.load-page page-store page-name))
 
 (def memoized-read-page (memo m-read-page))
 
-(defn read-page [server-state p-name]
+(defn read-page [server-state page-name]
   (let [ps (:page-store server-state)]
-    (memoized-read-page ps p-name)))
+    (memoized-read-page ps page-name)))
 
-(defn write-page-to-file! [server-state p-name body]
-  (let [ps (.page-store server-state)]
-    (.write-page! ps p-name body)
-    (update-recent-changes! ps p-name)
-    (memo-clear! memoized-read-page [ps p-name])))
+(defn write-page-to-file! [server-state page-name body]
+  (let [page-store (.page-store server-state)]
+    (.write-page! page-store page-name body)
+    (update-recent-changes! page-store page-name)
+    (memo-clear! memoized-read-page [page-store page-name])))
 
 ;; Search
 ;; Full Text Search

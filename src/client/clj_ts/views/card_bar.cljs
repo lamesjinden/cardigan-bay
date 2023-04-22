@@ -1,13 +1,9 @@
 (ns clj-ts.views.card-bar
   (:require [reagent.core :as r]
             [clj-ts.handle :as handle]
-            [clj-ts.view :as view]))
-
-(defn send-to-input-box [value]
-  [:input {:type      "text"
-           :id        "sendto-inputbox"
-           :value     @value
-           :on-change #(reset! value (-> % .-target .-value))}])
+            [clj-ts.events.navigation :as nav]
+            [clj-ts.view :as view]
+            [promesa.core :as p]))
 
 (defn clip-hash [from-page hash]
   (view/send-to-clipboard
@@ -17,21 +13,29 @@
 {:from \"" from-page "\"
  :ids [\"" hash "\"] } ")))
 
-(defn toggle! [state card]
+(defn on-save-clicked-async! [db card]
+  (swap! db assoc :mode :viewing)
+  (handle/save-card-async!
+    (-> @db :current-page)
+    (get card "hash")
+    (get card "source_type")
+    (-> js/document
+        (.getElementById (str "edit-" (get card "hash")))
+        .-value)))
+
+(defn toggle! [state text-val card]
   (if (= (-> @state :toggle) "none")
     (do
       (swap! state #(conj % {:toggle "block"}))
-      (-> js/document
-          (.getElementById (str "edit-" (get card "hash")))
-          (.-value)
-          (set! (get card "source_data"))))
+      (reset! text-val (get card "source_data")))
     (swap! state #(conj % {:toggle "none"}))))
 
 (defn card-bar [card]
   (let [meta-id (str "cardmeta" (get card "hash"))
         state (r/atom {:toggle "none"})
         send-value (r/atom "")
-        toggle-fn! (fn [] (toggle! state card))]
+        text-value (r/atom (get card "source_data"))        ;; Edit box
+        toggle-fn! (fn [] (toggle! state text-value card))]
     (fn [db card]
       [:div {:class :card-meta}
        [:div
@@ -52,8 +56,10 @@
          (if (= (-> @state :toggle) "none")
            [:img {:src "/icons/eye.png"}]
            [:img {:src "/icons/eye-off.png"}])]]
-       [:div {:id meta-id :style {:spacing-top "5px" :display (-> @state :toggle)}}
-        [:div [:h4 "Card Bar"]]
+       [:div {:id    meta-id
+              :class :card-bar
+              :style {:spacing-top "5px" :display (-> @state :toggle)}}
+        [:div [:h3 "Card Bar"]]
         [:div
          [:span "ID: " (get card "id")] " | Hash: "
          [:span {:class "mini-button" :on-click (fn [] (clip-hash (-> @db :current-page)
@@ -61,13 +67,16 @@
           "Hash: " (get card "hash")] " | Source type: "
          [:span (get card "source_type")] " | Render type: "
          [:span (get card "render_type")]]
-        [:div
-         [:span
-          "Send to Another Page : "
-          [send-to-input-box send-value]
+        [:hr]
+        [:div {:class :send-to-bar}
+         [:h4 "Send to Another Page"]
+         [:div {:class :send-to-inner}
           [:input {:name "hash" :id "sendhash" :type "hidden" :value (get card "hash")}]
           [:input {:name "from" :id "sendcurrent" :type "hidden" :value (-> @db :current-page)}]
-          [:img {:src "/icons/send.png"}]
+          [:input {:type      "text"
+                   :id        "sendto-inputbox"
+                   :value     @send-value
+                   :on-change #(reset! send-value (-> % .-target .-value))}]
           [:button {:on-click
                     (fn []
                       (handle/card-send-to-page-async!
@@ -75,17 +84,24 @@
                         (-> @db :current-page)
                         (get card "hash")
                         @send-value))} "Send"]]]
+        [:hr]
         [:div
-         [:span "Edit Card"]
-         [:div
-          [:textarea {:id    (str "edit-" (get card "hash"))
-                      :rows  10
-                      :width "100%"}]]
+         [:h4 "Edit Card"]
          [:div
           [:span
            [:button {:class    "big-btn"
-                     :on-click (fn [] (handle/on-edit-card-cancel-clicked db))}
+                     :on-click (fn []
+                                 (-> (nav/reload-async! db)
+                                     (p/then toggle-fn!)))}
             [:img {:src "/icons/x.png"}] " Cancel"]
            [:button {:class    "big-btn"
-                     :on-click (fn [] (handle/on-edit-card-clicked db card))}
-            [:img {:src "/icons/save.png"}] " Save"]]]]]])))
+                     :on-click (fn []
+                                 (-> (on-save-clicked-async! db card)
+                                     (p/then toggle-fn!)))}
+            [:img {:src "/icons/save.png"}] " Save"]]]
+         [:div
+          [:textarea {:id        (str "edit-" (get card "hash"))
+                      :rows      10
+                      :width     "100%"
+                      :value     @text-value
+                      :on-change #(reset! text-value (-> % .-target .-value))}]]]]])))

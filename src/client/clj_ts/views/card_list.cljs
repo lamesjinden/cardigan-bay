@@ -6,7 +6,7 @@
             [clj-ts.views.card-shell :refer [card-shell]]
             [clj-ts.views.workspace-card :refer [workspace]]))
 
-(defn card->component [card]
+(defn card->component [db card]
   (let [render-type (get card "render_type")
         data (get card "server_prepared_data")
         inner-component (condp = render-type
@@ -36,7 +36,7 @@
                           {:reagent-render (fn [] "THIS SHOULD BE HICCUP RENDERED")}
 
                           "workspace"
-                          {:reagent-render (fn [] [workspace card])}
+                          {:reagent-render (fn [] [workspace db card])}
 
                           (str "UNKNOWN TYPE ( " render-type " ) " data))
         class (reagent.core/create-class inner-component)]
@@ -60,7 +60,7 @@
              (let [cards (-> @db :cards)]
                (for [card (filter view/not-blank? cards)]
                  (try
-                   [:div {:key (key-fn card)} [(card-shell db) card (card->component card)]]
+                   [:div {:key (key-fn card)} [(card-shell db) card (card->component db card)]]
                    (catch :default e
                      [:div {:class :card-outer}
                       [:div {:class "card"}
@@ -75,6 +75,6 @@
            (try
              (let [cards (-> @db :system-cards)]
                (for [card cards]
-                 [:div {:key (key-fn card)} [(card-shell db) card (card->component card)]]))
+                 [:div {:key (key-fn card)} [(card-shell db) card (card->component db card)]]))
              (catch :default e
                (js/alert e)))]]))}))

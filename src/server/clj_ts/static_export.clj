@@ -240,8 +240,7 @@ USING DEFAULT"))))
     (spit file-name page)))
 
 (defn export-list-of-pages [server-state page-names]
-  (let [tpl (-> server-state :page-exporter .load-template)
-        ]
+  (let [tpl (-> server-state :page-exporter .load-template)]
     (doseq [p-name page-names]
       (println "Exporting " p-name)
       (try

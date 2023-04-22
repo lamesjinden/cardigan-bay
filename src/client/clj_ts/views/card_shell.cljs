@@ -3,6 +3,12 @@
             [clj-ts.handle :as handle]
             [clj-ts.views.card-bar :refer [card-bar]]))
 
+(defn toggle-expanded-state []
+  ;; todo
+  ;;; move state2 into db
+  ;;
+  )
+
 (defn card-shell [db]
   (let [state2 (r/atom {:toggle "block"})
         toggle! (fn [_]

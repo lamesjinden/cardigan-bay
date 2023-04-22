@@ -2,9 +2,11 @@
   (:require [org.httpkit.client :as http]
             [org.httpkit.sni-client :as sni]
             [clojure.string :as string]
-            [remus :refer [parse-url]]
+            [remus :refer [parse-url parse-file parse-stream]]
             [clj-ts.common :as common]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [hiccup.core :refer [html]]))
+
 
 (alter-var-root #'org.httpkit.client/*default-client* (fn [_] sni/default-client))
 
@@ -17,32 +19,46 @@
 
                    (= method :get)
                    @(http/get url {:form-params params})))
+
         {:keys [status headers body error]
          :as   resp}
         (get-it)]
     (if error
       (str "Failed, exception: " error)
-      body)))
+      (do
+        (println "HTTP GET success: " status)
+        body))
+    ))
+
 
 (defn generic-embed [data inner caption-renderer]
   (let [title (:title data)
         caption (:caption data)
         extra-link (:extra-link data)]
+
     (str
+
       (if title (str "<div><h3>" title "</h3></div>") "")
       (if extra-link (str "<div>" extra-link "</div>") "")
       "<div class=\"embed_div\">"
+
       inner
+
       "
  </div>
  "
-      (if caption (str "<div class='embed-caption'>" (caption-renderer caption) "</div>") ""))))
+      (if caption (str "<div class='embed-caption'>" (caption-renderer caption) "</div>") "")
+      )))
 
 (defn generic-oembed [oembed url method]
-  (let [call (http-call oembed
+  (let [d0 (println (str "api : " oembed " url: " url))
+        call (http-call oembed
                         {:format "json" :url url}
-                        method)]
+                        method
+                        )
+        d1 (println (str "Generic OEmbed got " call))]
     (if (= 404 (get "status" call))
+
       (str "OEmbed call failed
 
 API : " oembed " URL : " url)
@@ -53,28 +69,37 @@ API : " oembed " URL : " url)
         (catch Exception e
           (str (.getMessage e) " " oembed " " url "  " (str call)))))))
 
+
 (defn resizable-iframe [url]
   (let [uid (str "iframe" (string/replace (gensym) #"_" "xxXxx"))]
-    (str "<iframe class='resizable-iframe' id='" uid "' src='" url "' style='width:100%; height:300px;'"
-         " allowfullscreen></iframe>")))
+    (str
+      "<iframe class='resizable-iframe' id='" uid "' src='" url "' style='width:100%; height:300px;'"
+      " allowfullscreen></iframe>"
+
+      ))
+  )
 
 ;; Matching
 
 (def youtube-pattern
-  #"https://www.youtube.com/watch\?v=(\S+)")
+  #"https://www.youtube.com/watch\?v=(\S+)"
+  )
 
 (def mastodon-pattern
-  #"https?:\/\/((www.)?[-a-zA-Z0-9@:%._+~#=]{1,256}.[a-zA-Z0-9()]{1,6})\/(\@\w+)\/(\w+)")
+  #"https?:\/\/((www.)?[-a-zA-Z0-9@:%._+~#=]{1,256}.[a-zA-Z0-9()]{1,6})\/(\@\w+)\/(\w+)"
+  )
 
 ;; Code
 
 (defn youtube [data caption-renderer]
   (let [url (:url data)
-        id (-> (re-matches youtube-pattern url)
-               second)]
+        id (->
+             (re-matches youtube-pattern url)
+             second)]
     (generic-embed
       data
-      (str "   <div class='youtube-embedded'>
+      (str
+        "   <div class='youtube-embedded'>
 <iframe src='http://www.youtube.com/embed/" id "'
         style=\" width:100%; height:100%;\"
         frameborder='0' allowfullscreen>
@@ -83,25 +108,31 @@ API : " oembed " URL : " url)
 ")
       caption-renderer)))
 
+
 (defn youtube2 [data caption-renderer]
   (generic-embed
     data
     (generic-oembed "https://www.youtube.com/oembed" (:url data) :post)
-    caption-renderer))
+    caption-renderer)
+  )
+
 
 (defn vimeo [data caption-renderer]
+
   (let [url (:url data)
         id (-> (string/split url #"/") last)]
     (generic-embed
       data
-      (str "<div class=\"vimeo-embedded\">
+      (str
+        "<div class=\"vimeo-embedded\">
   <iframe src='https://player.vimeo.com/video/" id "' width='640' height='360' frameborder='0' allow='autoplay; fullscreen' allowfullscreen></iframe>
 <p><a href='https://vimeo.com/" id "'>"
 
-           url "</a></p>
+        url "</a></p>
 </div>
 ")
       caption-renderer)))
+
 
 (defn soundcloud [data caption-renderer]
   (generic-embed
@@ -112,11 +143,14 @@ API : " oembed " URL : " url)
 (defn bandcamp [{:keys [id url description title caption] :as data} caption-renderer]
   (generic-embed
     data
-    (str "<div class=\"embed_div\"><div class='bandcamp-embedded'>
+    (str
+      "<div class=\"embed_div\"><div class='bandcamp-embedded'>
   <iframe style='border: 0; width: 550px; height: 655px;'
   src='https://bandcamp.com/EmbeddedPlayer/album=" id "/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/'
-seamless><a href='" url "'>" description "</a></iframe></div></div>")
-    caption-renderer))
+seamless><a href='" url "'>" description "</a></iframe></div></div>"
+      )
+    caption-renderer)
+  )
 
 (defn twitter [data caption-renderer]
   (let [url (:url data)
@@ -129,16 +163,22 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
                               "'>ThreadView</a>")} data)
       (if error
         (str "Failed, exception: " error)
-        (-> body json/read-str (get "html")))
+        (do
+          (println "HTTP GET success: " status)
+          (-> body json/read-str (get "html"))))
       caption-renderer)))
+
 
 (defn mastodon [data caption-renderer]
   (let [url (:url data)
         match (re-matches mastodon-pattern url)
-        new-url (str "https://" (nth match 1) "/" (nth match 3) "/" (nth match 4) "/embed")]
+        new-url
+        (str "https://" (nth match 1) "/" (nth match 3) "/" (nth match 4) "/embed")
+        ]
     (generic-embed
       data
       (resizable-iframe new-url)
+
       caption-renderer)))
 
 (defn strip-tags [html]
@@ -150,6 +190,7 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
   (let [url (:url data)
         result (parse-url url)
         feed (:feed result)
+        desc (:description feed)
         entries
         (map
           (fn [e]
@@ -161,11 +202,14 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
               (str
                 "[" txt "](" (:link e) ") ... ,, "
                 (:published-date e) "\n")))
-          (:entries feed))]
+          (:entries feed)
+          )
+        ]
     (generic-embed
       data
       (caption-renderer (apply str (doall entries)))
-      caption-renderer)))
+      caption-renderer))
+  )
 
 (defn media-img [data render-context caption-renderer server-state]
   (let [src (:src data)
@@ -176,7 +220,8 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
         (str "<img src='"
              (-> server-state :page-exporter (.media-name->exported-link src))
              "' class='embedded_image_for_export' width='" width "' />")
-        (str "<img src='/media/" src "' class='embedded_image' width='" width "' />"))
+        (str "<img src='/media/" src "' class='embedded_image' width='" width "' />")
+        )
       caption-renderer)))
 
 (defn img [data caption-renderer]
@@ -185,7 +230,8 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
     (generic-embed
       data
       (str "<img src='" src "' class='embedded_image' width='" width "' />")
-      caption-renderer)))
+      caption-renderer
+      )))
 
 (defn codepen [data caption-renderer]
   (generic-embed
@@ -232,15 +278,19 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>")
         (generic-oembed (:api data) (:url data)
                         (if (:method data) (:method data) :post))
 
-        (str "Not recognised type:  " (:type data)))
-      (catch Exception e
-        (str "Embedding failed with embed type " (:type data) "<br/>
+        (str "Not recognised type:  " (:type data))
+        )
+      (catch Exception e (str "Embedding failed with embed type " (:type data) "<br/>
 
 and data
 <br/>
 " data "
 <br/>
-" e)))))
+" e)
+                         )
+      )
+    )
+  )
 
 (defn boilerplate [url timestamp]
   (let [f (fn [url type m]
@@ -263,6 +313,7 @@ and data
 
       (not (nil? (re-matches mastodon-pattern url)))
       (f url :mastodon "URL GOES HERE")
+
 
       (or
         (string/includes? url ".rss")
