@@ -106,7 +106,6 @@
          "System Directory :\t" (str system-path) "\n"
          "Export Directory :\t" (str export-path) "\n"))
 
-
   (similar-page-names [this page-name]
     (let [all-pages (.pages-as-new-directory-stream this)
           all-names (map #(-> (.getFileName %)
@@ -116,7 +115,6 @@
                               last)
                          all-pages)]
       (filter #(= (string/lower-case %) (string/lower-case page-name)) all-names)))
-
 
   (pages-as-new-directory-stream [_this]
     (java.nio.file.Files/newDirectoryStream page-path "*.md"))

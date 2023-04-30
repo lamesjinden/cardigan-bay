@@ -59,9 +59,9 @@
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:page form-body)
         hash (:hash form-body)
-        source-type (:source_type form-body)
         new-val (:data form-body)]
-    (card-server/replace-card page-name hash source-type new-val)
+    (card-server/replace-card page-name hash new-val)
+    ;; todo - return full page or card
     (create-ok)))
 
 (defn bookmarklet-handler [request]
@@ -180,7 +180,6 @@
   (let [uri (:uri request)
         match (re-matches pages-request-pattern uri)
         page-name (ring.util.codec/url-decode (get match 1))]
-
     (if (clj-ts.card-server/page-exists? page-name)
       (-> index-local-path
           (render-page-config page-name)
@@ -265,73 +264,6 @@
 
 ;; region main entry
 
-(def cli-options
-  [["-p" "--port PORT" "Port number"
-    :default 4545
-    :parse-fn #(Integer/parseInt %)
-    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
-   ["-d" "--directory DIR" "Pages directory"
-    :default "./bedrock/"
-    :parse-fn str]
-   ["-n" "--name NAME" "Wiki Name"
-    :default "Yet Another CardiganBay Wiki"
-    :parse-fn str]
-   ["-s" "--site SITE" "Site URL "
-    :default "/"
-    :parse-fn str]
-   ["-i" "--init INIT" "Start Page"
-    :default "HelloWorld"
-    :parse-fn str]
-   ["-l" "--links LINK" "Export Links"
-    :default "./"
-    :parse-fn str]
-   ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"
-    :default ".html"
-    :parse-fn str]
-   ["-e" "--export-dir DIR" "Export Directory"
-    :default "./bedrock/exported/"
-    :parse-fn str]
-   ["-b" "--beginner IS_BEGINNER" "Is Beginner Rather Than Expert"
-    :default false
-    :parse-fn boolean]])
-
-(defn cli-options2 [configs]
-  [["-p" "--port PORT" "Port number"
-    :default (:port configs)
-    :parse-fn #(Integer/parseInt %)
-    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
-   ["-d" "--directory DIR" "Pages directory"
-    :default (:directory configs)
-    :parse-fn str]
-   ["-n" "--name NAME" "Wiki Name"
-    :default (:name configs)
-    :parse-fn str]
-   ["-s" "--site SITE" "Site URL "
-    :default (:site configs)
-    :parse-fn str]
-   ["-i" "--init INIT" "Start Page"
-    :default (:init configs)
-    :parse-fn str]
-   ["-l" "--links LINK" "Export Links"
-    :default (:links configs)
-    :parse-fn str]
-   ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"
-    :default (:extension configs)
-    :parse-fn str]
-   ["-e" "--export-dir DIR" "Export Directory"
-    :default (:export-dir configs)
-    :parse-fn str]
-   ["-b" "--beginner IS_BEGINNER" "Is Beginner Rather Than Expert"
-    :default (:beginner configs)
-    :parse-fn boolean]])
-
-(defn args->opts [args]
-  (let [as (if *command-line-args* *command-line-args* args)
-        xs (cli/parse-opts as cli-options)
-        #_xs #_(cli/parse-opts as (cli-options2 configs))
-        opts (get xs :options)]
-    opts))
-
 (defn create-app []
   (-> #'handler
       (wrap-resource "public")
@@ -340,15 +272,63 @@
       (wrap-params)
       (wrap-json-body {:keywords? true})))
 
+(def default-options
+  {:port       4545
+   :directory  "./bedrock/"
+   :name       "Yet Another CardiganBay Wiki"
+   :site       "/"
+   :init       "HelloWorld"
+   :links      "./"
+   :extension  ".html"
+   :export-dir "./bedrock/exported/"
+   :beginner   false
+   :config     "./bedrock/system/config.edn"})
+
+(def cli-options
+  [["-p" "--port PORT" "Port number"
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
+   ["-d" "--directory DIR" "Pages directory"]
+   ["-n" "--name NAME" "Wiki Name"]
+   ["-s" "--site SITE" "Site URL "]
+   ["-i" "--init INIT" "Start Page"]
+   ["-l" "--links LINK" "Export Links"]
+   ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"]
+   ["-e" "--export-dir DIR" "Export Directory"]
+   ["-b" "--beginner IS_BEGINNER" "Is Beginner Rather Than Expert"
+    :parse-fn boolean]
+   ["-f" "--config CONFIG_PATH" "Path to configuration parameters file"]])
+
+(defn args->opts [args]
+  (let [as (if *command-line-args* *command-line-args* args)
+        xs (cli/parse-opts as cli-options)
+        opts (get xs :options)]
+    opts))
+
+(defn read-config-file [config-file-path]
+  (try
+    (-> config-file-path
+        slurp
+        edn/read-string)
+    (catch Exception _
+      {})))
+
+(defn gather-settings [cli-args]
+  (let [cli-settings (args->opts cli-args)
+        config-file-path (or (:config cli-settings) (:config default-options))
+        config-settings (read-config-file config-file-path)
+        settings (merge default-options config-settings cli-settings)]
+    settings))
+
 (defn init-app [opts]
-  (let [ps (pagestore/make-page-store (:directory opts) (:export-dir opts))
-        pe (export/make-page-exporter ps (:extension opts) (:links opts))]
+  (let [page-store (pagestore/make-page-store (:directory opts) (:export-dir opts))
+        page-exporter (export/make-page-exporter page-store (:extension opts) (:links opts))]
 
     (println (str "\n"
                   "Welcome to Cardigan Bay\n"
                   "======================="))
 
-    (card-server/initialize-state! (:name opts) (:site opts) (:port opts) (:init opts) nil ps pe)
+    (card-server/initialize-state! (:name opts) (:site opts) (:port opts) (:init opts) nil page-store page-exporter)
 
     (println
       (str "\n"
@@ -371,21 +351,10 @@
 
     (card-server/regenerate-db!)))
 
-(defn check-and-read-config-file []
-  (try
-    (-> "config.edn"
-        slurp
-        edn/read-string)
-    (catch Exception e
-      (do
-        (println "No config file")
-        {}))))
-
 (defn -main [& args]
-  (let [#_configs #_(check-and-read-config-file)
-        opts (args->opts args)
-        server-opts (select-keys opts [:port])]
-    (init-app opts)
+  (let [settings (gather-settings args)
+        server-opts (select-keys settings [:port])]
+    (init-app settings)
     (let [app (create-app)]
       (run-server app server-opts))))
 

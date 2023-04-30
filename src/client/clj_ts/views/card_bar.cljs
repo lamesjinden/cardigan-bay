@@ -14,14 +14,14 @@
  :ids [\"" hash "\"] } ")))
 
 (defn on-save-clicked-async! [db card]
-  (swap! db assoc :mode :viewing)
-  (handle/save-card-async!
-    (-> @db :current-page)
-    (get card "hash")
-    (get card "source_type")
-    (-> js/document
-        (.getElementById (str "edit-" (get card "hash")))
-        .-value)))
+  (-> (handle/save-card-async!
+        (-> @db :current-page)
+        (get card "hash")
+        (-> js/document
+            (.getElementById (str "edit-" (get card "hash")))
+            .-value))
+      (p/then (fn [_] (nav/reload-async! db)))
+      (p/then (fn [_] (swap! db assoc :mode :viewing)))))
 
 (defn toggle! [state text-val card]
   (if (= (-> @state :toggle) "none")
@@ -87,7 +87,7 @@
         [:hr]
         [:div
          [:h4 "Edit Card"]
-         [:div
+         [:div {:class "edit-card"}
           [:span
            [:button {:class    "big-btn"
                      :on-click (fn []

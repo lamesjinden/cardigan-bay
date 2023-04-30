@@ -414,7 +414,7 @@ Bookmarked " timestamp ": <" url ">
                                (mapcat process-card-map (iterate inc id-start) card-maps (repeat render-context)))
         ;; todo - may have broken transclusion here while attempting to avoid forward declaring card-maps->processed
         cards (card-maps->processed (* 100 i) matched-cards render-context)
-        body (str "## Transcluded from [[" from "]]")]
+        body (str "### Transcluded from [[" from "]]")]
     (concat [(common/package-card i :transclude :markdown body body render-context)] cards)))
 
 (defn process-card [i {:keys [source_type source_data] :as card-maps} render-context]
@@ -539,8 +539,7 @@ If you would *like* to create a page with this name, simply click the [Edit] but
                                 [(common/package-card
                                    :similarly_name_pages :system :markdown ""
                                    (str "Here are some similarly named pages :"
-                                        (apply str sim-names)) false)]))
-       })))
+                                        (apply str sim-names)) false)]))})))
 
 ;; RecentChanges as RSS
 
@@ -604,10 +603,11 @@ If you would *like* to create a page with this name, simply click the [Edit] but
                     (common/move-card-down cards hash))]
     (write-page-to-file! page-name (common/cards->raw new-cards))))
 
-(defn replace-card [page-name hash source-type new-body]
+(defn replace-card [page-name hash new-body]
   (let [ps (.page-store (server-state))
         cards (.get-page-as-card-maps ps page-name)
-        new-card (common/raw-card-text->card-map (str source-type "\n" new-body))
+        #_new-card #_(common/raw-card-text->card-map (str source-type "\n" new-body))
+        new-card (common/raw-card-text->card-map new-body)
         new-cards (common/replace-card
                     cards
                     #(common/match-hash % hash)

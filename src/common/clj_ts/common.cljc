@@ -11,18 +11,18 @@
 (defn hash-it [card-data]
   (-> card-data (edn-hash) (uuid5)))
 
-(defn raw-card-text->card-map [c]
-  (let [card (string/trim c)
-        rex #"^:(\S+)"
-        data (string/replace-first card rex "")]
+(defn raw-card-text->card-map [raw-card-text]
+  (let [regex #"^:(\S+)"
+        card-text (string/trim raw-card-text)
+        card-body (string/replace-first card-text regex "")]
     (if
-      (not (re-find rex card))
+      (not (re-find regex card-text))
       {:source_type :markdown
-       :source_data card
-       :hash        (hash-it card)}
-      {:source_type (->> c (re-find rex) second keyword)
-       :source_data data
-       :hash        (hash-it data)})))
+       :source_data card-text
+       :hash        (hash-it card-text)}
+      {:source_type (->> raw-card-text (re-find regex) second keyword)
+       :source_data card-body
+       :hash        (hash-it card-body)})))
 
 (defn raw-text->card-maps [raw]
   (->> raw split-by-hyphens
