@@ -106,8 +106,11 @@
   (-> (nav/go-new-async! db page-name)
       (p/then (fn [] (clj-ts.events.navigation/navigate-to page-name)))))
 
-(defn set-edit-mode [db]
+(defn set-edit-mode! [db]
   (swap! db assoc :mode :editing))
+
+(defn set-view-mode! [db]
+  (swap! db assoc :mode :viewing))
 
 (defn setup-editor [db]
   (let [editor-element (first (array-seq (.getElementsByClassName js/document "edit-box")))
@@ -132,11 +135,22 @@
   (.preventDefault e)
   (save-page-async! db identity))
 
+(defn editor-on-ctrl-shift-s-press [db e]
+  (.preventDefault e)
+  (save-page-async! db))
+
 (defn editor-on-key-press [db e]
   (when (= (-> @db :mode) :editing)
     (let [key-code (.-keyCode e)
-          control? (.-ctrlKey e)]
+          control? (.-ctrlKey e)
+          shift? (.-shiftKey e)]
       (cond
+        (and (= key-code key-s-code)
+             control?
+             shift?)
+        (editor-on-ctrl-shift-s-press db e)
+
+
         (and (= key-code key-s-code)
              control?)
         (editor-on-key-s-press db e)))))

@@ -15,14 +15,14 @@
             [:button
              {:class    ["big-btn" "image-button"]
               :on-click (fn []
-                          (swap! db assoc :mode :viewing)
+                          (handle/set-view-mode! db)
                           (handle/cancel-async! db))}
              [:div
               [:img {:src "/icons/x.png"}] [:span "Cancel"]]]
             [:button
              {:class    ["big-btn" "image-button"]
               :on-click (fn []
-                          (swap! db assoc :mode :viewing)
+                          (handle/set-view-mode! db)
                           (handle/save-page-async! db))}
              [:div
               [:img {:src "/icons/save.png"}] [:span "Save"]]]]]]
@@ -45,6 +45,6 @@
          [:span {:class ["button-container"]}
           [:button
            {:class    ["big-btn" "image-button"]
-            :on-click #(swap! db assoc :mode :viewing)}
+            :on-click #(handle/set-view-mode! db)}
            [:div
             [:img {:src "/icons/x.png"}] [:span "Return"]]]])])))

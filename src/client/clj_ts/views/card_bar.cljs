@@ -21,7 +21,7 @@
             (.getElementById (str "edit-" (get card "hash")))
             .-value))
       (p/then (fn [_] (nav/reload-async! db)))
-      (p/then (fn [_] (swap! db assoc :mode :viewing)))))
+      (p/then (fn [_] (handle/set-view-mode! db)))))
 
 (defn toggle! [state text-val card]
   (if (= (-> @state :toggle) "none")

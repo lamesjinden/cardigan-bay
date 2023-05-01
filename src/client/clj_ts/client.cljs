@@ -54,7 +54,7 @@
         [editor db]
 
         :viewing
-        [:div {:on-double-click (fn [] (handle/set-edit-mode db))}
+        [:div {:on-double-click (fn [] (handle/set-edit-mode! db))}
          [card-list db]]
 
         :transcript
@@ -89,7 +89,7 @@
                      (p/resolved (nav/load-page db init))
                      (nav/load-start-page-async! db))]
       (p/then loaded-p (fn []
-                         (swap! db assoc :mode :viewing)
+                         (handle/set-view-mode! db)
                          (swap! db assoc :initialized? true)
                          (nav/hook-pop-state db)
                          (nav/replace-state-initial)
