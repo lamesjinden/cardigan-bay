@@ -167,30 +167,59 @@ input:focus-visible {
 .image-button > div > a > span {
     display: table-cell;
     vertical-align: middle;
-
     padding-left: 8px;
 }
 
+.card {
+    background-color: white;
+    padding: 5px;
+    margin: 2px 0;
+    border-radius: 5px;
+}
+
 .card-outer {
-    margin: 0 0 15px 0;
-    padding: 15px 0;
+    border-radius: 5px;
+    background-color: white;
+    margin: 25px 0;
+    padding: 0 5px;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
 }
 
 .card-meta {
-    font-size: 1rem;
+  display: flex;
+  font-size: 1rem;
+  justify-content: flex-end;
+  margin-left: -4px;
+  margin-right: -4px;
+}
+
+.toggle-container {
+}
+
+.card-inner {
 }
 
 .card-bar {
-    padding:5px;
-    margin:10px;
-    border-style:solid;
-    border-width:1px;
-    border-color:#333333;
+    padding: 5px;
+    margin: 10px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #333333;
+}
+
+.card-gutter {
+  display: flex;
+  margin-left: -4px;
+  margin-right: -4px;
+}
+
+.card-gutter-expansion-toggle {
+  margin-left: auto;
 }
 
 .send-to-bar {
-    padding:3px;
-    spacing:3px;
+    padding: 3px;
+    spacing: 3px;
 }
 .send-to-inner {
     display: flex;
@@ -199,14 +228,6 @@ input:focus-visible {
     border-style:solid;
     border-color:#555555;
     border-width:1px;
-
-}
-
-.card {
-    background-color:white;
-    padding: 5px;
-    margin: 2px;
-    border-radius: 5px;
 }
 
 #content {
@@ -372,13 +393,54 @@ div textarea {
     font-size : 1rem;
 }
 
+.workspace-header-container {
+  display: flex;
+}
+
+.workspace-header {
+  flex: 1 1 0;
+  margin-top: 25px;
+  margin-bottom: 5px;
+}
+
+.workspace-visibility-buttons-container {
+  display: flex;
+  align-items: end;
+}
+
+.workspace-visibility-button {
+    height: 40px;
+    min-width: 70px;
+}
+
 .workspace-note {
     font-size : 0.8rem;
 }
 
 .workspace-editor {
+    height: 100%;
     min-height: 20em;
     width: 100%;
+}
+
+.anything {
+  border-style: solid;
+  font-size: 1.2rem;
+  padding: 4px 8px;
+}
+
+.workspace-button {
+    height: 40px;
+    min-width: 70px;
+}
+
+.workspace-action-button {
+    height: 40px;
+    width: 150px;
+}
+
+.workspace-button-left {
+    margin-left: 0;
 }
 
 .edit-box {

@@ -66,28 +66,26 @@
        :reagent-render         (fn []
                                  (let []
                                    [:div {:class :workspace}
-                                    [:h3 "Workspace"]
-                                    [:p {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
+                                    [:div {:class :workspace-header-container}
+                                     [:h3 {:class :workspace-header} "Workspace"]
+                                     [:div {:class :workspace-visibility-buttons-container}
+                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-code! state))} "Code"]
+                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-calc! state))} "Calculated"]
+                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-result! state))} "Result"]]]
+                                    [:div {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
                                                                   [:a {:href "https://github.com/borkdude/sci"} "SCI"]
                                                                   ". Be aware that it does not save any changes you make in the textbox.
 
                                                              You'll need to  edit the page fully to make permanent changes to the code. "]]
-                                    [:div {:class :workspace-buttons}
-                                     [:button {:class :workspace-button :on-click (fn [] (execute-code state))} "Run"]
-                                     [:button {:class :workspace-button :on-click (fn [] (save-code-async! db state))} "Save Changes"]]
-                                    [:div
-                                     [:button {:class :workspace-button :on-click (fn [] (toggle-code! state))} "Code"]
-                                     [:button {:class :workspace-button :on-click (fn [] (toggle-calc! state))} "Calculated"]
-                                     [:button {:class :workspace-button :on-click (fn [] (toggle-result! state))} "Output"]]
+
                                     [:div {:class :code
                                            :style {:padding "3px"
                                                    :display (->display (-> @state :code-toggle))}}
-                                     [:h4 "Source"
-                                      [:span
-                                       [:button
-                                        {:class    :workspace-button
-                                         :on-click (fn [] (format-workspace state))}
-                                        "Format"]]]
+                                     [:h4 "Source"]
+                                     [:div {:class :workspace-buttons}
+                                      [:button {:class [:workspace-action-button :workspace-button-left] :on-click (fn [] (execute-code state))} "Run"]
+                                      [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))} "Save"]
+                                      [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))} "Format"]]
                                      [:div {:class ["workspace-editor"]} (str/trim (-> @state :code))]]
                                     [:div {:class :calculated-out :style {:padding "3px"
                                                                           :display (->display (-> @state :calc-toggle))}}

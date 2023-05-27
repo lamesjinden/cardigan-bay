@@ -18,13 +18,14 @@
     (fn [card component]
       [:div {:class :card-outer}
        [:div {:class :card-meta}
-        [:span {:on-click toggle! :style {:size "smaller" :float "right"}}
+        [:span {:class    :toggle-container
+                :on-click toggle!}
          (if (= (-> @state2 :toggle) "none")
            [:img {:src "/icons/maximize-2.svg"}]
            [:img {:src "/icons/minimize-2.svg"}])]]
        [:div
-        {:style {:spacing-top "5px"
-                 :display     (-> @state2 :toggle)}}
+        {:class :card-inner
+         :style {:display (-> @state2 :toggle)}}
         [:div
          {:class    "card"
           :on-click (fn [e] (handle/on-click-for-links-async! db e))}

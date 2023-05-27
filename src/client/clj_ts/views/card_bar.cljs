@@ -37,8 +37,8 @@
         text-value (r/atom (get card "source_data"))        ;; Edit box
         toggle-fn! (fn [] (toggle! state text-value card))]
     (fn [db card]
-      [:div {:class :card-meta}
-       [:div
+      [:div
+       [:div {:class :card-gutter}
         [:span {:on-click (fn [] (handle/card-reorder-async!
                                    db
                                    (-> @db :current-page)
@@ -51,14 +51,14 @@
                                    (get card "hash")
                                    "down"))}
          [:img {:src "/icons/chevrons-down.png"}]]
-        [:span {:on-click toggle-fn!
-                :style    {:size "smaller" :float "right"}}
+        [:span {:class :card-gutter-expansion-toggle
+                :on-click toggle-fn!}
          (if (= (-> @state :toggle) "none")
            [:img {:src "/icons/eye.png"}]
            [:img {:src "/icons/eye-off.png"}])]]
        [:div {:id    meta-id
               :class :card-bar
-              :style {:spacing-top "5px" :display (-> @state :toggle)}}
+              :style {:display (-> @state :toggle)}}
         [:div [:h3 "Card Bar"]]
         [:div
          [:span "ID: " (get card "id")] " | Hash: "
