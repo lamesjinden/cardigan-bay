@@ -73,28 +73,30 @@
                                       [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-calc! state))} "Calculated"]
                                       [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-result! state))} "Result"]]]
                                     [:div {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
-                                                                  [:a {:href "https://github.com/borkdude/sci"} "SCI"]
-                                                                  ". Be aware that it does not save any changes you make in the textbox.
+                                                                    [:a {:href "https://github.com/borkdude/sci"} "SCI"]
+                                                                    ". Be aware that it does not save any changes you make in the textbox.
 
-                                                             You'll need to  edit the page fully to make permanent changes to the code. "]]
+                                                               You'll need to  edit the page fully to make permanent changes to the code. "]]
 
-                                    [:div {:class :code
-                                           :style {:padding "3px"
-                                                   :display (->display (-> @state :code-toggle))}}
+                                    [:div {:class [:code :workspace-padding]
+                                           :style {:display (->display (-> @state :code-toggle))}}
                                      [:h4 "Source"]
                                      [:div {:class :workspace-buttons}
-                                      [:button {:class [:workspace-action-button :workspace-button-left] :on-click (fn [] (execute-code state))} "Run"]
-                                      [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))} "Save"]
-                                      [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))} "Format"]]
-                                     [:div {:class ["workspace-editor"]} (str/trim (-> @state :code))]]
-                                    [:div {:class :calculated-out :style {:padding "3px"
-                                                                          :display (->display (-> @state :calc-toggle))}}
+                                      [:button {:class [:workspace-action-button :workspace-button-left] :on-click (fn [] (execute-code state))}
+                                       [:span {:class [:material-symbols-sharp :clickable]} "play_circle"]]
+                                      [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))}
+                                       [:span {:class [:material-symbols-sharp :clickable]} "save"]]
+                                      [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))}
+                                       [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]]
+                                     [:div {:class [:workspace-editor]} (str/trim (-> @state :code))]]
+                                    [:div {:class [:calculated-out :workspace-padding]
+                                           :style {:display (->display (-> @state :calc-toggle))}}
                                      [:hr]
                                      [:h4 "Calculated"]
                                      [:pre
                                       (with-out-str (pprint (str (-> @state :calc))))]]
-                                    [:div {:class :results :style {:padding "3px"
-                                                                   :display (->display (-> @state :result-toggle))}}
+                                    [:div {:class [:results :workspace-padding]
+                                           :style {:display (->display (-> @state :result-toggle))}}
                                      [:hr]
                                      [:h4 "Result"]
                                      [:div

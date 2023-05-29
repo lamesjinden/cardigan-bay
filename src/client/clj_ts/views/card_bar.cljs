@@ -39,23 +39,25 @@
     (fn [db card]
       [:div
        [:div {:class :card-gutter}
-        [:span {:on-click (fn [] (handle/card-reorder-async!
-                                   db
-                                   (-> @db :current-page)
-                                   (get card "hash")
-                                   "up"))}
-         [:img {:src "/icons/chevrons-up.png"}]]
-        [:span {:on-click (fn [] (handle/card-reorder-async!
-                                   db
-                                   (-> @db :current-page)
-                                   (get card "hash")
-                                   "down"))}
-         [:img {:src "/icons/chevrons-down.png"}]]
-        [:span {:class :card-gutter-expansion-toggle
+        [:div {:on-click (fn [] (handle/card-reorder-async!
+                                  db
+                                  (-> @db :current-page)
+                                  (get card "hash")
+                                  "up"))
+               :class    [:material-symbols-sharp :clickable]}
+         "expand_less"]
+        [:div {:on-click (fn [] (handle/card-reorder-async!
+                                  db
+                                  (-> @db :current-page)
+                                  (get card "hash")
+                                  "down"))
+               :class    [:material-symbols-sharp :clickable]}
+         "expand_more"]
+        [:span {:class    :card-gutter-expansion-toggle
                 :on-click toggle-fn!}
          (if (= (-> @state :toggle) "none")
-           [:img {:src "/icons/eye.png"}]
-           [:img {:src "/icons/eye-off.png"}])]]
+           [:span {:class [:material-symbols-sharp :clickable]} "visibility"]
+           [:span {:class [:material-symbols-sharp :clickable]} "visibility_off"])]]
        [:div {:id    meta-id
               :class :card-bar
               :style {:display (-> @state :toggle)}}

@@ -63,7 +63,7 @@
                    [:div {:key (key-fn card)} [(card-shell db) card (card->component db card)]]
                    (catch :default e
                      [:div {:class :card-outer}
-                      [:div {:class "card"}
+                      [:div {:class :card}
                        [:h4 "Error"]
                        (str e)]]))))
              (catch :default e

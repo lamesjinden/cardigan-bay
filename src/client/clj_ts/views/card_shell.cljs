@@ -21,13 +21,13 @@
         [:span {:class    :toggle-container
                 :on-click toggle!}
          (if (= (-> @state2 :toggle) "none")
-           [:img {:src "/icons/maximize-2.svg"}]
-           [:img {:src "/icons/minimize-2.svg"}])]]
+           [:span {:class [:material-symbols-sharp :clickable]} "open_in_full"]
+           [:span {:class [:material-symbols-sharp :clickable]} "close_fullscreen"])]]
        [:div
         {:class :card-inner
          :style {:display (-> @state2 :toggle)}}
         [:div
-         {:class    "card"
+         {:class    :card
           :on-click (fn [e] (handle/on-click-for-links-async! db e))}
          [component]]]
        [(card-bar card) db card]])))

@@ -24,19 +24,19 @@
           [:button {:id    "rss-button"
                     :class "big-btn"}
            [:a {:href "/api/rss/recentchanges"}
-            [:img {:src "/icons/rss.png"}]]]]
+            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]]
          [:div {:id "nav3"}
           [nav-input current]
           [:button
            {:id       "go-button"
             :class    "big-btn"
             :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
-           " Go!"]
+           [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button
            {:class    "big-btn"
             :on-click (fn [] (handle/execute-clicked db current))}
-           "Execute"]
+           [:span {:class [:material-symbols-sharp :clickable]} "play_circle"]]
           [:button
            {:class    "big-btn"
             :on-click (fn [] (handle/search-text-async! db (-> @current str)))}
-           "Search"]]]))))
+           [:span {:class [:material-symbols-sharp :clickable]} "search"]]]]))))
