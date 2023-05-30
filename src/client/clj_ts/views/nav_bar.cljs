@@ -22,21 +22,22 @@
           [:a {:href "/api/exportallpages"} "Export All Pages"]
           " || "
           [:button {:id    "rss-button"
-                    :class "big-btn"}
+                    :class :big-btn}
            [:a {:href "/api/rss/recentchanges"}
             [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]]
          [:div {:id "nav3"}
           [nav-input current]
           [:button
            {:id       "go-button"
-            :class    "big-btn"
+            :class    :big-btn
             :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button
-           {:class    "big-btn"
+           {:id :lambda-button
+            :class    :big-btn
             :on-click (fn [] (handle/execute-clicked db current))}
-           [:span {:class [:material-symbols-sharp :clickable]} "play_circle"]]
+           [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
           [:button
-           {:class    "big-btn"
+           {:class    :big-btn
             :on-click (fn [] (handle/search-text-async! db (-> @current str)))}
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]]]))))

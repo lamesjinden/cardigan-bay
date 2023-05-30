@@ -83,7 +83,7 @@
                                      [:h4 "Source"]
                                      [:div {:class :workspace-buttons}
                                       [:button {:class [:workspace-action-button :workspace-button-left] :on-click (fn [] (execute-code state))}
-                                       [:span {:class [:material-symbols-sharp :clickable]} "play_circle"]]
+                                       [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
                                       [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "save"]]
                                       [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))}
