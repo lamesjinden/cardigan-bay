@@ -9,7 +9,8 @@
     [clj-rss.core :as rss]
     [markdown.core :as md]
     [sci.core :as sci]
-    [hiccup.core :refer [html]]])
+    [hiccup.core :refer [html]]]
+  (:import (java.util.regex Pattern)))
 
 ;; Card Server State is ALL the global state for the application.
 ;; NOTHING mutable should be stored anywhere else but in the card-server-state atom.
@@ -473,7 +474,7 @@ Bookmarked " timestamp ": <" url ">
 
 (defn resolve-text-search [_context arguments _value]
   (let [{:keys [query_string]} arguments
-        query-pattern-str (str "(?i)" query_string)
+        query-pattern-str (str "(?i)" (Pattern/quote query_string))
         out (search query-pattern-str query_string)]
     {:result_text out}))
 
