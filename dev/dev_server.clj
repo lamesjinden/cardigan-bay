@@ -21,14 +21,14 @@
 
   (let [settings (cb/gather-settings args)]
     (println "Init-app with settings" settings)
-    (cb/init-app settings)
-    (println "Reset! server")
-    (reset! server (http/run-server
-                     (-> (cb/create-app)
-                         (reload/wrap-reload)
-                         (cors/wrap-cors :access-control-allow-origin [#".*"]
-                                         :access-control-allow-methods [:get :put :post :delete]))
-                     {:port (:port settings)}))))
+
+    (let [card-server-ref (cb/init-app settings)]
+      (reset! server (http/run-server
+                       (-> (cb/create-app card-server-ref)
+                           (reload/wrap-reload)
+                           (cors/wrap-cors :access-control-allow-origin [#".*"]
+                                           :access-control-allow-methods [:get :put :post :delete]))
+                       {:port (:port settings)})))))
 
 (defn -main [& args]
   (apply create-server args))

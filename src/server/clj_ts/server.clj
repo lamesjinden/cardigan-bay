@@ -1,13 +1,12 @@
 (ns clj-ts.server
   (:require [clojure.java.io :as io]
-            [clojure.string :as string]
             [clojure.edn :as edn]
-            [clojure.pprint :as pp]
             [clojure.tools.cli :as cli]
+            [clj-ts.util :as util]
+            [clj-ts.render :as render]
             [clj-ts.card-server :as card-server]
-            [clj-ts.static-export :as export]
-            [clj-ts.pagestore :as pagestore]
-            [clj-ts.embed :as embed]
+            [clj-ts.exporting.static-export :as export]
+            [clj-ts.storage.page_store :as pagestore]
             [org.httpkit.server :refer [run-server]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
@@ -17,97 +16,55 @@
             [ring.util.response :as resp]
             [clojure.data.json :as json]
             [selmer.parser :as selmer])
-  (:import (java.time LocalDateTime))
-  (:gen-class))
+  (:gen-class)
+  (:import (clojure.lang Atom)))
 
-;; Response
+(defn handle-api-system-db [{:keys [card-server] :as _request}]
+  ;; todo - questionable: need to call regenerate-db! on a GET
+  (card-server/regenerate-db! card-server)
+  (-> @card-server
+      (render/raw-db)
+      (util/->html-response)))
 
-(defn create-not-found [uri-or-page-name]
-  (-> (resp/not-found (str "Not found " uri-or-page-name))
-      (resp/content-type "text")))
-
-(defn create-ok []
-  (-> "thank you"
-      (resp/response)
-      (resp/content-type "text/html")))
-
-; Logic using pages
-
-(defn raw-db []
-  (card-server/regenerate-db!)
-  (-> (str "<pre>" (with-out-str (pp/pprint (.raw-db (card-server/server-state)))) "</pre>")
-      (resp/response)
-      (resp/content-type "text/html")))
-
-(defn move-card-handler [request]
+(defn handle-api-move-card [{:keys [card-server] :as request}]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:from form-body)
         hash (:hash form-body)
         new-page-name (:to form-body)]
-    (card-server/move-card page-name hash new-page-name)
-    (create-ok)))
+    (card-server/move-card! card-server page-name hash new-page-name)
+    (util/create-ok)))
 
-(defn reorder-card-handler [request]
+(defn handle-api-reorder-card [{:keys [card-server] :as request}]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:page form-body)
         hash (:hash form-body)
         direction (:direction form-body)]
-    (card-server/reorder-card page-name hash direction)
-    (create-ok)))
+    (card-server/reorder-card! card-server page-name hash direction)
+    (util/create-ok)))
 
-(defn replace-card-handler [request]
+(defn handle-api-replace-card [{:keys [card-server] :as request}]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:page form-body)
         hash (:hash form-body)
         new-val (:data form-body)]
-    (card-server/replace-card page-name hash new-val)
+    (card-server/replace-card! card-server page-name hash new-val)
     ;; todo - return full page or card
-    (create-ok)))
+    (util/create-ok)))
 
-(defn bookmarklet-handler [request]
-  (let [url (-> request :params :url)
-        data (embed/boilerplate url (LocalDateTime/now))]
-    (if (string/includes? data "Bookmarked at ")
-      (card-server/prepend-card-to-page! "InQueue" :markdown data)
-      (card-server/prepend-card-to-page! "InQueue" :embed data))
-    (resp/redirect "/view/InQueue" :see-other)))
-
-(defn export-page-handler [request]
-  (let [page-name (-> request :params :page)]
-    (export/export-one-page page-name (card-server/server-state))
+(defn export-page-handler [{:keys [card-server] :as request}]
+  (let [page-name (-> request :params :page)
+        server-snapshot @card-server]
+    (export/export-one-page page-name server-snapshot)
     (resp/redirect (str "/view/" page-name) :see-other)))
 
-(defn export-all-pages-handler [_request]
-  (export/export-all-pages (card-server/server-state))
-  (resp/redirect (str "/view/" (-> card-server/server-state :start-page)) :see-other))
+(defn export-all-pages-handler [{:keys [card-server] :as _request}]
+  (let [server-snapshot @card-server]
+    (export/export-all-pages server-snapshot)
+    (resp/redirect (str "/view/" (-> server-snapshot :start-page)) :see-other)))
 
-(defn export-recent-pages-handler [_request]
-  (export/export-recent-pages (card-server/server-state))
-  (resp/redirect "/view/RecentChanges" :see-other))
-
-(defn media-file-handler [request]
-  (let [uri (:uri request)
-        file-name (-> uri
-                      (#(re-matches #"/media/(\S+)" %))
-                      second)
-        file (card-server/load-media-file file-name)]
-    (if (.isFile file)
-      (resp/response file)
-      (create-not-found uri))))
-
-(defn custom-file-handler [request]
-  (let [uri (:uri request)
-        file-name (-> uri
-                      (#(re-matches #"/custom/(\S+)" %))
-                      second)
-        file (card-server/load-custom-file file-name)]
-    (if (.isFile file)
-      (resp/response file)
-      (create-not-found uri))))
-
-(defn get-page-data [body]
-  (let [source-page (card-server/resolve-source-page nil body nil)
-        server-prepared-page (card-server/resolve-page nil body nil)]
+(defn get-page-data [card-server body]
+  (let [source-page (card-server/resolve-source-page card-server nil body nil)
+        server-prepared-page (card-server/resolve-page card-server nil body nil)]
     {:source_page          source-page
      :server_prepared_page server-prepared-page}))
 
@@ -120,10 +77,10 @@
 (def index-local-path "public/index.html")
 
 (defn render-page-config
-  ([subject-file page-name]
+  ([card-server subject-file page-name]
    (let [subject-content (slurp (io/resource subject-file))]
      (if page-name
-       (let [page-config (get-page-data {:page_name page-name})
+       (let [page-config (get-page-data card-server {:page_name page-name})
              page-config-str (json/write-str page-config)
              rendered (selmer.util/without-escaping
                         (selmer.parser/render
@@ -133,139 +90,121 @@
                            :tag-close  \]
                            :tag-second \"}))]
          rendered)
-       subject-content)))
-  ([page-name]
-   (render-page-config index-local-path page-name)))
+       subject-content))))
 
-(defn handle-root-request [_request]
-  (println "server-state")
-  (prn (card-server/server-state))
-  (-> index-local-path
-      (render-page-config (.start-page (card-server/server-state)))
-      (resp/response)
-      (resp/content-type "text/html")))
+(defn handle-root-request [{:keys [card-server] :as _request}]
+  (let [server-snapshot @card-server]
+    (-> (render-page-config card-server index-local-path (.start-page server-snapshot))
+        (util/->html-response))))
 
-(defn handle-api-init [_request]
-  (let [init-page-name (.start-page (card-server/server-state))
-        page-config (get-page-data {:page_name init-page-name})
+(defn handle-api-init [{:keys [card-server] :as _request}]
+  (let [server-snapshot @card-server
+        init-page-name (.start-page server-snapshot)
+        page-config (get-page-data card-server {:page_name init-page-name})
         page-config-str (json/write-str page-config)]
-    (-> page-config-str
-        (resp/response)
-        (resp/content-type "application/json"))))
+    (util/->json-response page-config-str)))
 
-(defn get-page-body [page-name]
+(defn get-page-body [card-server page-name]
   (let [arguments {:page_name page-name}]
-    (json/write-str (get-page-data arguments))))
+    (json/write-str (get-page-data card-server arguments))))
 
-(defn get-page-response [page-name]
-  (-> (get-page-body page-name)
-      (resp/response)
-      (resp/content-type "application/json")))
+(defn get-page-response [card-server page-name]
+  (-> (get-page-body card-server page-name)
+      (util/->json-response)))
 
-(defn handle-api-page [request]
+(defn handle-api-page [{:keys [card-server] :as request}]
   (let [body (:body request)
         page-name (:page_name body)]
-    (get-page-response page-name)))
+    (get-page-response card-server page-name)))
 
-(defn handle-api-search [request]
+(defn handle-api-search [{:keys [card-server] :as request}]
   (let [body (:body request)]
-    (-> (clj-ts.card-server/resolve-text-search nil body nil)
+    (-> (clj-ts.card-server/resolve-text-search card-server nil body nil)
         (json/write-str)
-        (resp/response)
-        (resp/content-type "application/json"))))
+        (util/->json-response))))
 
 (def pages-request-pattern #"/pages/(.+)")
 
-(defn handle-page-request [request]
+(defn handle-page-request [{:keys [card-server] :as request}]
   (let [uri (:uri request)
         match (re-matches pages-request-pattern uri)
         page-name (ring.util.codec/url-decode (get match 1))]
-    (if (clj-ts.card-server/page-exists? page-name)
-      (-> index-local-path
-          (render-page-config page-name)
-          (resp/response)
-          (resp/content-type "text/html"))
+    (if (clj-ts.card-server/page-exists? card-server page-name)
+      (-> (render-page-config card-server index-local-path page-name)
+          (util/->html-response))
       (-> (resp/not-found (str "Page not found " page-name))
           (resp/content-type "text")))))
 
-(defn handle-api-save [request]
+(defn handle-api-save [{:keys [card-server] :as request}]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:page form-body)
         body (:data form-body)]
-    (card-server/write-page-to-file! page-name body)
-    (get-page-response page-name)))
+    (card-server/write-page-to-file! card-server page-name body)
+    (get-page-response card-server page-name)))
+
+(defn handle-api-rss-recent-changes [{:keys [card-server] :as _request}]
+  (let [server-snapshot @card-server]
+    (-> (card-server/rss-recent-changes
+          card-server
+          (fn [page-name]
+            (str (-> server-snapshot
+                     :page-exporter
+                     (.page-name->exported-link page-name)))))
+        (resp/response)
+        (resp/content-type "application/rss+xml"))))
+
+(defn handle-view [{:keys [uri card-server] :as _request}]
+  (let [page-name (second (re-matches #"/view/(\S+)" uri))]
+    (card-server/set-start-page! card-server page-name)
+    {:status  303
+     :headers {"Location" "/index.html"}}))
 
 (defn handler [request]
   (let [uri (:uri request)]
     (cond
+
+      ;; read requests
       (= uri "/") (handle-root-request request)
       (= uri "/api/init") (handle-api-init request)
       (= uri "/api/page") (handle-api-page request)
-      (= uri "/api/search") (handle-api-search request)
       (re-matches pages-request-pattern uri) (handle-page-request request)
+      (= uri "/api/system/db") (handle-api-system-db request)
+      (= uri "/api/search") (handle-api-search request)
 
-      (= uri "/api/save")
-      (handle-api-save request)
+      ;; write requests
+      (= uri "/api/save") (handle-api-save request)
+      (= uri "/api/movecard") (handle-api-move-card request)
+      (= uri "/api/reordercard") (handle-api-reorder-card request)
+      (= uri "/api/replacecard") (handle-api-replace-card request)
 
-      (= uri "/api/system/db")
-      (raw-db)
+      ;; rss requests
+      (= uri "/api/rss/recentchanges") (handle-api-rss-recent-changes request)
 
-      (= uri "/api/movecard")
-      (move-card-handler request)
-
-      (= uri "/api/reordercard")
-      (reorder-card-handler request)
-
-      (= uri "/api/replacecard")
-      (replace-card-handler request)
-
-      (= uri "/api/rss/recentchanges")
-      (-> (card-server/rss-recent-changes (fn [page-name]
-                                            (str (-> (card-server/server-state)
-                                                     :page-exporter
-                                                     (.page-name->exported-link page-name)))))
-          (resp/response)
-          (resp/content-type "application/rss+xml"))
-
+      ;; export requests
       ;; todo - redirects to /view, why?
-      (= uri "/api/bookmarklet")
-      (bookmarklet-handler request)
-
+      (= uri "/api/exportpage") (export-page-handler request)
       ;; todo - redirects to /view, why?
-      (= uri "/api/exportpage")
-      (export-page-handler request)
-
-      ;; todo - redirects to /view, why?
-      (= uri "/api/exportallpages")
-      (export-all-pages-handler request)
-
-      ;; todo - redirects to /view, why?
-      (= uri "/api/exportrecentpages")
-      (export-recent-pages-handler request)
-
-      (re-matches #"/media/(\S+)" uri)
-      (media-file-handler request)
-
-      (re-matches #"/custom/(\S+)" uri)
-      (custom-file-handler request)
-
+      (= uri "/api/exportallpages") (export-all-pages-handler request)
       ;; todo - what is happening here?
       ;; todo - a: sets page-name as the start page
       ;;        then redirects back to index.html
       ;;        which renders the new start-page
       (re-matches #"/view/(\S+)" uri)
-      (let [page-name (second (re-matches #"/view/(\S+)" uri))]
-        (card-server/set-start-page! page-name)
-        {:status  303
-         :headers {"Location" "/index.html"}})
+      (handle-view request)
 
       :default
-      (create-not-found uri))))
+      (util/create-not-found uri))))
+
+(defn wrap-card-server [handler card-server-ref]
+  (fn [request]
+    (let [request (assoc request :card-server card-server-ref)]
+      (handler request))))
 
 ;; region main entry
 
-(defn create-app []
+(defn create-app [^Atom card-server-ref]
   (-> #'handler
+      (wrap-card-server card-server-ref)
       (wrap-resource "public")
       (wrap-content-type)
       (wrap-keyword-params)
@@ -320,6 +259,26 @@
         settings (merge default-options config-settings cli-settings)]
     settings))
 
+(defn print-card-server-state [card-server-state]
+  (println
+    (str "\n"
+         "Wiki Name:\t" (:wiki-name card-server-state) "\n"
+         "Site URL:\t" (:site-url card-server-state) "\n"
+         "Start Page:\t" (:start-page card-server-state) "\n"
+         "Port No:\t" (:port-no card-server-state) "\n"
+         "\n"
+         "==PageStore Report==\n"
+         "\n"
+         (-> card-server-state :page-store .report)
+         "\n"
+         "==PageExporter Report==\n"
+         "\n"
+         (-> card-server-state :page-exporter .report)
+         "\n"
+         "\n"
+         "-----------------------------------------------------------------------------------------------"
+         "\n")))
+
 (defn init-app [opts]
   (let [page-store (pagestore/make-page-store (:directory opts) (:export-dir opts))
         page-exporter (export/make-page-exporter page-store (:extension opts) (:links opts))]
@@ -328,34 +287,17 @@
                   "Welcome to Cardigan Bay\n"
                   "======================="))
 
-    (card-server/initialize-state! (:name opts) (:site opts) (:port opts) (:init opts) nil page-store page-exporter)
-
-    (println
-      (str "\n"
-           "Wiki Name:\t" (:wiki-name (card-server/server-state)) "\n"
-           "Site URL:\t" (:site-url (card-server/server-state)) "\n"
-           "Start Page:\t" (:start-page (card-server/server-state)) "\n"
-           "Port No:\t" (:port-no (card-server/server-state)) "\n"
-           "\n"
-           "==PageStore Report==\n"
-           "\n"
-           (-> (card-server/server-state) :page-store .report)
-           "\n"
-           "==PageExporter Report==\n"
-           "\n"
-           (-> (card-server/server-state) :page-exporter .report)
-           "\n"
-           "\n"
-           "-----------------------------------------------------------------------------------------------"
-           "\n"))
-
-    (card-server/regenerate-db!)))
+    (let [card-server-ref (card-server/create-card-server (:name opts) (:site opts) (:port opts) (:init opts) nil page-store page-exporter)
+          card-server-state @card-server-ref]
+      (print-card-server-state card-server-state)
+      (card-server/regenerate-db! card-server-ref)
+      card-server-ref)))
 
 (defn -main [& args]
   (let [settings (gather-settings args)
-        server-opts (select-keys settings [:port])]
-    (init-app settings)
-    (let [app (create-app)]
+        server-opts (select-keys settings [:port])
+        card-server (init-app settings)]
+    (let [app (create-app card-server)]
       (run-server app server-opts))))
 
 ;; endregion

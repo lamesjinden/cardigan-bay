@@ -1,11 +1,12 @@
-(ns clj-ts.static-export
+(ns clj-ts.exporting.static-export
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [hiccup.core :as hiccup]
             [markdown.core :as md]
             [clj-ts.common :as common]
             [clj-ts.card-server :as card-server]
-            [cljstache.core :refer [render]])
+            [cljstache.core :refer [render]]
+            [clj-ts.exporting.page-exporter :as page-exporter])
   (:import (java.nio.file Files)
            (java.time LocalDateTime)))
 
@@ -66,8 +67,7 @@
       [:div {:class "scittle-workspace"}
        [:input {:type  :hidden
                 :id    src-name-private
-                :value private}
-        ]
+                :value private}]
        [:textarea {:id src-name :cols 80 :rows 15}
         public]
        [:script {:type "application/x-scittle"}
@@ -75,8 +75,7 @@
         final-script
         "\n"
         set
-        "\n"
-        ]
+        "\n"]
        [:button {:onclick (str fn-name "()")} "Run"]
        [:div {:id output-name}]])))
 
@@ -119,20 +118,8 @@
     "NONE"
     s))
 
-(defprotocol IPageExporter
-  (as-map [ex])
-  (page-name->export-file-path [ex page-name])
-  (export-path [ex])
-  (page-name->exported-link [ex page-name])
-  (media-name->exported-link [ex media-name])
-  (load-template [ex])
-  (load-main-css [ex])
-  (api-path [ex])
-  (export-media-dir [ex])
-  (report [ex]))
-
 (deftype PageExporter [page-store export-extension export-link-pattern]
-  IPageExporter
+  page-exporter/IPageExporter
 
   (as-map [ex]
     {:page-store          page-store
@@ -216,6 +203,7 @@ USING DEFAULT"))))
 (defn export-page [page-name server-state tpl]
   (let [ps (:page-store server-state)
         ex (:page-exporter server-state)
+        ;; todo - circular reference. card-servers have a page-export and this page-export depends on card-server
         cards (card-server/load->cards-for-export page-name (fn [s] (double-bracket-links s ex)))
         last-mod (.last-modified ps page-name)
         file-name (-> (.page-name->export-file-path ex page-name) .toString)
@@ -267,19 +255,6 @@ USING DEFAULT"))))
       (export-main-css server-state css)
       (println "Exporting media")
       (.export-media-dir (:page-exporter server-state)))))
-
-
-(defn export-recent-pages [server-state]
-  (let [ps (:page-store server-state)
-        css (-> server-state :page-exporter .load-main-css)
-        recent-page-names (.recent-changes-as-page-list ps)]
-    (export-list-of-pages server-state recent-page-names)
-    (println "Export recentchanges rss")
-    (export-recentchanges-rss server-state)
-    (println "Export main.css")
-    (export-main-css server-state css)
-    (println "Exporting media")
-    (.export-media-dir (:page-exporter server-state))))
 
 (defn export-one-page [page-name server-state]
   (let [tpl (-> server-state :page-exporter .load-template)]
