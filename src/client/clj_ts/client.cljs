@@ -29,20 +29,20 @@
 
 ;; region top-level components
 
-(defn header-bar []
-  [:div {:class "headerbar"}
-   [:div
-    [:div [nav-bar db]]]])
-
 (defn page-header []
   (let [transcript? (= (-> @db :mode) :transcript)]
     (if transcript?
-      [:div {:class ["page-header-container"]}
-       [:div {:class ["page-title-container"]} [:h2 "Transcript"]]
+      [:div {:class [:page-header-container]}
+       [:div {:class [:page-title-container]} [:h1 "Transcript"]]
        [tool-bar db]]
-      [:div {:class ["page-header-container"]}
-       [:div {:class ["page-title-container"]} [:h2 (-> @db :current-page)]]
+      [:div {:class [:page-header-container]}
+       [:div {:class [:page-title-container]} [:h1 (-> @db :current-page)]]
        [tool-bar db]])))
+
+(defn header-bar []
+  [:div {:class :header-bar}
+   [nav-bar db]
+   [page-header]])
 
 (defn main-container []
   (let [mode (:mode @db)]
@@ -66,10 +66,9 @@
          [network-canvas]])]]))
 
 (defn content []
-  [:div {:class "main-container"}
+  [:div {:class :main-container}
    [header-bar db]
-   [:div {:class "context-box"}
-    [page-header]
+   [:div {:class :content-box}
     [main-container]]])
 
 ;; endregion
@@ -96,6 +95,7 @@
                          (js/window.scroll 0 0))))))
 
 (defn render-app []
+  #_(.AutoInit (.-M js/window))
   (dom/render [content] (.querySelector js/document "#app")))
 
 (-> (configure-async!)

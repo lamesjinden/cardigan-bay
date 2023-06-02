@@ -67,38 +67,60 @@
                                  (let []
                                    [:div {:class :workspace}
                                     [:div {:class :workspace-header-container}
-                                     [:h3 {:class :workspace-header} "Workspace"]
-                                     [:div {:class :workspace-visibility-buttons-container}
-                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-code! state))} "Code"]
-                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-calc! state))} "Calculated"]
-                                      [:button {:class :workspace-visibility-button :on-click (fn [] (toggle-result! state))} "Result"]]]
+                                     [:h3 {:class :workspace-header} "Workspace"]]
                                     [:div {:class :workspace-note} [:i "Note : this is a ClojureScript workspace based on "
                                                                     [:a {:href "https://github.com/borkdude/sci"} "SCI"]
                                                                     ". Be aware that it does not save any changes you make in the textbox.
 
                                                                You'll need to  edit the page fully to make permanent changes to the code. "]]
 
-                                    [:div {:class [:code :workspace-padding]
-                                           :style {:display (->display (-> @state :code-toggle))}}
-                                     [:h4 "Source"]
-                                     [:div {:class :workspace-buttons}
-                                      [:button {:class [:workspace-action-button :workspace-button-left] :on-click (fn [] (execute-code state))}
-                                       [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
-                                      [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))}
-                                       [:span {:class [:material-symbols-sharp :clickable]} "save"]]
-                                      [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))}
-                                       [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]]
-                                     [:div {:class [:workspace-editor]} (str/trim (-> @state :code))]]
-                                    [:div {:class [:calculated-out :workspace-padding]
-                                           :style {:display (->display (-> @state :calc-toggle))}}
-                                     [:hr]
+                                    [:div {:class [:code :workspace-padding]}
+
+                                     [:div {:class :workspace-section}
+                                      [:h4 "Source"]
+                                      [:span {:on-click (fn [] (toggle-code! state))
+                                              :class    [:material-symbols-sharp :clickable]
+                                              :style    {:display (->display (-> @state :code-toggle))}}
+                                       "visibility_off"]
+
+                                      [:span {:on-click (fn [] (toggle-code! state))
+                                              :class    [:material-symbols-sharp :clickable]
+                                              :style    {:display (->display (-> @state :code-toggle not))}}
+                                       "visibility"]]
+                                     [:div {:class :code-section
+                                            :style {:display (->display (-> @state :code-toggle))}}
+                                      [:div {:class :workspace-buttons}
+                                       [:button {:class [:workspace-action-button :workspace-button-left :lambda-button] :on-click (fn [] (execute-code state))}
+                                        [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]
+                                       [:button {:class :workspace-action-button :on-click (fn [] (save-code-async! db state))}
+                                        [:span {:class [:material-symbols-sharp :clickable]} "save"]]
+                                       [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))}
+                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]]
+                                      [:div {:class [:workspace-editor]} (str/trim (-> @state :code))]]]
+
+                                    [:div {:class :workspace-section}
                                      [:h4 "Calculated"]
-                                     [:pre
+                                     [:span {:on-click (fn [] (toggle-calc! state))
+                                             :class    [:material-symbols-sharp :clickable]
+                                             :style    {:display (->display (-> @state :calc-toggle))}} "visibility_off"]
+                                     [:span {:on-click (fn [] (toggle-calc! state))
+                                             :class    [:material-symbols-sharp :clickable]
+                                             :style    {:display (->display (-> @state :calc-toggle not))}} "visibility"]]
+                                    [:div {:class :calculated-section
+                                           :style {:display (->display (-> @state :calc-toggle))}}
+                                     [:pre {:style {:white-space "pre-wrap"}}
                                       (with-out-str (pprint (str (-> @state :calc))))]]
-                                    [:div {:class [:results :workspace-padding]
-                                           :style {:display (->display (-> @state :result-toggle))}}
-                                     [:hr]
+
+                                    [:div {:class :workspace-section}
                                      [:h4 "Result"]
+                                     [:span {:on-click (fn [] (toggle-result! state))
+                                             :class    [:material-symbols-sharp :clickable]
+                                             :style    {:display (->display (-> @state :result-toggle))}} "visibility_off"]
+                                     [:span {:on-click (fn [] (toggle-result! state))
+                                             :class    [:material-symbols-sharp :clickable]
+                                             :style    {:display (->display (-> @state :result-toggle not))}} "visibility"]]
+                                    [:div {:class :result-section
+                                           :style {:display (->display (-> @state :result-toggle))}}
                                      [:div
                                       (let [result (-> @state :result)]
                                         (cond

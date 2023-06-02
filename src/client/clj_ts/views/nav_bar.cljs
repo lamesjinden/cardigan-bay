@@ -1,26 +1,30 @@
 (ns clj-ts.views.nav-bar
-  (:require [clj-ts.views.nav-input :refer [nav-input]]
-            [clj-ts.handle :as handle]
+  (:require [clj-ts.handle :as handle]
             [reagent.core :as r]))
+
+(defn nav-input [value]
+  [:input {:type      "text"
+           :id        "navinputbox"
+           :value     @value
+           :on-change #(reset! value (-> % .-target .-value))}])
 
 (defn nav-bar [db]
   (let [current (r/atom (-> @db :future last))]
     (fn []
       (let [start-page-name (-> @db :start-page-name)]
-        [:div {:class "navbar"}
+        [:div {:class :navbar}
          [:div {:id "nav1"}
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db start-page-name))} start-page-name]
-          " || "
+          [:span {:class :nav-spacer}]
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "ToDo"))} "Todo"]
-          " || "
+          [:span {:class :nav-spacer}]
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Work"))} "Work"]
-          " || "
+          [:span {:class :nav-spacer}]
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Projects"))} "Projects"]
-          " || "
+          [:span {:class :nav-spacer}]
           [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "SandBox"))} "SandBox"]
-          " || "
-          [:a {:href "/api/exportallpages"} "Export All Pages"]
-          " || "
+          [:span {:class :nav-spacer}]
+          [:a {:href "/api/exportallpages"} "Export All"]
           [:button {:id    "rss-button"
                     :class :big-btn}
            [:a {:href "/api/rss/recentchanges"}
@@ -33,10 +37,10 @@
             :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button
-           {:id :lambda-button
+           {:id       :lambda-button
             :class    :big-btn
             :on-click (fn [] (handle/execute-clicked db current))}
-           [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
+           [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]
           [:button
            {:class    :big-btn
             :on-click (fn [] (handle/search-text-async! db (-> @current str)))}
