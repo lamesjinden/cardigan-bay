@@ -5,12 +5,8 @@
     [promesa.core :as p]
     [clj-ts.handle :as handle]
     [clj-ts.events.navigation :as nav]
-    [clj-ts.views.nav-bar :refer [nav-bar]]
-    [clj-ts.views.tool-bar :refer [tool-bar]]
-    [clj-ts.views.card-list :refer [card-list]]
-    [clj-ts.views.transcript :refer [transcript]]
-    [clj-ts.networks :refer [network-canvas]]
-    [clj-ts.views.editor :refer [editor]]))
+    [clj-ts.views.app_header :refer [app-header]]
+    [clj-ts.views.app-main :refer [app-main]]))
 
 ;; region top-level ratom
 
@@ -29,47 +25,10 @@
 
 ;; region top-level components
 
-(defn page-header []
-  (let [transcript? (= (-> @db :mode) :transcript)]
-    (if transcript?
-      [:div {:class [:page-header-container]}
-       [:div {:class [:page-title-container]} [:h1 "Transcript"]]
-       [tool-bar db]]
-      [:div {:class [:page-header-container]}
-       [:div {:class [:page-title-container]} [:h1 (-> @db :current-page)]]
-       [tool-bar db]])))
-
-(defn header-bar []
-  [:div {:class :header-bar}
-   [nav-bar db]
-   [page-header]])
-
-(defn main-container []
-  (let [mode (:mode @db)]
-    [:div
-     [:div
-      (condp = mode
-
-        :editing
-        [editor db]
-
-        :viewing
-        [:div {:on-double-click (fn [] (handle/set-edit-mode! db))}
-         [card-list db]]
-
-        :transcript
-        [:div
-         [transcript db]]
-
-        :network-editor
-        [:div
-         [network-canvas]])]]))
-
-(defn content []
-  [:div {:class :main-container}
-   [header-bar db]
-   [:div {:class :content-box}
-    [main-container]]])
+(defn app []
+  [:div {:class :app-container}
+   [app-header db]
+   [app-main db]])
 
 ;; endregion
 
@@ -96,7 +55,7 @@
 
 (defn render-app []
   #_(.AutoInit (.-M js/window))
-  (dom/render [content] (.querySelector js/document "#app")))
+  (dom/render [app] (.querySelector js/document "#app")))
 
 (-> (configure-async!)
     (p/then (fn [] (render-app))))

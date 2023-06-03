@@ -82,17 +82,6 @@ h6 {
   hyphens: auto;
 }
 
-nav {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 16px;
-  overflow: hidden;
-  background-color: #ffffee;
-  position: fixed;
-  top: 0;
-  width: 100%;
-}
-
 a {
   color: 39cccc;
 }
@@ -212,9 +201,6 @@ div textarea {
 
 /*#endregion */
 
-/*#region bookmarklet_footer */
-/*#endregion */
-
 /*#region card_bar */
 
 .card-gutter {
@@ -318,7 +304,7 @@ div textarea {
 
 /*#region nav_bar */
 
-.navbar {
+.nav-container {
   padding: 0 10px 5px 10px;
   margin: 0;
   color: whitesmoke;
@@ -328,22 +314,22 @@ div textarea {
   z-index: 1;
 }
 
-#nav1 {
+#header-nav {
   display: flex;
   align-items: center;
   padding-top: 10px;
   margin-bottom: 10px;
 }
 
-#nav1 span {
+#header-nav span {
   cursor: pointer;
 }
 
-#nav1 > .nav-spacer {
+#header-nav > .nav-spacer {
   margin: 8px;
 }
 
-#nav3 {
+#header-input {
   background-color: white;
   display: flex;
   justify-content: center;
@@ -373,7 +359,7 @@ div textarea {
   padding-bottom: 8px;
 }
 
-#navinputbox {
+.nav-input-text {
   height: 3rem;
   width: 100%;
   border: none;
@@ -442,6 +428,9 @@ div textarea {
 /*#endregion */
 
 /*#region transcript */
+
+.transcript {}
+
 /*#endregion */
 
 /*#region workspace_card */
@@ -516,14 +505,11 @@ div textarea {
 
 /*#region client */
 
-.header-bar {
+header {
   background-color: white;
-  /* margin-left: -15px;
-  margin-right: -15px;
-  margin-top: -15px; */
 }
 
-.header-bar a {
+header a {
   color: rgb(38, 65, 65);
 }
 
@@ -545,10 +531,10 @@ div textarea {
   margin-bottom: 2px;
 }
 
-.main-container {
+.app-container {
 }
 
-.content-box {
+main {
   padding: 0 15px 15px 15px;
   margin: 5px;
 }
