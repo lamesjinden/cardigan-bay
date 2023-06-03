@@ -4,7 +4,7 @@
 CardiganBay is a new wiki-engine which aims to combine the best ideas from classic wiki with up-to-date technologies and an eye to the future. 
 
 
-![How it looks](http://sdi.thoughtstorms.info/wp-content/uploads/2023/04/Screenshot-from-2023-04-05-20-45-15.png)
+![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/243027697-e6e6446c-fe7d-4c83-a724-d8e664f47548.png)
 
 [Easy Install and Introduction on YouTube](https://www.youtube.com/watch?v=1QA5imZMdSI)
 
