@@ -5,4 +5,4 @@
 (defn app-header [db]
   [:header {:class :header-bar}
    [nav-bar db]
-   [page-header]])
+   [page-header db]])
