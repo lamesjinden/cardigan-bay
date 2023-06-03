@@ -1,5 +1,6 @@
 (ns clj-ts.storage.page_store
   (:require
+    [clojure.java.io :as io]
     [clojure.string :as string]
     [clojure.core.memoize :refer [memo memo-clear!]]
     [clj-ts.common :refer [raw-text->card-maps find-card-by-hash]]
@@ -10,6 +11,7 @@
 
 ;; page-path, system-path, export-path are Java nio Paths
 ;; git-repo? is boolean
+
 
 (deftype PageStore [page-path system-path export-path git-repo?]
   page-storage/IPageStore
@@ -106,6 +108,10 @@
 
   (write-recent-changes! [this recent-changes]
     (.write-system-file! this "recentchanges" recent-changes))
+
+  (load-media-file [_this file-name]
+    (let [media-dir (.toString (.resolve page-path "media"))]
+      (io/file media-dir file-name)))
 
   (media-list [this]
     (let [files (.media-files-as-new-directory-stream this)]

@@ -1,4 +1,4 @@
-(ns clj-ts.exporting.page-exporter)
+(ns clj-ts.export.page-exporter)
 
 (defprotocol IPageExporter
   (as-map [ex])

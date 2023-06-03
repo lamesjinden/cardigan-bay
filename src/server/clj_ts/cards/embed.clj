@@ -1,4 +1,4 @@
-(ns clj-ts.embed
+(ns clj-ts.cards.embed
   (:require [org.httpkit.client :as http]
             [org.httpkit.sni-client :as sni]
             [clojure.string :as string]

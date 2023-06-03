@@ -23,4 +23,5 @@
   (read-recent-changes [ps])
   (recent-changes-as-page-list [ps])
   (write-recent-changes! [ps new-rc])
+  (load-media-file [ps file-name])
   (media-list [ps]))

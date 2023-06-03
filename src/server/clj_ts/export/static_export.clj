@@ -1,13 +1,16 @@
-(ns clj-ts.exporting.static-export
-  (:require [clojure.string :as string]
+(ns clj-ts.export.static-export
+  (:require [clj-ts.cards.system :as system]
+            [clojure.string :as string]
             [clojure.java.io :as io]
             [hiccup.core :as hiccup]
             [markdown.core :as md]
             [clj-ts.common :as common]
+            [clj-ts.cards.cards :as cards]
             [clj-ts.card-server :as card-server]
             [cljstache.core :refer [render]]
-            [clj-ts.exporting.page-exporter :as page-exporter])
-  (:import (java.nio.file Files)
+            [clj-ts.export.page-exporter :as page-exporter])
+  (:import (java.io FileOutputStream)
+           (java.nio.file Files)
            (java.time LocalDateTime)))
 
 (defn double-bracket-links
@@ -121,33 +124,33 @@
 (deftype PageExporter [page-store export-extension export-link-pattern]
   page-exporter/IPageExporter
 
-  (as-map [ex]
+  (as-map [this]
     {:page-store          page-store
      :export-extension    export-extension
      :export-link-pattern export-link-pattern})
 
-  (report [ex]
+  (report [this]
     (str "Export Extension :\t" (ep export-extension) "
 Export Link Pattern :\t" (ep export-link-pattern) "
-Example Exported Link :\t" (.page-name->exported-link ex "ExamplePage")))
+Example Exported Link :\t" (.page-name->exported-link this "ExamplePage")))
 
-  (export-path [ex]
-    (-> ex .page-store .export-path))
+  (export-path [this]
+    (-> this .page-store .export-path))
 
-  (page-name->export-file-path [ex page-name]
-    (-> ex .page-store .export-path
+  (page-name->export-file-path [this page-name]
+    (-> this .page-store .export-path
         (.resolve (str page-name export-extension))))
 
-  (page-name->exported-link [ex page-id]
+  (page-name->exported-link [this page-id]
     (str export-link-pattern page-id export-extension))
 
-  (media-name->exported-link [ex media-name]
+  (media-name->exported-link [this media-name]
     (str export-link-pattern "media/" media-name))
 
-  (api-path [ex]
-    (.resolve (-> ex .page-store .export-path) "api"))
+  (api-path [this]
+    (.resolve (-> this .page-store .export-path) "api"))
 
-  (load-template [ex]
+  (load-template [this]
     (try
       (let [tpl-path (.resolve (.system-path page-store) "export_resources/index.html")]
         (println "Loading template
@@ -167,32 +170,34 @@ USING DEFAULT")
                  [:h1 "{{page-title}}"]]
                 [:div
                  "{{{page-main-content}}}"]]])))))
-  (load-main-css [ex]
+
+  (load-main-css [this]
     (try
       (let [css-path (.resolve (.system-path page-store) "export_resources/main.css")]
         (slurp (.toString css-path)))
       (catch Exception e
         (println "ERROR FINDING CSS FILE " e "
 USING DEFAULT"))))
-  (export-media-dir [ex]
+
+  (export-media-dir [this]
     (let [from-stream (.media-files-as-new-directory-stream page-store)
           to (.media-export-path page-store)]
       (try
         (doseq [file from-stream]
-          (let [new-file (new java.io.FileOutputStream (.toFile (.resolve to (.getFileName file))))]
+          (let [new-file (new FileOutputStream (.toFile (.resolve to (.getFileName file))))]
             (Files/copy file new-file)))
         (catch Exception e (println (str "Something went wrong " e)))))))
 
 (defn make-page-exporter [page-store export-extension export-link-pattern]
   (->PageExporter page-store export-extension export-link-pattern))
 
-(defn export-recentchanges-rss [server-state]
-  (let [api-path (-> server-state :page-exporter .api-path)
+(defn export-recentchanges-rss [server-snapshot]
+  (let [api-path (-> server-snapshot :page-exporter .api-path)
         rc-rss (.resolve api-path "rc-rss.xml")
         link-fn (fn [p-name]
-                  (str (:site-url server-state) p-name))]
+                  (str (:site-url server-snapshot) p-name))]
     (io/make-parents (.toString rc-rss))
-    (spit (.toString rc-rss) (card-server/rss-recent-changes link-fn))))
+    (spit (.toString rc-rss) (card-server/rss-recent-changes server-snapshot link-fn))))
 
 (defn export-main-css [server-state main-css]
   (let [css-path (.resolve (-> server-state :page-exporter .export-path) "main.css")]
@@ -200,39 +205,46 @@ USING DEFAULT"))))
       (spit (.toString css-path) main-css)
       (catch Exception e (println "Something went wrong ... " e)))))
 
-(defn export-page [page-name server-state tpl]
-  (let [ps (:page-store server-state)
-        ex (:page-exporter server-state)
-        ;; todo - circular reference. card-servers have a page-export and this page-export depends on card-server
-        cards (card-server/load->cards-for-export page-name (fn [s] (double-bracket-links s ex)))
-        last-mod (.last-modified ps page-name)
-        file-name (-> (.page-name->export-file-path ex page-name) .toString)
+(defn load->cards-for-export [server-snapshot page-name link-renderer]
+  (as-> server-snapshot $
+        (.page-store $)
+        (.load-page $ page-name)
+        (cards/raw->cards server-snapshot $ {:user-authored? true
+                                               :for-export?    true
+                                               :link-renderer  link-renderer})))
+
+(defn export-page [page-name server-snapshot tpl]
+  (let [page-store (:page-store server-snapshot)
+        exporter (:page-exporter server-snapshot)
+        cards (load->cards-for-export server-snapshot page-name (fn [s] (double-bracket-links s exporter)))
+        last-mod (.last-modified page-store page-name)
+        file-name (-> (.page-name->export-file-path exporter page-name) .toString)
         rendered (string/join
                    "\n"
-                   (map #(card->html % ex)
+                   (map #(card->html % exporter)
                         (filter #(not (common/card-is-blank? %)) cards)))
         insert-page (hiccup/html
                       [:div
                        [:div
                         rendered]
                        [:div {:class "system"}
-                        (card->html (card-server/backlinks page-name) ex)]])
+                        (card->html (system/backlinks server-snapshot page-name) exporter)]])
         page (render tpl
                      {:page-title        page-name
                       :page-main-content insert-page
                       :time              (LocalDateTime/now)
                       :last-modified     last-mod
-                      :wiki-name         (.wiki-name server-state)})]
+                      :wiki-name         (.wiki-name server-snapshot)})]
     (println "Exporting " page-name)
     (println "Outfile = " file-name)
     (spit file-name page)))
 
-(defn export-list-of-pages [server-state page-names]
-  (let [tpl (-> server-state :page-exporter .load-template)]
-    (doseq [p-name page-names]
-      (println "Exporting " p-name)
+(defn export-list-of-pages [server-snapshot page-names]
+  (let [tpl (-> server-snapshot :page-exporter .load-template)]
+    (doseq [page-name page-names]
+      (println "Exporting " page-name)
       (try
-        (export-page p-name server-state tpl)
+        (export-page page-name server-snapshot tpl)
         (catch Exception e (println e))))))
 
 (defn export-all-pages [server-state]
@@ -256,9 +268,9 @@ USING DEFAULT"))))
       (println "Exporting media")
       (.export-media-dir (:page-exporter server-state)))))
 
-(defn export-one-page [page-name server-state]
-  (let [tpl (-> server-state :page-exporter .load-template)]
-    (export-page page-name server-state tpl)
-    (export-recentchanges-rss server-state)
+(defn export-one-page [page-name server-snapshot]
+  (let [tpl (-> server-snapshot :page-exporter .load-template)]
+    (export-page page-name server-snapshot tpl)
+    (export-recentchanges-rss server-snapshot)
     (println "Exporting media")
-    (.export-media-dir (:page-exporter server-state))))
+    (.export-media-dir (:page-exporter server-snapshot))))

@@ -5,7 +5,7 @@
             [clj-ts.util :as util]
             [clj-ts.render :as render]
             [clj-ts.card-server :as card-server]
-            [clj-ts.exporting.static-export :as export]
+            [clj-ts.export.static-export :as export]
             [clj-ts.storage.page_store :as pagestore]
             [org.httpkit.server :refer [run-server]]
             [ring.middleware.content-type :refer [wrap-content-type]]
@@ -62,9 +62,9 @@
     (export/export-all-pages server-snapshot)
     (resp/redirect (str "/view/" (-> server-snapshot :start-page)) :see-other)))
 
-(defn get-page-data [card-server body]
-  (let [source-page (card-server/resolve-source-page card-server nil body nil)
-        server-prepared-page (card-server/resolve-page card-server nil body nil)]
+(defn get-page-data [server-snapshot body]
+  (let [source-page (card-server/resolve-source-page server-snapshot nil body nil)
+        server-prepared-page (card-server/resolve-page server-snapshot nil body nil)]
     {:source_page          source-page
      :server_prepared_page server-prepared-page}))
 
@@ -80,7 +80,8 @@
   ([card-server subject-file page-name]
    (let [subject-content (slurp (io/resource subject-file))]
      (if page-name
-       (let [page-config (get-page-data card-server {:page_name page-name})
+       (let [server-snapshot @card-server
+             page-config (get-page-data server-snapshot {:page_name page-name})
              page-config-str (json/write-str page-config)
              rendered (selmer.util/without-escaping
                         (selmer.parser/render
@@ -100,13 +101,14 @@
 (defn handle-api-init [{:keys [card-server] :as _request}]
   (let [server-snapshot @card-server
         init-page-name (.start-page server-snapshot)
-        page-config (get-page-data card-server {:page_name init-page-name})
+        page-config (get-page-data server-snapshot {:page_name init-page-name})
         page-config-str (json/write-str page-config)]
     (util/->json-response page-config-str)))
 
 (defn get-page-body [card-server page-name]
-  (let [arguments {:page_name page-name}]
-    (json/write-str (get-page-data card-server arguments))))
+  (let [arguments {:page_name page-name}
+        server-snapshot @card-server]
+    (json/write-str (get-page-data server-snapshot arguments))))
 
 (defn get-page-response [card-server page-name]
   (-> (get-page-body card-server page-name)
@@ -118,8 +120,9 @@
     (get-page-response card-server page-name)))
 
 (defn handle-api-search [{:keys [card-server] :as request}]
-  (let [body (:body request)]
-    (-> (clj-ts.card-server/resolve-text-search card-server nil body nil)
+  (let [body (:body request)
+        server-snapshot @card-server]
+    (-> (clj-ts.card-server/resolve-text-search server-snapshot nil body nil)
         (json/write-str)
         (util/->json-response))))
 
@@ -128,8 +131,9 @@
 (defn handle-page-request [{:keys [card-server] :as request}]
   (let [uri (:uri request)
         match (re-matches pages-request-pattern uri)
-        page-name (ring.util.codec/url-decode (get match 1))]
-    (if (clj-ts.card-server/page-exists? card-server page-name)
+        page-name (ring.util.codec/url-decode (get match 1))
+        server-snapshot @card-server]
+    (if (clj-ts.card-server/page-exists? server-snapshot page-name)
       (-> (render-page-config card-server index-local-path page-name)
           (util/->html-response))
       (-> (resp/not-found (str "Page not found " page-name))
@@ -145,7 +149,7 @@
 (defn handle-api-rss-recent-changes [{:keys [card-server] :as _request}]
   (let [server-snapshot @card-server]
     (-> (card-server/rss-recent-changes
-          card-server
+          server-snapshot
           (fn [page-name]
             (str (-> server-snapshot
                      :page-exporter
@@ -158,6 +162,17 @@
     (card-server/set-start-page! card-server page-name)
     {:status  303
      :headers {"Location" "/index.html"}}))
+
+(defn handle-media [{:keys [card-server uri] :as _request}]
+  (let [file-name (-> uri
+                      (#(re-matches #"/media/(\S+)" %))
+                      second)
+        server-snapshot @card-server
+        file (card-server/load-media-file server-snapshot file-name)]
+    (if (.isFile file)
+      {:status 200
+       :body   file}
+      (util/create-not-found uri))))
 
 (defn handler [request]
   (let [uri (:uri request)]
@@ -189,20 +204,26 @@
       ;; todo - a: sets page-name as the start page
       ;;        then redirects back to index.html
       ;;        which renders the new start-page
-      (re-matches #"/view/(\S+)" uri)
+      (re-matches #"/view/\S+" uri)
       (handle-view request)
+
+      ;; media requests
+      (re-matches #"/media/\S+" uri)
+      (handle-media request)
 
       :default
       (util/create-not-found uri))))
+
+;; region main entry
 
 (defn wrap-card-server [handler card-server-ref]
   (fn [request]
     (let [request (assoc request :card-server card-server-ref)]
       (handler request))))
 
-;; region main entry
-
-(defn create-app [^Atom card-server-ref]
+(defn create-app
+  "returns the ring request-handling pipeline"
+  [^Atom card-server-ref]
   (-> #'handler
       (wrap-card-server card-server-ref)
       (wrap-resource "public")
@@ -238,13 +259,13 @@
     :parse-fn boolean]
    ["-f" "--config CONFIG_PATH" "Path to configuration parameters file"]])
 
-(defn args->opts [args]
+(defn- args->opts [args]
   (let [as (if *command-line-args* *command-line-args* args)
         xs (cli/parse-opts as cli-options)
         opts (get xs :options)]
     opts))
 
-(defn read-config-file [config-file-path]
+(defn- read-config-file [config-file-path]
   (try
     (-> config-file-path
         slurp
@@ -259,7 +280,7 @@
         settings (merge default-options config-settings cli-settings)]
     settings))
 
-(defn print-card-server-state [card-server-state]
+(defn- print-card-server-state [card-server-state]
   (println
     (str "\n"
          "Wiki Name:\t" (:wiki-name card-server-state) "\n"
@@ -279,7 +300,9 @@
          "-----------------------------------------------------------------------------------------------"
          "\n")))
 
-(defn init-app [opts]
+(defn initialize-state
+  "initializes server state contained within an Atom and returns it"
+  [opts]
   (let [page-store (pagestore/make-page-store (:directory opts) (:export-dir opts))
         page-exporter (export/make-page-exporter page-store (:extension opts) (:links opts))]
 
@@ -296,7 +319,7 @@
 (defn -main [& args]
   (let [settings (gather-settings args)
         server-opts (select-keys settings [:port])
-        card-server (init-app settings)]
+        card-server (initialize-state settings)]
     (let [app (create-app card-server)]
       (run-server app server-opts))))
 
