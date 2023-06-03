@@ -1,6 +1,6 @@
 (ns clj-ts.views.card-shell
   (:require [reagent.core :as r]
-            [clj-ts.handle :as handle]
+            [clj-ts.events.actions :refer [has-link-target? navigate-via-link-async!]]
             [clj-ts.views.card-bar :refer [card-bar]]))
 
 (defn card-shell [db]
@@ -22,6 +22,7 @@
          :style {:display (-> @state2 :toggle)}}
         [:div
          {:class    :card
-          :on-click (fn [e] (handle/on-click-for-links-async! db e))}
+          :on-click (fn [e] (when (has-link-target? e)
+                              (navigate-via-link-async! db e)))}
          [component]]]
        [(card-bar card) db card]])))

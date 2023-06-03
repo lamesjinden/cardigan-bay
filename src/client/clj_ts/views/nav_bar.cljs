@@ -1,6 +1,62 @@
 (ns clj-ts.views.nav-bar
-  (:require [clj-ts.handle :as handle]
-            [reagent.core :as r]))
+  (:require [clj-ts.http :as http]
+            [clj-ts.view :as view]
+            [clojure.string :as str]
+            [reagent.core :as r]
+            [promesa.core :as p]
+            [clj-ts.events.navigation :as nav]
+            [sci.core :as sci]))
+
+;; region navigation
+
+(defn- navigate-async! [db page-name]
+  (-> (nav/go-new-async! db page-name)
+      (p/then (fn [] (clj-ts.events.navigation/navigate-to page-name)))))
+
+;; endregion
+
+;; region search
+
+(defn- updated-transcript [code result transcript]
+  (str "<p> > " code "\n<br/>\n" result "\n</p>\n" transcript))
+
+(defn- prepend-transcript! [db code result]
+  (let [current-transcript (-> @db :transcript)
+        updated-transcript (updated-transcript code result current-transcript)]
+    (swap! db assoc :transcript updated-transcript)
+    (swap! db assoc :mode :transcript)))
+
+(defn- load-search-results! [db cleaned-query e]
+  (let [edn (-> e .-target .getResponseJson js->clj)
+        result (get edn "result_text")]
+    (prepend-transcript! db
+                         (str "Searching for " cleaned-query)
+                         (view/string->html result))))
+
+(defn- search-text-async! [db query-text]
+  (let [cleaned-query (-> query-text
+                          (#(str/replace % "\"" ""))
+                          (#(str/replace % "'" "")))
+        query (->> {:query_string cleaned-query}
+                   (clj->js)
+                   (.stringify js/JSON))
+        callback (fn [e] (load-search-results! db cleaned-query e))]
+    (http/http-post-async
+      "/api/search"
+      callback
+      query
+      {:headers {"Content-Type" "application/json"}})))
+
+;; endregion
+
+;; region eval
+
+(defn- eval-input! [db current]
+  (let [code (-> @current str)
+        result (sci/eval-string code)]
+    (prepend-transcript! db code result)))
+
+;; endregion
 
 (defn nav-input [value]
   [:input {:type      "text"
@@ -14,15 +70,15 @@
       (let [start-page-name (-> @db :start-page-name)]
         [:div {:class :nav-container}
          [:nav {:id :header-nav}
-          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db start-page-name))} start-page-name]
+          [:span {:on-click (fn [] (navigate-async! db start-page-name))} start-page-name]
           [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "ToDo"))} "Todo"]
+          [:span {:on-click (fn [] (navigate-async! db "ToDo"))} "Todo"]
           [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Work"))} "Work"]
+          [:span {:on-click (fn [] (navigate-async! db "Work"))} "Work"]
           [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "Projects"))} "Projects"]
+          [:span {:on-click (fn [] (navigate-async! db "Projects"))} "Projects"]
           [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (handle/on-click-for-nav-links-async! db "SandBox"))} "SandBox"]
+          [:span {:on-click (fn [] (navigate-async! db "SandBox"))} "SandBox"]
           [:span {:class :nav-spacer}]
           [:a {:href "/api/exportallpages"} "Export All"]
           [:button {:id    :rss-button
@@ -34,14 +90,14 @@
           [:button
            {:id       :go-button
             :class    :big-btn
-            :on-click (fn [] (handle/on-click-for-nav-links-async! db @current))}
+            :on-click (fn [] (navigate-async! db @current))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button
            {:id       :lambda-button
             :class    :big-btn
-            :on-click (fn [] (handle/execute-clicked db current))}
+            :on-click (fn [] (eval-input! db current))}
            [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]
           [:button
            {:class    :big-btn
-            :on-click (fn [] (handle/search-text-async! db (-> @current str)))}
+            :on-click (fn [] (search-text-async! db (-> @current str)))}
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]]]))))

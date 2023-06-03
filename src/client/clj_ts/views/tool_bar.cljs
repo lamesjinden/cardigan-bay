@@ -1,5 +1,5 @@
 (ns clj-ts.views.tool-bar
-  (:require [clj-ts.handle :as handle]))
+  (:require [clj-ts.events.actions :as actions]))
 
 (defn tool-bar [db]
   (fn []
@@ -15,14 +15,14 @@
             [:button
              {:class    ["big-btn" "image-button"]
               :on-click (fn []
-                          (handle/set-view-mode! db)
-                          (handle/cancel-async! db))}
+                          (actions/set-view-mode! db)
+                          (actions/cancel-async! db))}
              [:div [:span {:class [:material-symbols-sharp :clickable]} "close"] "Cancel"]]
             [:button
              {:class    ["big-btn" "image-button"]
               :on-click (fn []
-                          (handle/set-view-mode! db)
-                          (handle/save-page-async! db))}
+                          (actions/set-view-mode! db)
+                          (actions/save-page-async! db))}
              [:div
               [:span {:class [:material-symbols-sharp :clickable]} "save"] "Save"]]]]]
 
@@ -44,5 +44,5 @@
          [:span {:class ["button-container"]}
           [:button
            {:class    ["big-btn" "image-button"]
-            :on-click #(handle/set-view-mode! db)}
+            :on-click #(actions/set-view-mode! db)}
            [:div [:span {:class [:material-symbols-sharp :clickable]} "close"] "Cancel"]]])])))

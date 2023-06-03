@@ -3,7 +3,7 @@
     [reagent.core :as r]
     [reagent.dom :as dom]
     [promesa.core :as p]
-    [clj-ts.handle :as handle]
+    [clj-ts.events.actions :as actions]
     [clj-ts.events.navigation :as nav]
     [clj-ts.views.app_header :refer [app-header]]
     [clj-ts.views.app-main :refer [app-main]]))
@@ -47,7 +47,7 @@
                      (p/resolved (nav/load-page db init))
                      (nav/load-start-page-async! db))]
       (p/then loaded-p (fn []
-                         (handle/set-view-mode! db)
+                         (actions/set-view-mode! db)
                          (swap! db assoc :initialized? true)
                          (nav/hook-pop-state db)
                          (nav/replace-state-initial)

@@ -5,7 +5,7 @@
             [sci.core :as sci]
             [clj-ts.ace :as ace]
             [cljfmt.core :as format]
-            [clj-ts.handle :as handle]
+            [clj-ts.events.actions :as actions]
             [clj-ts.events.navigation :as nav]
             [promesa.core :as p]))
 
@@ -39,9 +39,9 @@
     (.setValue editor formatted)))
 
 (defn save-code-async! [db state]
-  (-> (handle/save-card-async! (-> @db :current-page)
-                               (-> @state :hash)
-                               (-> @state :code))
+  (-> (actions/save-card-async! (-> @db :current-page)
+                                (-> @state :hash)
+                                (-> @state :code))
       (p/then (fn [_] (nav/reload-async! db)))))
 
 (defn workspace [db card]

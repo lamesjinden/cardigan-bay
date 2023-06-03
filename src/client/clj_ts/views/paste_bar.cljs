@@ -1,6 +1,5 @@
 (ns clj-ts.views.paste-bar
-  (:require [clj-ts.common :as common]
-            [clj-ts.handle :as handle]))
+  (:require [clj-ts.common :as common]))
 
 (def system-search-template "
 ----
@@ -35,61 +34,66 @@
 
 ")
 
+(defn- insert-text-at-cursor! [db s]
+  (when s
+    (when-let [ace-instance (:ace-instance @db)]
+      (.insert ace-instance s))))
+
 (defn paste-bar [db]
   [:div {:class "pastebar"}
    [:div
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :markdown)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :markdown)))}
      "New Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db system-search-template))}
+      :on-click (fn [] (insert-text-at-cursor! db system-search-template))}
      "Search Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db workspace-template))}
+      :on-click (fn [] (insert-text-at-cursor! db workspace-template))}
      "Code Workspace"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db evalmd-template))}
+      :on-click (fn [] (insert-text-at-cursor! db evalmd-template))}
      "Code on Server"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :youtube)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :youtube)))}
      "YouTube Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :vimeo)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :vimeo)))}
      "Vimeo Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :img)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :img)))}
      "Image Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :soundcloud)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :soundcloud)))}
      "SoundCloud Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :bandcamp)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :bandcamp)))}
      "BandCamp Card"]
 
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :twitter)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :twitter)))}
      "Twitter Card"]
 
     [:button
      {:class    "big-btn"
-      :on-click (fn [] (handle/insert-text-at-cursor! db (common/embed-boilerplate :rss)))}
+      :on-click (fn [] (insert-text-at-cursor! db (common/embed-boilerplate :rss)))}
      "RSS Feed"]]])
