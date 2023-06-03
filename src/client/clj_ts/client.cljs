@@ -54,7 +54,6 @@
                          (js/window.scroll 0 0))))))
 
 (defn render-app []
-  #_(.AutoInit (.-M js/window))
   (dom/render [app] (.querySelector js/document "#app")))
 
 (-> (configure-async!)
