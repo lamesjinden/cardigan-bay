@@ -21,12 +21,13 @@
 ;; page-store has all the file-system information that the wiki reads and writes.
 ;; page-exporter the other info for exporting flat files
 
-(defn create-card-server ^Atom [wiki-name site-url port-no start-page logic-db page-store page-exporter]
+(defn create-card-server ^Atom [wiki-name site-url port-no start-page nav-links logic-db page-store page-exporter]
   (atom (server-record/->CardServerRecord
           wiki-name
           site-url
           port-no
           start-page
+          nav-links
           logic-db
           page-store
           page-exporter)))
@@ -91,13 +92,15 @@ If you would *like* to create a page with this name, simply click the [Edit] but
         ps (:page-store server-snapshot)
         wiki-name (:wiki-name server-snapshot)
         site-url (:site-url server-snapshot)
-        start-page-name (:start-page server-snapshot)]
+        start-page-name (:start-page server-snapshot)
+        nav-links (:nav-links server-snapshot)]
     (if (.page-exists? ps page_name)
       {:page_name       page_name
        :wiki_name       wiki-name
        :site_url        site-url
        :public_root     (str site-url "/view/")
        :start_page_name start-page-name
+       :nav-links       nav-links
        :cards           (load->cards server-snapshot page_name)
        :system_cards    [(system/backlinks server-snapshot page_name)]}
       {:page_name       page_name
@@ -105,6 +108,7 @@ If you would *like* to create a page with this name, simply click the [Edit] but
        :site_url        site-url
        :start_page_name start-page-name
        :public_root     (str site-url "/view/")
+       :nav-links       nav-links
        :cards           (cards/raw->cards server-snapshot (render/missing-page page_name) {:user-authored? false :for-export? false})
        :system_cards    (let [sim-names (map #(str "\n- [[" % "]]") (.similar-page-names ps page_name))]
                           (if (empty? sim-names)

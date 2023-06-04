@@ -1,5 +1,6 @@
 (ns dev_server
   (:require
+    [clojure.pprint]
     [org.httpkit.server :as http]
     [ring.middleware.reload :as reload]
     [ring.middleware.cors :as cors]
@@ -17,10 +18,12 @@
     (reset! server nil)))
 
 (defn create-server [& args]
-  (println "creating server")
+  (println "\ncreating dev server:")
+  (clojure.pprint/pprint args)
 
   (let [settings (server/gather-settings args)]
-    (println "initialize server app with settings" settings)
+    (println "\ninitialize dev server app:")
+    (clojure.pprint/pprint settings)
 
     (let [card-server-ref (server/initialize-state settings)]
       (reset! server (http/run-server

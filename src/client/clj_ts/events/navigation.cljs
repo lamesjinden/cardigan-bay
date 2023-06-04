@@ -15,7 +15,8 @@
         system-cards (get server-prepared-page "system_cards")
         site-url (get server-prepared-page "site_url")
         wiki-name (get server-prepared-page "wiki_name")
-        start-page-name (get server-prepared-page "start_page_name")]
+        start-page-name (get server-prepared-page "start_page_name")
+        nav-links (get server-prepared-page "nav-links")]
     (swap! db assoc
            :current-page page-name
            :site-url site-url
@@ -24,7 +25,8 @@
            :raw raw
            :cards cards
            :system-cards system-cards
-           :mode :viewing))
+           :mode :viewing
+           :nav-links nav-links))
   (js/window.scroll 0 0))
 
 (defn load-page-async! [db page-name]

@@ -59,27 +59,27 @@
 ;; endregion
 
 (defn nav-input [value]
-  [:input {:type      "text"
-           :class     :nav-input-text
-           :value     @value
-           :on-change #(reset! value (-> % .-target .-value))}])
+  [:input {:type         "text"
+           :class        :nav-input-text
+           :value        @value
+           :on-change    #(reset! value (-> % .-target .-value))
+           :placeholder "Navigate, Search, or Eval"}])
 
 (defn nav-bar [db]
   (let [current (r/atom (-> @db :future last))]
     (fn []
-      (let [start-page-name (-> @db :start-page-name)]
+      (let [nav-links (-> @db :nav-links)
+            on-link-click (fn [target]
+                            (if (= target "Transcript")
+                              (swap! db assoc :mode :transcript)
+                              (navigate-async! db target)))]
         [:div {:class :nav-container}
          [:nav {:id :header-nav}
-          [:span {:on-click (fn [] (navigate-async! db start-page-name))} start-page-name]
-          [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (navigate-async! db "ToDo"))} "Todo"]
-          [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (navigate-async! db "Work"))} "Work"]
-          [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (navigate-async! db "Projects"))} "Projects"]
-          [:span {:class :nav-spacer}]
-          [:span {:on-click (fn [] (navigate-async! db "SandBox"))} "SandBox"]
-          [:span {:class :nav-spacer}]
+          (->> nav-links
+               (mapcat #(vector [:span {:key      %
+                                        :on-click (fn [] (on-link-click %))} %]
+                                [:span {:key   (str % "-spacer")
+                                        :class :nav-spacer}])))
           [:a {:href "/api/exportallpages"} "Export All"]
           [:button {:id    :rss-button
                     :class :big-btn}
@@ -93,11 +93,11 @@
             :on-click (fn [] (navigate-async! db @current))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button
+           {:class    :big-btn
+            :on-click (fn [] (search-text-async! db (-> @current str)))}
+           [:span {:class [:material-symbols-sharp :clickable]} "search"]]
+          [:button
            {:id       :lambda-button
             :class    :big-btn
             :on-click (fn [] (eval-input! db current))}
-           [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]
-          [:button
-           {:class    :big-btn
-            :on-click (fn [] (search-text-async! db (-> @current str)))}
-           [:span {:class [:material-symbols-sharp :clickable]} "search"]]]]))))
+           [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]]]))))

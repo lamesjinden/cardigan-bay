@@ -1,6 +1,7 @@
 (ns clj-ts.server
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
+            [clojure.string :as str]
             [clojure.tools.cli :as cli]
             [clj-ts.util :as util]
             [clj-ts.render :as render]
@@ -242,7 +243,8 @@
    :extension  ".html"
    :export-dir "./bedrock/exported/"
    :beginner   false
-   :config     "./bedrock/system/config.edn"})
+   :config     "./bedrock/system/config.edn"
+   :nav-links  ["HelloWorld" "InQueue" "Transcript" "RecentChanges" "Help"]})
 
 (def cli-options
   [["-p" "--port PORT" "Port number"
@@ -252,6 +254,9 @@
    ["-n" "--name NAME" "Wiki Name"]
    ["-s" "--site SITE" "Site URL "]
    ["-i" "--init INIT" "Start Page"]
+   ["-a" "--navlinks NAVLINKS" "Navigation Header Links"
+    :id :nav-links
+    :parse-fn (fn [arg] (mapv str/trim (str/split arg #",")))]
    ["-l" "--links LINK" "Export Links"]
    ["-x" "--extension EXPORTED_EXTENSION" "Exported Extension"]
    ["-e" "--export-dir DIR" "Export Directory"]
@@ -260,10 +265,9 @@
    ["-f" "--config CONFIG_PATH" "Path to configuration parameters file"]])
 
 (defn- args->opts [args]
-  (let [as (if *command-line-args* *command-line-args* args)
-        xs (cli/parse-opts as cli-options)
-        opts (get xs :options)]
-    opts))
+  (let [opts (cli/parse-opts args cli-options)
+        options (get opts :options)]
+    options))
 
 (defn- read-config-file [config-file-path]
   (try
@@ -286,6 +290,7 @@
          "Wiki Name:\t" (:wiki-name card-server-state) "\n"
          "Site URL:\t" (:site-url card-server-state) "\n"
          "Start Page:\t" (:start-page card-server-state) "\n"
+         "Nav Links:\t" (:nav-links card-server-state) "\n"
          "Port No:\t" (:port-no card-server-state) "\n"
          "\n"
          "==PageStore Report==\n"
@@ -302,15 +307,15 @@
 
 (defn initialize-state
   "initializes server state contained within an Atom and returns it"
-  [opts]
-  (let [page-store (pagestore/make-page-store (:directory opts) (:export-dir opts))
-        page-exporter (export/make-page-exporter page-store (:extension opts) (:links opts))]
+  [settings]
+  (let [page-store (pagestore/make-page-store (:directory settings) (:export-dir settings))
+        page-exporter (export/make-page-exporter page-store (:extension settings) (:links settings))]
 
     (println (str "\n"
                   "Welcome to Cardigan Bay\n"
                   "======================="))
 
-    (let [card-server-ref (card-server/create-card-server (:name opts) (:site opts) (:port opts) (:init opts) nil page-store page-exporter)
+    (let [card-server-ref (card-server/create-card-server (:name settings) (:site settings) (:port settings) (:init settings) (:nav-links settings) nil page-store page-exporter)
           card-server-state @card-server-ref]
       (print-card-server-state card-server-state)
       (card-server/regenerate-db! card-server-ref)
