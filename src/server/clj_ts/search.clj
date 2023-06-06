@@ -16,6 +16,6 @@
 *" count-names " PageNames containing \"" term "\"*\n
 " name-list "
 
-*" count-res " Pages containing \" " term "\"*\n "
-                 res-list)]
+*" count-res " Pages containing \"" term "\"*\n
+" res-list)]
     out))
