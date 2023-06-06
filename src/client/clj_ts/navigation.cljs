@@ -1,4 +1,4 @@
-(ns clj-ts.events.navigation
+(ns clj-ts.navigation
   (:require [clojure.string :as str]
             [promesa.core :as p]
             [clj-ts.http :as http]))

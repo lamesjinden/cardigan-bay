@@ -1,5 +1,5 @@
 (ns clj-ts.views.transcript
-  (:require [clj-ts.events.actions :refer [has-link-target? navigate-via-link-async!]]))
+  (:require [clj-ts.card :refer [has-link-target? navigate-via-link-async!]]))
 
 (defn transcript [db]
   [:div {:class                   "transcript"

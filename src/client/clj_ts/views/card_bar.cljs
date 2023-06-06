@@ -1,8 +1,9 @@
 (ns clj-ts.views.card-bar
   (:require [clj-ts.http :as http]
+            [clj-ts.page :as page]
             [reagent.core :as r]
-            [clj-ts.events.actions :as actions]
-            [clj-ts.events.navigation :as nav]
+            [clj-ts.mode :as mode]
+            [clj-ts.navigation :as nav]
             [clj-ts.view :as view]
             [promesa.core :as p]))
 
@@ -15,14 +16,14 @@
  :ids [\"" hash "\"] } ")))
 
 (defn on-save-clicked-async! [db card]
-  (-> (actions/save-card-async!
+  (-> (page/save-card-async!
         (-> @db :current-page)
         (get card "hash")
         (-> js/document
             (.getElementById (str "edit-" (get card "hash")))
             .-value))
       (p/then (fn [_] (nav/reload-async! db)))
-      (p/then (fn [_] (actions/set-view-mode! db)))))
+      (p/then (fn [_] (mode/set-view-mode! db)))))
 
 (defn card-send-to-page-async! [db page-name hash new-page-name]
   (let [move-card-p (http/http-post-async

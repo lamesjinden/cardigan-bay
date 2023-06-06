@@ -1,8 +1,6 @@
-(ns clj-ts.events.actions
-  (:require
-    [promesa.core :as p]
-    [clj-ts.http :as http]
-    [clj-ts.events.navigation :as nav]))
+(ns clj-ts.page
+  (:require [clj-ts.http :as http]
+            [clj-ts.navigation :as nav]))
 
 (defn cancel-async! [db]
   (nav/reload-async! db))
@@ -29,20 +27,3 @@
                       :data new-val
                       :hash hash})]
     (http/http-post-async "/api/replacecard" identity body)))
-
-(defn has-link-target? [e]
-  (let [tag (-> e .-target)
-        class (.getAttribute tag "class")]
-    (= class "wikilink")))
-
-(defn navigate-via-link-async! [db e]
-  (let [tag (-> e .-target)
-        data (.getAttribute tag "data")]
-    (-> (nav/go-new-async! db data)
-        (p/then (fn [] (clj-ts.events.navigation/navigate-to data))))))
-
-(defn set-edit-mode! [db]
-  (swap! db assoc :mode :editing))
-
-(defn set-view-mode! [db]
-  (swap! db assoc :mode :viewing))

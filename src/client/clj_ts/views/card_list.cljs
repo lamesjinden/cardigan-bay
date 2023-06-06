@@ -1,5 +1,5 @@
 (ns clj-ts.views.card-list
-  (:require [clj-ts.events.actions :as actions]
+  (:require [clj-ts.mode :as mode]
             [reagent.core]
             [clj-ts.highlight :as highlight]
             [clj-ts.view :as view]
@@ -55,7 +55,7 @@
      :reagent-render
      (fn [_this]
        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
-         [:div {:on-double-click (fn [] (actions/set-edit-mode! db))}
+         [:div {:on-double-click (fn [] (mode/set-edit-mode! db))}
           [:div
            (try
              (let [cards (-> @db :cards)]

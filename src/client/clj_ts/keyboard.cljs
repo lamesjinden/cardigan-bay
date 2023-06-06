@@ -1,6 +1,6 @@
-(ns clj-ts.events.keyboard
-  (:require [clj-ts.events.navigation :as nav]
-            [clj-ts.events.actions :as actions]))
+(ns clj-ts.keyboard
+  (:require [clj-ts.navigation :as nav]
+            [clj-ts.page :as page]))
 
 (def key-escape-code 27)
 
@@ -11,11 +11,11 @@
 
 (defn editor-on-key-s-press [db e]
   (.preventDefault e)
-  (actions/save-page-async! db identity))
+  (page/save-page-async! db identity))
 
 (defn editor-on-ctrl-shift-s-press [db e]
   (.preventDefault e)
-  (actions/save-page-async! db))
+  (page/save-page-async! db))
 
 (defn editor-on-key-press [db e]
   (when (= (-> @db :mode) :editing)

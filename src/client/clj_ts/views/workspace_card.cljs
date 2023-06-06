@@ -5,8 +5,9 @@
             [sci.core :as sci]
             [clj-ts.ace :as ace]
             [cljfmt.core :as format]
-            [clj-ts.events.actions :as actions]
-            [clj-ts.events.navigation :as nav]
+            [clj-ts.page :as page]
+            [clj-ts.navigation :as nav]
+            [clj-ts.view :refer [->display]]
             [promesa.core :as p]))
 
 (defn execute-code [state]
@@ -27,11 +28,6 @@
 (defn toggle-result! [state]
   (swap! state #(conj % {:result-toggle (-> @state :result-toggle not)})))
 
-(defn ->display [d]
-  (if d
-    "block"
-    "none"))
-
 (defn format-workspace [state]
   (let [editor (:editor @state)
         code (.getValue editor)
@@ -39,7 +35,7 @@
     (.setValue editor formatted)))
 
 (defn save-code-async! [db state]
-  (-> (actions/save-card-async! (-> @db :current-page)
+  (-> (page/save-card-async! (-> @db :current-page)
                                 (-> @state :hash)
                                 (-> @state :code))
       (p/then (fn [_] (nav/reload-async! db)))))

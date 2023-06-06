@@ -1,6 +1,6 @@
 (ns clj-ts.views.editor
   (:require [reagent.core]
-            [clj-ts.events.keyboard :as keyboard]
+            [clj-ts.keyboard :as keyboard]
             [clj-ts.views.paste-bar :refer [paste-bar]]
             [clj-ts.ace :as ace]))
 

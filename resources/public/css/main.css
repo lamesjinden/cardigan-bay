@@ -252,14 +252,18 @@ div textarea {
 
 /*#region card_list */
 
-.card>div> :first-child:is(h1, h2, h3, h4, h5, h6) {
-  margin-top: -25px;
-  margin-left: -2px;
+.card>div>div>div :first-child:is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 0px;
+  margin-left: 0px;
 }
 
 /*#endregion */
 
 /*#region card_shell */
+
+.card-meta-parent {
+  position: relative;
+}
 
 .card-meta {
   display: flex;
@@ -267,11 +271,28 @@ div textarea {
   justify-content: flex-end;
   margin-left: -4px;
   margin-right: -4px;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 3;
 }
 
 .toggle-container {}
 
 .card-inner {}
+
+.card-parent {
+  /* min-height: 70px; */
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 0px;
+  grid-row-gap: 0px;
+}
+
+.card-child {
+  grid-area: 1 / 1 / 2 / 2;
+}
 
 /*#endregion */
 

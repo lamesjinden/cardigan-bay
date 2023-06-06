@@ -24,3 +24,5 @@
   (-> (js/Promise.resolve (.writeText js/navigator.clipboard s))
       (.then (fn [_] (js/console.log (str "Text copied to clipboard " s))))
       (.catch (fn [error] (js/console.error "Failed to copy text:", error)))))
+
+(defn ->display [x] (if x :block :none))

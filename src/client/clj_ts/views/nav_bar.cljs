@@ -4,14 +4,14 @@
             [clojure.string :as str]
             [reagent.core :as r]
             [promesa.core :as p]
-            [clj-ts.events.navigation :as nav]
+            [clj-ts.navigation :as nav]
             [sci.core :as sci]))
 
 ;; region navigation
 
 (defn- navigate-async! [db page-name]
   (-> (nav/go-new-async! db page-name)
-      (p/then (fn [] (clj-ts.events.navigation/navigate-to page-name)))))
+      (p/then (fn [] (nav/navigate-to page-name)))))
 
 ;; endregion
 
