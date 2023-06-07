@@ -1,8 +1,7 @@
 (ns clj-ts.view
   (:require [clojure.string :as str]
             [markdown.core :as md]
-            [clj-ts.common :refer [raw-card-text->card-map
-                                   double-comma-table
+            [clj-ts.common :refer [double-comma-table
                                    double-bracket-links
                                    auto-links]]))
 

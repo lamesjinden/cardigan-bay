@@ -9,23 +9,26 @@
        (remove string/blank?)))
 
 (defn hash-it [card-data]
-  (-> card-data (edn-hash) (uuid5)))
+  (-> card-data
+      (edn-hash)
+      (uuid5)))
 
 (defn raw-card-text->card-map [raw-card-text]
   (let [regex #"^:(\S+)"
         card-text (string/trim raw-card-text)
         card-body (string/replace-first card-text regex "")]
-    (if
-      (not (re-find regex card-text))
-      {:source_type :markdown
-       :source_data card-text
-       :hash        (hash-it card-text)}
+    (if (not (re-find regex card-text))
+      {:source_type           :markdown
+       :source_type_implicit? true
+       :source_data           card-text
+       :hash                  (hash-it card-text)}
       {:source_type (->> raw-card-text (re-find regex) second keyword)
        :source_data card-body
        :hash        (hash-it card-body)})))
 
 (defn raw-text->card-maps [raw]
-  (->> raw split-by-hyphens
+  (->> raw
+       (split-by-hyphens)
        (map raw-card-text->card-map)))
 
 (defn package-card [id source-type render-type source-data server-prepared-data render-context]
@@ -37,12 +40,10 @@
    :hash                 (hash-it source-data)
    :user_authored?       (:user-authored? render-context)})
 
-
-(defn card->raw [{:keys [source_type source_data]}]
-  (if (= source_type :markdown)
-    source_data
-    (str source_type "\n\n" (string/trim source_data))))
-
+(defn card->raw [{:keys [source_type source_type_implicit? source_data]}]
+  (if (and (= source_type :markdown) source_type_implicit?)
+    (str "\n\n" source_data "\n\n")
+    (str "\n" source_type "\n\n" (string/trim source_data) "\n\n")))
 
 (defn card-is-blank? [{:keys [source_data]}]
   (= "" (string/trim source_data)))
@@ -83,34 +84,39 @@
   "Move a card (id by hash) one up"
   [cards hash]
   (let [c (find-card-by-hash cards hash)]
-    (if (nil? c) cards
-                 (let [before (take-while #(neh % hash) cards)
-                       after (rest (drop-while #(neh % hash) cards))
-                       res (remove nil?
-                                   (concat
-                                     (butlast before)
-                                     [c]
-                                     [(last before)]
-                                     after))]
-                   res))))
+    (if (nil? c)
+      cards
+      (let [before (take-while #(neh % hash) cards)
+            after (rest (drop-while #(neh % hash) cards))
+            res (remove nil?
+                        (concat
+                          (butlast before)
+                          [c]
+                          [(last before)]
+                          after))]
+        res))))
 
 (defn move-card-down
   "Move a card (id by hash) one down"
   [cards hash]
   (let [c (find-card-by-hash cards hash)]
-    (if (nil? c) cards
-                 (let [before (take-while #(neh % hash) cards)
-                       after (rest (drop-while #(neh % hash) cards))
-                       res (remove nil?
-                                   (concat
-                                     before
-                                     [(first after)]
-                                     [c]
-                                     (rest after)))]
-                   res))))
+    (if (nil? c)
+      cards
+      (let [before (take-while #(neh % hash) cards)
+            after (rest (drop-while #(neh % hash) cards))
+            res (remove nil?
+                        (concat
+                          before
+                          [(first after)]
+                          [c]
+                          (rest after)))]
+        res))))
 
 (defn cards->raw [cards]
-  (string/join "----" (map card->raw cards)))
+  (->> cards
+       (map card->raw)
+       (string/join "----")
+       (string/trim)))
 
 ;; Rendering / special Markup
 

@@ -1,6 +1,7 @@
 (ns clj-ts.card-server
   [:require
     [clj-ts.render :as render]
+    [clojure.string :as str]
     [clojure.string :as string]
     [clj-ts.query.logic :as ldb]
     [clj-ts.storage.page_store :as pagestore]
@@ -139,14 +140,14 @@ If you would *like* to create a page with this name, simply click the [Edit] but
 ; endregion
 
 (defn- append-card-to-page!
-  [^Atom card-server page-name type body]
+  [^Atom card-server page-name {:keys [source_type source_type_implicit? source_data] :as _card}]
   (let [server-snapshot @card-server
         page-body (try
                     (pagestore/read-page server-snapshot page-name)
-                    (catch Exception e (str "Automatically created a new page : " page-name "\n\n")))
-        new-body (str page-body "----
-" type "
-" body)]
+                    (catch Exception _ (str "Automatically created a new page : " page-name "\n\n")))
+        new-body (if (and (= source_type :markdown) source_type_implicit?)
+                   (str page-body "\n\n" "----" "\n\n" (str/trim source_data) "\n\n")
+                   (str page-body "\n\n" "----" "\n" source_type "\n\n" (str/trim source_data) "\n\n"))]
     (write-page-to-file! card-server page-name new-body)))
 
 (defn move-card!
@@ -160,7 +161,7 @@ If you would *like* to create a page with this name, simply click the [Edit] but
           stripped (into [] (common/remove-card-by-hash from-cards hash))
           stripped-raw (common/cards->raw stripped)]
       (when (not (nil? card))
-        (append-card-to-page! card-server destination-name (:source_type card) (:source_data card))
+        (append-card-to-page! card-server destination-name card)
         (write-page-to-file! card-server page-name stripped-raw)))))
 
 (defn reorder-card!
@@ -178,13 +179,19 @@ If you would *like* to create a page with this name, simply click the [Edit] but
   (let [server-snapshot @card-server
         ps (.page-store server-snapshot)
         cards (.get-page-as-card-maps ps page-name)
-        ;; todo - this is where things get weird
-        #_new-card #_(common/raw-card-text->card-map (str source-type "\n" new-body))
-        new-card (common/raw-card-text->card-map new-body)
-        new-cards (common/replace-card
+        match (common/find-card-by-hash cards hash)
+        new-cards (if (not match)
                     cards
-                    #(common/match-hash % hash)
-                    new-card)]
+                    (let [source-type (:source_type match)
+                          source-type-implicit? (:source_type_implicit? match)
+                          new-body (if (and (= source-type :markdown) source-type-implicit?)
+                                     new-body
+                                     (str source-type "\n" new-body))
+                          new-card (common/raw-card-text->card-map new-body)]
+                      (common/replace-card
+                        cards
+                        #(common/match-hash % hash)
+                        new-card)))]
     (write-page-to-file! card-server page-name (common/cards->raw new-cards))))
 
 (defn load-media-file [server-snapshot file-name]
