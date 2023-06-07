@@ -35,10 +35,12 @@
     (.setValue editor formatted)))
 
 (defn save-code-async! [db state]
-  (-> (page/save-card-async! (-> @db :current-page)
-                                (-> @state :hash)
-                                (-> @state :code))
-      (p/then (fn [_] (nav/reload-async! db)))))
+  (let [editor-instance (:editor @state)
+        editor-value (.getValue editor-instance)]
+    (-> (page/save-card-async! (-> @db :current-page)
+                               (-> @state :hash)
+                               editor-value)
+        (p/then (fn [_] (nav/reload-async! db))))))
 
 (defn workspace [db card]
   (let [state (r/atom {:code-toggle   true
@@ -92,7 +94,7 @@
                                         [:span {:class [:material-symbols-sharp :clickable]} "save"]]
                                        [:button {:class :workspace-action-button :on-click (fn [] (format-workspace state))}
                                         [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]]
-                                      [:div {:class [:workspace-editor]} (str/trim (-> @state :code))]]]
+                                      [:div.workspace-editor {:class [:workspace-editor]} (str/trim (-> @state :code))]]]
 
                                     [:div {:class :workspace-section}
                                      [:h4 "Calculated"]
