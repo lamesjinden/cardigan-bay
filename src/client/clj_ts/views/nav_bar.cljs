@@ -7,6 +7,13 @@
             [clj-ts.navigation :as nav]
             [sci.core :as sci]))
 
+;; region input
+
+(defn clear-input! [inputValue]
+  (reset! inputValue nil))
+
+;; endregion
+
 ;; region navigation
 
 (defn- navigate-async! [db page-name]
@@ -59,14 +66,14 @@
 ;; endregion
 
 (defn nav-input [value]
-  [:input {:type         "text"
-           :class        :nav-input-text
-           :value        @value
-           :on-change    #(reset! value (-> % .-target .-value))
+  [:input {:type        "text"
+           :class       :nav-input-text
+           :value       @value
+           :on-change   #(reset! value (-> % .-target .-value))
            :placeholder "Navigate, Search, or Eval"}])
 
 (defn nav-bar [db]
-  (let [current (r/atom (-> @db :future last))]
+  (let [inputValue (r/atom nil)]
     (fn []
       (let [nav-links (-> @db :nav-links)
             on-link-click (fn [target]
@@ -81,23 +88,24 @@
                                 [:span {:key   (str % "-spacer")
                                         :class :nav-spacer}])))
           [:a {:href "/api/exportallpages"} "Export All"]
-          [:button {:id    :rss-button
-                    :class :big-btn}
-           [:a {:href "/api/rss/recentchanges"}
-            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]]
+          [:a.rss_link {:href "/api/rss/recentchanges"}
+           [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
          [:div {:id :header-input}
-          [nav-input current]
-          [:button
+          [nav-input inputValue]
+          [:button.header-input-button
+           {:id       :close-button
+            :style    {:display (view/->display (not (nil? @inputValue)) :flex)}
+            :on-click (fn [] (clear-input! inputValue))}
+           [:span {:class [:material-symbols-sharp :clickable]} "close"]
+           [:span.header-input-separator]]
+          [:button.header-input-button
            {:id       :go-button
-            :class    :big-btn
-            :on-click (fn [] (navigate-async! db @current))}
+            :on-click (fn [] (navigate-async! db @inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
-          [:button
-           {:class    :big-btn
-            :on-click (fn [] (search-text-async! db (-> @current str)))}
+          [:button.header-input-button
+           {:on-click (fn [] (search-text-async! db (-> @inputValue str)))}
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]
-          [:button
+          [:button.header-input-button
            {:id       :lambda-button
-            :class    :big-btn
-            :on-click (fn [] (eval-input! db current))}
+            :on-click (fn [] (eval-input! db inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]]]))))

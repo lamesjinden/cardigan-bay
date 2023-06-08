@@ -18,8 +18,8 @@
          [:span {:class    :toggle-container
                  :on-click toggle!}
           (if (not (-> @state2 :toggle))
-            [:span {:class [:material-symbols-sharp :clickable]} "open_in_full"]
-            [:span {:class [:material-symbols-sharp :clickable]} "close_fullscreen"])]]]
+            [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
+            [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
        [:div
         {:class :card-inner}
         [:div.card

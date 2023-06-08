@@ -77,8 +77,8 @@
         [:span {:class    :card-gutter-expansion-toggle
                 :on-click toggle-fn!}
          (if (= (-> @state :toggle) "none")
-           [:span {:class [:material-symbols-sharp :clickable]} "visibility"]
-           [:span {:class [:material-symbols-sharp :clickable]} "visibility_off"])]]
+           [:span {:class [:material-symbols-sharp :clickable]} "expand_circle_down"]
+           [:span {:class [:material-symbols-sharp :clickable]} "expand_circle_up"])]]
        [:div {:id    meta-id
               :class :card-bar
               :style {:display (-> @state :toggle)}}

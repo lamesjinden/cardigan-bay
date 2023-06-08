@@ -22,8 +22,7 @@
      :component-will-unmount (fn [] (destroy-editor db))
      :reagent-render         (fn [] [:div
                                      [paste-bar db]
-                                     [:div
-                                      {:class       ["edit-box"]
-                                       :on-key-down (fn [e] (keyboard/editor-on-key-press db e))
+                                     [:div.edit-box
+                                      {:on-key-down (fn [e] (keyboard/editor-on-key-press db e))
                                        :on-key-up   (fn [e] (keyboard/editor-on-key-up db e))}
                                       (:raw @db)]])}))
