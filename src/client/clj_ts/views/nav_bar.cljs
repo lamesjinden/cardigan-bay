@@ -105,4 +105,4 @@
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]
           [:button#lambda-button.header-input-button
            {:on-click (fn [] (eval-input! db inputValue))}
-           [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]]]))))
+           [:span {:class [:material-symbols-sharp :clickable]} "λ"]]]]))))

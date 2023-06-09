@@ -212,18 +212,6 @@ div textarea {
   margin-left: 0 !important;
 }
 
-.header-input-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  height: 100%;
-  width: 24px;
-  font-size: 1.2rem;
-  padding: 4px 8px;
-  box-sizing: border-box;
-  background-color: transparent;  
-}
-
 .clickable {
   cursor: pointer;
 }
@@ -370,7 +358,6 @@ div textarea {
   background-color: #0078d7;
   box-shadow: 0 0 10px 6px rgb(0 0 0 / 0.2);
   position: relative;
-  z-index: 1;
 }
 
 #header-nav {
@@ -396,12 +383,23 @@ div textarea {
   margin-top: 2px;
   margin-bottom: 10px;
   height: 44px;
-  box-sizing: border-box;
   border-radius: 24px;
   box-shadow: 0 2px 5px 1px rgba(64,60,67,.16);  
   padding-left: 15px;
   padding-right: 15px;
   border: 1px solid transparent;
+}
+
+.header-input-button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  height: 100%;
+  width: 24px;
+  font-size: 1.2rem;
+  background-color: transparent;  
+  margin: 0 6px;
+  padding: 0;
 }
 
 .header-input-separator {
@@ -425,11 +423,15 @@ div textarea {
 }
 
 #go-button {
-  margin-left: 4px;
+  margin-left: 12px;
 }
 
 #lambda-button {
-  margin: -8px 16px 4px 10px;
+  margin-right: 8px;
+}
+
+#lambda-button > span {
+  margin-top: -6px;  
 }
 
 .nav-input-text {
