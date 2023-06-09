@@ -10,18 +10,17 @@
 
          :editing
          [:div
-          [:div
-           [:span.button-container
-            [:button.big-btn.big-btn-left
-             {:on-click (fn []
-                          (mode/set-view-mode! db)
-                          (page/cancel-async! db))}
-             [:span {:class [:material-symbols-sharp :clickable]} "close"]]
-            [:button.big-btn.big-btn-right
-             {:on-click (fn []
-                          (mode/set-view-mode! db)
-                          (page/save-page-async! db))}
-             [:span {:class [:material-symbols-sharp :clickable]} "save"]]]]]
+          [:span.button-container
+           [:button.big-btn.big-btn-left
+            {:on-click (fn []
+                         (mode/set-view-mode! db)
+                         (page/cancel-async! db))}
+            [:span {:class [:material-symbols-sharp :clickable]} "close"]]
+           [:button.big-btn.big-btn-right
+            {:on-click (fn []
+                         (mode/set-view-mode! db)
+                         (page/save-page-async! db))}
+            [:span {:class [:material-symbols-sharp :clickable]} "save"]]]]
 
          :viewing
          [:span.button-container
@@ -33,7 +32,6 @@
             [:span {:class [:material-symbols-sharp :clickable]} "deployed_code_update"]]]]
 
          :transcript
-         [:span.button-container
-          [:button.big-btn
-           {:on-click #(mode/set-view-mode! db)}
-           [:span {:class [:material-symbols-sharp :clickable]} "close"]]])])))
+         [:button.big-btn
+          {:on-click #(mode/set-view-mode! db)}
+          [:span {:class [:material-symbols-sharp :clickable]} "close"]])])))

@@ -9,7 +9,7 @@
 
 ;; region input
 
-(defn clear-input! [inputValue]
+(defn- clear-input! [inputValue]
   (reset! inputValue nil))
 
 ;; endregion
@@ -80,8 +80,8 @@
                             (if (= target "Transcript")
                               (swap! db assoc :mode :transcript)
                               (navigate-async! db target)))]
-        [:div {:class :nav-container}
-         [:nav {:id :header-nav}
+        [:div.nav-container
+         [:nav#header-nav
           (->> nav-links
                (mapcat #(vector [:span {:key      %
                                         :on-click (fn [] (on-link-click %))} %]
@@ -90,22 +90,19 @@
           [:a {:href "/api/exportallpages"} "Export All"]
           [:a.rss_link {:href "/api/rss/recentchanges"}
            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
-         [:div {:id :header-input}
+         [:div#header-input
           [nav-input inputValue]
-          [:button.header-input-button
-           {:id       :close-button
-            :style    {:display (view/->display (not (nil? @inputValue)) :flex)}
+          [:button#close-button.header-input-button
+           {:style    {:display (view/->display (not (nil? @inputValue)) :flex)}
             :on-click (fn [] (clear-input! inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "close"]
            [:span.header-input-separator]]
-          [:button.header-input-button
-           {:id       :go-button
-            :on-click (fn [] (navigate-async! db @inputValue))}
+          [:button#go-button.header-input-button
+           {:on-click (fn [] (navigate-async! db @inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button.header-input-button
            {:on-click (fn [] (search-text-async! db (-> @inputValue str)))}
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]
-          [:button.header-input-button
-           {:id       :lambda-button
-            :on-click (fn [] (eval-input! db inputValue))}
+          [:button#lambda-button.header-input-button
+           {:on-click (fn [] (eval-input! db inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]]]))))

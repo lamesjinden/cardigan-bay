@@ -365,8 +365,8 @@ div textarea {
 #header-nav {
   display: flex;
   align-items: center;
-  padding-top: 10px;
-  margin-bottom: 10px;
+  padding-top: 4px;
+  margin-bottom: 25px;
 }
 
 #header-nav span {
@@ -399,21 +399,10 @@ div textarea {
   margin-left: 10px;
 }
 
-#rss-button {
-  min-width: unset;
-  height: unset;
-  margin-left: auto;
-  margin-right: 0;
-}
-
-#rss-button a {
-  color: #0078d7;
-}
-
 .rss_link {
   color: white;
   margin-left: auto;
-  margin-right: 0;
+  margin-right: -4px;
 }
 
 #close-button { 

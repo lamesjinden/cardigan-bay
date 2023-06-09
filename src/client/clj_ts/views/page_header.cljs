@@ -4,9 +4,11 @@
 (defn page-header [db]
   (let [transcript? (= (-> @db :mode) :transcript)]
     (if transcript?
-      [:div {:class [:page-header-container]}
-       [:div {:class [:page-title-container]} [:h1 "Transcript"]]
+      [:div.page-header-container
+       [:div.page-title-container
+        [:h1 "Transcript"]]
        [tool-bar db]]
-      [:div {:class [:page-header-container]}
-       [:div {:class [:page-title-container]} [:h1 (-> @db :current-page)]]
+      [:div.page-header-container
+       [:div.page-title-container
+        [:h1 (-> @db :current-page)]]
        [tool-bar db]])))
