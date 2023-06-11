@@ -54,14 +54,18 @@
 
 (defn export-page-handler [{:keys [card-server] :as request}]
   (let [page-name (-> request :params :page)
-        server-snapshot @card-server]
-    (export/export-one-page page-name server-snapshot)
-    (resp/redirect (str "/view/" page-name) :see-other)))
+        server-snapshot @card-server
+        result (export/export-one-page server-snapshot page-name)]
+    (if (= result :not-found)
+      (util/create-not-found page-name)
+      (util/->zip-file-response result))))
 
 (defn export-all-pages-handler [{:keys [card-server] :as _request}]
-  (let [server-snapshot @card-server]
-    (export/export-all-pages server-snapshot)
-    (resp/redirect (str "/view/" (-> server-snapshot :start-page)) :see-other)))
+  (let [server-snapshot @card-server
+        result (export/export-all-pages server-snapshot)]
+    (if (= result :not-exported)
+      (util/create-not-available "export all pages is not available")
+      (util/->zip-file-response result))))
 
 (defn get-page-data [server-snapshot body]
   (let [source-page (card-server/resolve-source-page server-snapshot nil body nil)
@@ -129,7 +133,7 @@
 
 (def pages-request-pattern #"/pages/(.+)")
 
-(defn handle-page-request [{:keys [card-server] :as request}]
+(defn handle-pages-request [{:keys [card-server] :as request}]
   (let [uri (:uri request)
         match (re-matches pages-request-pattern uri)
         page-name (ring.util.codec/url-decode (get match 1))
@@ -158,12 +162,6 @@
         (resp/response)
         (resp/content-type "application/rss+xml"))))
 
-(defn handle-view [{:keys [uri card-server] :as _request}]
-  (let [page-name (second (re-matches #"/view/(\S+)" uri))]
-    (card-server/set-start-page! card-server page-name)
-    {:status  303
-     :headers {"Location" "/index.html"}}))
-
 (defn handle-media [{:keys [card-server uri] :as _request}]
   (let [file-name (-> uri
                       (#(re-matches #"/media/(\S+)" %))
@@ -175,45 +173,50 @@
        :body   file}
       (util/create-not-found uri))))
 
-(defn handler [request]
-  (let [uri (:uri request)]
-    (cond
+(defn handle-not-found [{:keys [uri] :as _request}]
+  (util/create-not-found uri))
 
-      ;; read requests
-      (= uri "/") (handle-root-request request)
-      (= uri "/api/init") (handle-api-init request)
-      (= uri "/api/page") (handle-api-page request)
-      (re-matches pages-request-pattern uri) (handle-page-request request)
-      (= uri "/api/system/db") (handle-api-system-db request)
-      (= uri "/api/search") (handle-api-search request)
+(def routes {:root                   {:get handle-root-request}
+             :api-init               {:get handle-api-init}
+             :api-page               {:post handle-api-page} ;; implement as a get
+             :pages                  {:get handle-pages-request}
+             :api-system-db          {:get handle-api-system-db}
+             :api-search             {:post handle-api-search} ;; implement as a get
+             :api-save               {:post handle-api-save}
+             :api-move-card          {:post handle-api-move-card}
+             :api-reorder-card       {:post handle-api-reorder-card}
+             :api-replace-card       {:post handle-api-replace-card}
+             :api-rss-recent-changes {:get handle-api-rss-recent-changes}
+             :api-export-page        {:get export-page-handler}
+             :api-export-all-ages    {:get export-all-pages-handler}
+             :media                  {:get handle-media}
+             :not-found              nil})                  ;; todo/note - how to return something that is get'able where any key maps to a single thing?
 
-      ;; write requests
-      (= uri "/api/save") (handle-api-save request)
-      (= uri "/api/movecard") (handle-api-move-card request)
-      (= uri "/api/reordercard") (handle-api-reorder-card request)
-      (= uri "/api/replacecard") (handle-api-replace-card request)
+(defn router [uri]
+  (cond
+    (= uri "/") :root
+    (= uri "/api/init") :api-init
+    (= uri "/api/page") :api-page
+    (re-matches pages-request-pattern uri) :pages
+    (= uri "/api/system/db") :api-system-db
+    (= uri "/api/search") :api-search
+    (= uri "/api/save") :api-save
+    (= uri "/api/movecard") :api-move-card
+    (= uri "/api/reordercard") :api-reorder-card
+    (= uri "/api/replacecard") :api-replace-card
+    (= uri "/api/rss/recentchanges") :api-rss-recent-changes
+    (= uri "/api/exportpage") :api-export-page
+    (= uri "/api/exportallpages") :api-export-all-ages
+    (re-matches #"/media/\S+" uri) :media
+    :default :not-found))
 
-      ;; rss requests
-      (= uri "/api/rss/recentchanges") (handle-api-rss-recent-changes request)
-
-      ;; export requests
-      ;; todo - redirects to /view, why?
-      (= uri "/api/exportpage") (export-page-handler request)
-      ;; todo - redirects to /view, why?
-      (= uri "/api/exportallpages") (export-all-pages-handler request)
-      ;; todo - what is happening here?
-      ;; todo - a: sets page-name as the start page
-      ;;        then redirects back to index.html
-      ;;        which renders the new start-page
-      (re-matches #"/view/\S+" uri)
-      (handle-view request)
-
-      ;; media requests
-      (re-matches #"/media/\S+" uri)
-      (handle-media request)
-
-      :default
-      (util/create-not-found uri))))
+(defn request-handler [request]
+  (let [uri (:uri request)
+        method (:request-method request)
+        handler (as-> (router uri) $
+                      (get routes $ {})
+                      (get $ method handle-not-found))]
+    (handler request)))
 
 ;; region main entry
 
@@ -225,7 +228,7 @@
 (defn create-app
   "returns the ring request-handling pipeline"
   [^Atom card-server-ref]
-  (-> #'handler
+  (-> #'request-handler
       (wrap-card-server card-server-ref)
       (wrap-resource "public")
       (wrap-content-type)

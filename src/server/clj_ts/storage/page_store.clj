@@ -95,9 +95,6 @@
     (let [media-path (.resolve page-path "media")]
       (Files/newDirectoryStream media-path "*.*")))
 
-  (media-export-path [_this]
-    (.resolve export-path "media"))
-
   (read-recent-changes [this]
     (.read-system-file this "recentchanges"))
 
@@ -179,8 +176,8 @@
 
 ;; note - used externally
 (defn read-page [server-state page-name]
-  (let [ps (:page-store server-state)]
-    (memoized-read-page ps page-name)))
+  (let [page-store (:page-store server-state)]
+    (memoized-read-page page-store page-name)))
 
 ;; note - used externally
 (defn write-page-to-file! [server-state page-name body]

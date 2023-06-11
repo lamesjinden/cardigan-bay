@@ -19,7 +19,6 @@
   (similar-page-names [ps p-name])
   (pages-as-new-directory-stream [ps])
   (media-files-as-new-directory-stream [ps])
-  (media-export-path [ps])
   (read-recent-changes [ps])
   (recent-changes-as-page-list [ps])
   (write-recent-changes! [ps new-rc])

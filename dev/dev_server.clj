@@ -38,7 +38,9 @@
 
 (comment
 
-  (create-server "--directory" "../../Documents/wiki/bedrock/")
+  (create-server
+    "--directory" "../../Documents/wiki/bedrock/"
+    "--export-dir" "../../Documents/wiki/bedrock/exported/")
 
   (stop-server)
 
