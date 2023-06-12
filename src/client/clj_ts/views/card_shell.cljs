@@ -19,14 +19,13 @@
     (fn [card component]
       [:article.card-outer
        [:div.card-meta-parent
-        [:div.card-meta {:class :card-meta}
+        [:div.card-meta
          [:span {:class    :toggle-container
                  :on-click toggle-local-expanded-state!}
           (if (not (-> @local-db :toggle))
             [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
             [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
-       [:div
-        {:class :card-inner}
+       [:div.card-inner
         [:div.card
          {:on-click (fn [e] (when (has-link-target? e)
                               (navigate-via-link-async! db e)))}

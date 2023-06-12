@@ -3,6 +3,9 @@
 :root {
   --page-control-pull-outside-margin: -4px;
   --material-icon-size: 25px;
+
+  --primary-color: #0078d7;
+  --off-primary-color: #107dd6;
 }
 
 /*#endregion */
@@ -98,7 +101,7 @@ a {
 button {
   font-size: 1.2rem;
 
-  color: #0078d7;
+  color: var(--primary-color);
   margin: 5px;
   background-repeat: no-repeat;
   padding: 5px;
@@ -141,7 +144,7 @@ nav ul li a {
 }
 
 nav ul li a:hover {
-  color: #0078d7;
+  color: var(--primary-color);
 }
 
 /*#endregion */
@@ -309,15 +312,10 @@ div textarea {
   position: absolute;
   top: 0px;
   right: 0px;
-  z-index: 3;
+  z-index: 1;
 }
 
-.toggle-container {}
-
-.card-inner {}
-
-.card-parent {
-  /* min-height: 70px; */
+.card-parent {  
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
@@ -334,23 +332,9 @@ div textarea {
 /*#region editor */
 
 .edit-box {
-  box-sizing: border-box;
-  width: auto;
-  height: 100%;
+  min-height: 100%;
   padding: 0;
   margin: 0;
-}
-
-/*#endregion */
-
-/*#region footer */
-
-.footer {
-  font-size: 1rem;
-}
-
-.footer a {
-  color: blue;
 }
 
 /*#endregion */
@@ -379,16 +363,13 @@ div textarea {
 
 /*#endregion */
 
-/*#region inner_html_card */
-/*#endregion */
-
 /*#region nav_bar */
 
 .nav-container {
   padding: 0 10px 5px 10px;
   margin: 0;
   color: whitesmoke;
-  background-color: #0078d7;
+  background-color: var(--primary-color);
   box-shadow: 0 0 10px 6px rgb(0 0 0 / 0.2);
   position: relative;
 }
@@ -499,50 +480,13 @@ div textarea {
   padding-bottom: 5px;
 }
 
-.image-button>div {
-  display: table;
-}
-
-.image-button>div>img {
-  display: table-cell;
-  vertical-align: middle;
-}
-
-.image-button>div>span {
-  display: table-cell;
-  vertical-align: middle;
-}
-
-.image-button>div>a {
-  display: table-row;
-}
-
-.image-button>div>a>img {
-  display: table-cell;
-  vertical-align: middle;
-}
-
-.image-button>div>a>span {
-  display: table-cell;
-  vertical-align: middle;
-  padding-left: 8px;
-}
-
 .button-container {
   display: flex;
 }
 
 /*#endregion */
 
-/*#region transcript */
-
-.transcript {}
-
-/*#endregion */
-
 /*#region workspace_card */
-
-.workspace {}
 
 .workspace-header-container {
   display: flex;
@@ -587,10 +531,6 @@ div textarea {
   margin-top: -10px;
 }
 
-.workspace-editor {
-  min-height: 100vh
-}
-
 .calculated-out {
   font-size: 1rem;
 }
@@ -614,7 +554,7 @@ header a {
 .page-header-container {
   display: grid;
   color: whitesmoke;
-  background-color: #107dd6;
+  background-color: var(--off-primary-color);
   border-width: 0px;
   padding: 0 0 0 10px;
 }
@@ -631,7 +571,7 @@ header a {
 
 main {
   padding: 0 20px 20px 20px;
-  margin: -25px 5px 5px 5px;
+  margin: calc(-1*var(--material-icon-size)) 5px 5px 5px;
 }
 
 /*#endregion */

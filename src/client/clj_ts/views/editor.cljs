@@ -7,7 +7,8 @@
 (defn setup-editor [db]
   (let [editor-element (first (array-seq (.getElementsByClassName js/document "edit-box")))
         ace-instance (.edit js/ace editor-element)]
-    (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown {:fontSize "1.2rem"})
+    (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown {:fontSize "1.2rem"
+                                                                     :maxLines "Infinity"})
     (.focus ace-instance)
     (swap! db assoc :ace-instance ace-instance)))
 

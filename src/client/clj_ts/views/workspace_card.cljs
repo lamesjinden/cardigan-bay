@@ -22,6 +22,24 @@
 (defn toggle-code! [state]
   (swap! state #(conj % {:code-toggle (-> @state :code-toggle not)})))
 
+(def size->editor-max-lines {:small  25
+                             :medium 50
+                             :large  "Infinity"})
+
+(def ->next-size {:small  :medium
+                  :medium :large
+                  :large  :small})
+
+(defn resize-editor! [state]
+  (let [editor (:editor @state)
+        next-size (->> (:code-editor-size @state)
+                       (get ->next-size))
+        editor-options (->> next-size
+                            (get size->editor-max-lines)
+                            (assoc {} :maxLines))]
+    (swap! state assoc :code-editor-size next-size)
+    (ace/configure-ace-instance! editor ace/ace-mode-clojure editor-options)))
+
 (defn toggle-calc! [state]
   (swap! state #(conj % {:calc-toggle (-> @state :calc-toggle not)})))
 
@@ -43,19 +61,23 @@
         (p/then (fn [_] (nav/reload-async! db))))))
 
 (defn workspace [db card]
-  (let [state (r/atom {:code-toggle   true
-                       :calc-toggle   false
-                       :result-toggle true
-                       :code          (get card "server_prepared_data")
-                       :calc          []
-                       :result        ""
-                       :hash          (get card "hash")
-                       :source_type   (get card "source_type")
-                       :editor        (atom nil)})]
+  (let [state (r/atom {:code-toggle      true
+                       :code-editor-size :small
+                       :calc-toggle      false
+                       :result-toggle    true
+                       :code             (get card "server_prepared_data")
+                       :calc             []
+                       :result           ""
+                       :hash             (get card "hash")
+                       :source_type      (get card "source_type")
+                       :editor           (atom nil)})]
     (reagent.core/create-class
       {:component-did-mount    (fn [] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
-                                            ace-instance (.edit js/ace editor-element)]
-                                        (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure)
+                                            ace-instance (.edit js/ace editor-element)
+                                            editor-options (->> (:code-editor-size @state)
+                                                                (get size->editor-max-lines)
+                                                                (assoc {} :maxLines))]
+                                        (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure editor-options)
                                         (swap! state assoc :editor ace-instance)))
        :component-will-unmount (fn []
                                  (let [editor (:editor @state)]
@@ -89,7 +111,9 @@
                                        [:button.big-btn.big-btn-middle {:on-click (fn [] (save-code-async! db state))}
                                         [:span {:class [:material-symbols-sharp :clickable]} "save"]]
                                        [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]]
+                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
+                                       [:button.big-btn {:on-click (fn [] (resize-editor! state))}
+                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]
                                       [:div.workspace-editor {:class [:workspace-editor]} (str/trim (-> @state :code))]]]
 
                                     [:div.workspace-section
