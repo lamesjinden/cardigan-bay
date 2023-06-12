@@ -25,8 +25,9 @@
            :raw raw
            :cards cards
            :system-cards system-cards
+           :nav-links nav-links
            :mode :viewing
-           :nav-links nav-links))
+           :card-list-expanded-state :expanded))
   (js/window.scroll 0 0))
 
 (defn load-page-async! [db page-name]

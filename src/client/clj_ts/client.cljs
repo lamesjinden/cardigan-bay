@@ -6,6 +6,7 @@
     [clj-ts.mode :as mode]
     [clj-ts.navigation :as nav]
     [clj-ts.views.app_header :refer [app-header]]
+    [clj-ts.views.app-page-controls :refer [app-page-controls]]
     [clj-ts.views.app-main :refer [app-main]]))
 
 ;; region top-level ratom
@@ -19,6 +20,7 @@
                :site-url     "Site URL"
                :initialized? false
                :mode         :viewing
+               :card-list-expanded-state :expanded
                :env-port     4545}))
 
 ;; endregion
@@ -28,6 +30,7 @@
 (defn app []
   [:div {:class :app-container}
    [app-header db]
+   [app-page-controls db]
    [app-main db]])
 
 ;; endregion

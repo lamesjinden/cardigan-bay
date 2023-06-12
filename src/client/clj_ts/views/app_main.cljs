@@ -7,17 +7,16 @@
 (defn app-main [db]
   (let [mode (:mode @db)]
     [:main
-     [:div
-      (condp = mode
+     (condp = mode
 
-        :editing
-        [editor db]
+       :editing
+       [editor db]
 
-        :viewing
-        [card-list db]
+       :viewing
+       [card-list db]
 
-        :transcript
-        [transcript db]
+       :transcript
+       [transcript db]
 
-        :network-editor
-        [network-canvas])]]))
+       :network-editor
+       [network-canvas])]))

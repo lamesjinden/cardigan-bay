@@ -1,3 +1,12 @@
+/*#region css variables */
+
+:root {
+  --page-control-pull-outside-margin: -4px;
+  --material-icon-size: 25px;
+}
+
+/*#endregion */
+
 /*#region base element styling */
 
 html {
@@ -346,6 +355,30 @@ div textarea {
 
 /*#endregion */
 
+/*#region page-controls */
+
+.page-controls-container {
+  display: flex;
+  align-items: flex-end;
+  padding-top: 4px;
+  min-height: var(--material-icon-size);
+}
+
+.page-controls-container > span {
+  color: gray;
+}
+
+.page-controls-container > .left {
+  margin-left: var(--page-control-pull-outside-margin);
+}
+
+.page-controls-container > .right {
+  margin-left: auto;
+  margin-right: var(--page-control-pull-outside-margin);
+}
+
+/*#endregion */
+
 /*#region inner_html_card */
 /*#endregion */
 
@@ -596,12 +629,9 @@ header a {
   margin-bottom: 2px;
 }
 
-.app-container {
-}
-
 main {
-  padding: 0 15px 15px 15px;
-  margin: 5px;
+  padding: 0 20px 20px 20px;
+  margin: -25px 5px 5px 5px;
 }
 
 /*#endregion */
