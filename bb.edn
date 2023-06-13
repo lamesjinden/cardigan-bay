@@ -50,6 +50,8 @@
          run-dev-client-repl (clojure "-M:rebel-main:client:dev")
          run-dev-server      (clojure "-M:run-dev-server:dev-server:server:dev --directory '../../Documents/wiki/bedrock/' --export-dir '../../Documents/wiki/bedrock/exported/'")
          run-dev-server-repl (clojure "-M:nrepl-main:dev-server:server:dev")
+         run-minimal         (do (run 'build-client)
+                                 (run 'run-dev-server))
 
          lint                (do (clojure "-M:eastwood"))
          test                (do (clojure "-M:test:server"))}

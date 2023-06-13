@@ -4,7 +4,7 @@
 CardiganBay is a new wiki-engine which aims to combine the best ideas from classic wiki with up-to-date technologies and an eye to the future. 
 
 
-![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/243027697-e6e6446c-fe7d-4c83-a724-d8e664f47548.png)
+![How it looks](https://user-images.githubusercontent.com/7298563/245357862-4c3c708f-4b07-446f-8eac-a05de6252725.png)
 
 [Easy Install and Introduction on YouTube](https://www.youtube.com/watch?v=1QA5imZMdSI)
 
@@ -39,7 +39,6 @@ I need a new wiki-engine that can
 * The wiki is a Single Page App written in [Clojure](https://clojure.org/) / ClojureScript. 
 * It uses [Reagent](https://reagent-project.github.io/) (the ClojureScript wrapper for React) as its client-side framework.
 * All UI components are therefore written in [hiccup format](https://github.com/weavejester/hiccup)
-* Communication between client and server is mainly through [GraphQL](https://graphql.org/)
 * [Markdown](https://daringfireball.net/projects/markdown/) is the default markup type
 * By default, cards of other types that need to contain some structured data will use [EDN](https://github.com/edn-format/edn)
 * Where possible embedding uses [oembed](https://oembed.com/).
@@ -61,7 +60,7 @@ Unzip it.
 
 **On Linux.** (And hopefully Mac)
 
-```
+```bash
 cd cardigan
 ./go.sh
 ```
@@ -80,26 +79,49 @@ You are now looking at and can edit your wiki.
 CardiganBay is a Clojure project, originally kickstarted in [LightMod](https://sekao.net/lightmod/) but now compiled and run using the CLI tools.
 
 
-Make sure you have the JDK and Clojure CLI tool installed.
+Make sure you have the [JDK](https://openjdk.org/install/), [Clojure](https://clojure.org/guides/install_clojure), and [Babashka](https://github.com/babashka/babashka#installation) installed.
 
 Then
 
+1. clone this repository
+```bash
+git clone https://github.com/lamesjinden/cardigan-bay.git cb
 ```
-git clone https://github.com/interstar/cardigan-bay.git cb
+2. change directory into the repository
+```bash
 cd cb
-clj -A:dev:app
-
+```
+3. From here, the simplest way to get up and running:
+```bash
+bb run-minimal
 ```
 
-Then navigate to http://localhost:4545/index.html in your browser.
+Then navigate to [](http://localhost:4545/) in your browser.
 
 You should be running your wiki. By default CardiganBay starts on port 4545 and looks in the local `bedrock` directory for its pages. You'll find several pages with the beginnings of some documentation and examples there.
 
-To change the page directory and port run with these as command line arguments, eg. 
+To change server settings during development, modify the parameters provided to the `run-dev-server` task in `bb.edn`.
 
-```
-clj -A:dev:app -d PATH/TO/PAGES PORT
-```
+### Development Tasks
+
+There are several development tasks defined within `bb.edn`:
+* `run-minimal`
+  * First, performs a build of the clojurescript client application
+  * Then, starts the server application through `dev-server`
+    * `dev-server` utilizes the `ring` middleware, `wrap-reload` to update the running server with the lastest updates    
+* `run-dev-client`
+  * Starts FigWheel for client application development
+    * FigWheel manages compilation and reloading of the latest changes to client code (and css)
+  * Note: `run-dev-client` does _not_ run a server instance. 
+* `run-dev-server`
+  * Starts the server application through `dev-server`. 
+    * `dev-server` utilizes the `ring` middleware, `wrap-reload` to update the running server with the lastest updates    
+* `run-dev-client-repl`
+  * Enables repl-based development worklfow for client application development
+    * see `dev/dev_client.clj` for usage instructions
+* `run-dev-server-repl`
+  * Enables repl-based development workflow for server application development
+
 
 ### Features of CardiganBay
 
@@ -109,9 +131,7 @@ clj -A:dev:app -d PATH/TO/PAGES PORT
 * **Automatic backlinks** (Because you guys all seem to love this) 
 * List of Broken Links (links whose destination pages don't exist)
 * List of Orphan Pages (pages without links to them)
-
-* Pages are sequences of cards, with card-types.
-* 
+* Pages are sequences of cards, with card-types. 
 * Support for embedding from YouTube, Vimeo, BandCamp, SoundCloud, Twitter, RSS Feeds and generic OEmbed servers
 * Support for embedding snippets of Clojure (executed on the server). 
 * Experimental support for embedding an interactive ClojureScript workspace (executed on the browser).
@@ -132,18 +152,16 @@ OTOH, if you're excited by the potential, please get involved. Send me a bug-rep
 
 ### Building for Distribution
 
+```bash
+bb all
 ```
-clj -A:prod:app
 
-```
-
-Will build everything into an UberJAR.
+Will build everything into an UberJAR, under the `target` directory
 
 You can then run the UberJAR like this :
 
-```
-java -jar PATH/TO/clj-ts-0.1.0-SNAPSHOT-standalone.jar PATH/TO/PAGES PORT
-
+```bash
+java -jar PATH/TO/clj-ts-0.1.0-SNAPSHOT-standalone-YYYY-MM-DD.jar
 ```
 
 ### Hacker Roadmap
@@ -152,27 +170,24 @@ java -jar PATH/TO/clj-ts-0.1.0-SNAPSHOT-standalone.jar PATH/TO/PAGES PORT
 
 All the css is in 
 
-* `resources/clj_ts/main.css`
+* `resources/public/css/main.css`
 
 All the layout / widgets of the UI are defined (in hiccup format) in 
 
-* `src/clj_ts/client.cljs`
+* `src/client/clj_ts/views/`
+* `src/client/clj_ts/client.cljs` is the entry point into the client application
 
 ----
-
-
 
 **Most of the work on managing pages**, including parsing them into cards and handling the rendering of cards is in
 
-* `src/clj_ts/common.cljc` - common functions for parsing raw text into cards and manipulating lists of cards) that can be used both on the server and in the client.
-* `src/clj_ts/card_server.clj` - the main functionality for creating / manipulating the wiki full of cards.
-* `src/clj_ts/pagestore.clj` - the bit that deals with the file-system
+* `src/common/clj_ts/common.cljc` - common functions for parsing raw text into cards and manipulating lists of cards) that can be used both on the server and in the client.
+* `src/server/clj_ts/card_server.clj` - the main functionality for creating / manipulating the wiki full of cards.
+* `src/server/clj_ts/storage/page_store.clj` - the bit that deals with the file-system
 
 ----
 
-**If you want to creat a new card type** or edit how a particular type is being rendered, have a look in  `src/clj_ts/card_server.clj` 
-
-But *also* look at `resources/gql_schema.edn` for enums related to graphql communication between client and server
+**If you want to creat a new card type** or edit how a particular type is being rendered, have a look in  `src/server/card_server.clj` 
 
 Cards that are not Markdown or raw-text are usually represented with their type, and a small map in EDN format, with the required parameters.
 
@@ -187,17 +202,12 @@ A non Markdown card usually looks like this
  
 ----
 ```
-----
-
-**GraphQL Schema**
-
-Is in `resources/gql_schema.edn`. We're using graphql (via lacinia) for most communication between client and server. (Not all, for example card-move isn't yet). But eventually we should be doing all the things that it makes sense to do with gql with it.
 
 ----
 
 **The core.logic stuff** happens in 
 
-* `src/clj_ts/logic.clj` 
+* `src/server/clj_ts/query/logic.clj` 
 
 If you want to capture more information in logic format or ask new queries on it, that's the place to look at.
 
@@ -207,8 +217,7 @@ The convention for using logic queries is that calls to them are embedded in :sy
 
 **Where's the web-server?**
 
-* `src/clj_ts/server.clj`
-
+* `src/server/clj_ts/server.clj`
 
 ## Final Comments / Queries
 
