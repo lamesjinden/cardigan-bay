@@ -181,6 +181,10 @@ div textarea {
   box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
 }
 
+.card-outer:hover {
+  filter: brightness(98%);
+}
+
 /* todo - shared by card_list and card_shell; code smell? */
 .card {
   background-color: white;
@@ -290,6 +294,14 @@ div textarea {
 
 /*#region card_list */
 
+ul.user-card-list,
+ul.system-card-list {
+  list-style-type: none;
+  margin-block-end: 0;
+  margin-block-start: 0;
+  padding-inline-start: 0;
+}
+
 .card>div>div>div :first-child:is(h1, h2, h3, h4, h5, h6) {
   margin-top: 0px;
   margin-left: 0px;
@@ -323,8 +335,21 @@ div textarea {
   grid-row-gap: 0px;
 }
 
+.card-parent.collapsed {
+  height: 50px;
+}
+
 .card-child {
   grid-area: 1 / 1 / 2 / 2;
+}
+
+.card-child.container {
+  overflow: hidden;
+}
+
+.card-child.overlay {
+  background: linear-gradient(0deg, #fff 0%, rgba(255,255,255,0) 100%);
+  z-index: 1;
 }
 
 /*#endregion */
@@ -349,7 +374,7 @@ div textarea {
 }
 
 .page-controls-container > span {
-  color: gray;
+  color: lightgray;
 }
 
 .page-controls-container > .left {
@@ -378,7 +403,7 @@ div textarea {
   display: flex;
   align-items: center;
   padding-top: 4px;
-  margin-bottom: 25px;
+  margin-bottom: 10px;
 }
 
 #header-nav span {
@@ -566,7 +591,8 @@ header a {
 }
 
 .page-title-container > h1 {
-  margin-bottom: 2px;
+  margin-top: 10px;
+  margin-bottom: 0px;
 }
 
 main {

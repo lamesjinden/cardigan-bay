@@ -4,8 +4,6 @@
             [clj-ts.view :refer [->display]]
             [clj-ts.views.card-bar :refer [card-bar]]))
 
-(def transparent-background "linear-gradient(0deg, #FFFFFF 10%, rgba(255,255,255,0.5) 100%)")
-
 (defn card-shell [db]
   (let [local-db (r/atom {:toggle true})
         toggle-local-expanded-state! (fn [e]
@@ -25,16 +23,11 @@
           (if (not (-> @local-db :toggle))
             [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
             [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
-       [:div.card-inner
-        [:div.card
-         {:on-click (fn [e] (when (has-link-target? e)
-                              (navigate-via-link-async! db e)))}
-         [:div.card-parent {:style {:height (if (-> @local-db :toggle)
-                                              "auto"
-                                              "80px")}}
-          [:div.card-child {:style {:overflow :hidden}}
-           [component]]
-          [:div.card-child {:style {:background transparent-background
-                                    :z-index    1
-                                    :display    (-> @local-db :toggle not ->display)}}]]]]
+       [:div.card
+        {:on-click (fn [e] (when (has-link-target? e)
+                             (navigate-via-link-async! db e)))}
+        [:div.card-parent {:class (when (-> @local-db :toggle not) :collapsed)}
+         [:div.card-child.container
+          [component]]
+         [:div.card-child.overlay {:style {:display (-> @local-db :toggle not ->display)}}]]]
        [(card-bar card) db card]])))

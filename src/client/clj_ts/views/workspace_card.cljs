@@ -107,7 +107,7 @@
                                      [:div.code-section {:style {:display (->display (-> @state :code-toggle))}}
                                       [:div.workspace-buttons
                                        [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "(λ)"]]
+                                        [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
                                        [:button.big-btn.big-btn-middle {:on-click (fn [] (save-code-async! db state))}
                                         [:span {:class [:material-symbols-sharp :clickable]} "save"]]
                                        [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace state))}

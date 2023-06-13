@@ -55,13 +55,13 @@
      :reagent-render
      (fn [_this]
        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
-         [:div {:on-double-click (fn [] (mode/set-edit-mode! db))}
-          [:div
+         [:<>
+          [:ul.user-card-list {:on-double-click (fn [] (mode/set-edit-mode! db))}
            (try
              (let [cards (-> @db :cards)]
                (for [card (filter view/not-blank? cards)]
                  (try
-                   [:div {:key (key-fn card)} [(card-shell db) card (card->component db card)]]
+                   [:li {:key (key-fn card)} [(card-shell db) card (card->component db card)]]
                    (catch :default e
                      [:article.card-outer
                       [:div.card
@@ -72,10 +72,10 @@
                  (js/console.log "ERROR")
                  (js/console.log (str e))
                  (js/alert e))))]
-          [:div
+          [:ul.system-card-list
            (try
              (let [cards (-> @db :system-cards)]
                (for [card cards]
-                 [:div {:key (key-fn card)} [(card-shell db) card (card->component db card)]]))
+                 [:li {:key (key-fn card)} [(card-shell db) card (card->component db card)]]))
              (catch :default e
                (js/alert e)))]]))}))
