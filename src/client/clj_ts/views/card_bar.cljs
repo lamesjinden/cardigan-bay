@@ -106,25 +106,4 @@
                         db
                         (-> @db :current-page)
                         (get card "hash")
-                        @send-value))} "Send"]]]
-        [:hr]
-        [:div
-         [:h4 "Edit Card"]
-         [:div {:class "edit-card"}
-          [:span
-           [:button {:class    "big-btn"
-                     :on-click (fn []
-                                 (-> (nav/reload-async! db)
-                                     (p/then toggle-fn!)))}
-            [:img {:src "/icons/x.png"}] " Cancel"]
-           [:button {:class    "big-btn"
-                     :on-click (fn []
-                                 (-> (on-save-clicked-async! db card)
-                                     (p/then toggle-fn!)))}
-            [:img {:src "/icons/save.png"}] " Save"]]]
-         [:div
-          [:textarea {:id        (str "edit-" (get card "hash"))
-                      :rows      10
-                      :width     "100%"
-                      :value     @text-value
-                      :on-change #(reset! text-value (-> % .-target .-value))}]]]]])))
+                        @send-value))} "Send"]]]]])))

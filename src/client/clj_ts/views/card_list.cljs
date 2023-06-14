@@ -19,7 +19,7 @@
                           {:reagent-render (fn [] (inner-html (str "<pre>" data "</pre>")))}
 
                           "markdown" {:reagent-render      (fn [] (inner-html (view/card->html card)))
-                                       :component-did-mount highlight/highlight-all}
+                                      :component-did-mount highlight/highlight-all}
 
                           "manual-copy"
                           {:reagent-render (fn [] (inner-html
@@ -56,12 +56,13 @@
      (fn [_this]
        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
          [:<>
-          [:ul.user-card-list {:on-double-click (fn [] (mode/set-edit-mode! db))}
+          [:div.user-card-list
            (try
              (let [cards (-> @db :cards)]
                (for [card (filter view/not-blank? cards)]
                  (try
-                   [:li {:key (key-fn card)} [(card-shell db) card (card->component db card)]]
+                   [:div.user-car-list-item {:key (key-fn card)}
+                    [(card-shell db) card (card->component db card) true]]
                    (catch :default e
                      [:article.card-outer
                       [:div.card
@@ -72,10 +73,11 @@
                  (js/console.log "ERROR")
                  (js/console.log (str e))
                  (js/alert e))))]
-          [:ul.system-card-list
+          [:div.system-card-list
            (try
              (let [cards (-> @db :system-cards)]
                (for [card cards]
-                 [:li {:key (key-fn card)} [(card-shell db) card (card->component db card)]]))
+                 [:div.system-card-list-item {:key (key-fn card)}
+                  [(card-shell db) card (card->component db card) false]]))
              (catch :default e
                (js/alert e)))]]))}))

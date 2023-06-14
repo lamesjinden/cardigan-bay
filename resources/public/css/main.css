@@ -1,11 +1,16 @@
 /*#region css variables */
 
 :root {
-  --page-control-pull-outside-margin: -4px;
+  --page-control-pull-outside-margin: 6px;
   --material-icon-size: 25px;
+  --card-list-item-margin: 20px;
 
   --primary-color: #0078d7;
   --off-primary-color: #107dd6;
+  --paste-bar-color: #777788;
+
+  --card-border-radius: 5px;
+  --card-box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
 }
 
 /*#endregion */
@@ -174,11 +179,10 @@ div textarea {
 
 /* todo - shared by card_list and card_shell; code smell? */
 .card-outer {
-  border-radius: 5px;
+  border-radius: var(--card-border-radius);
   background-color: white;
-  margin: 20px 0;
   padding: 0 5px;
-  box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+  box-shadow: var(--card-box-shadow);
 }
 
 .card-outer:hover {
@@ -311,6 +315,10 @@ ul.system-card-list {
 
 /*#region card_shell */
 
+.card-shell {
+  margin: var(--card-list-item-margin) 0;
+}
+
 .card-meta-parent {
   position: relative;
 }
@@ -324,7 +332,7 @@ ul.system-card-list {
   position: absolute;
   top: 0px;
   right: 0px;
-  z-index: 1;
+  z-index: 2;
 }
 
 .card-parent {  
@@ -352,6 +360,18 @@ ul.system-card-list {
   z-index: 1;
 }
 
+.editor-container {
+  margin: 1em 0 1em 0;
+  box-shadow: var(--card-box-shadow);
+}
+
+.edit-box-single {
+  padding: 0;
+  margin: 0;
+  border-bottom-left-radius: var(--card-border-radius);
+  border-bottom-right-radius: var(--card-border-radius);
+}
+
 /*#endregion */
 
 /*#region editor */
@@ -360,6 +380,9 @@ ul.system-card-list {
   min-height: 100%;
   padding: 0;
   margin: 0;
+  box-shadow: var(--card-box-shadow);
+  border-bottom-left-radius: var(--card-border-radius);
+  border-bottom-right-radius: var(--card-border-radius);
 }
 
 /*#endregion */
@@ -371,6 +394,7 @@ ul.system-card-list {
   align-items: flex-end;
   padding-top: 4px;
   min-height: var(--material-icon-size);
+  overflow: hidden;
 }
 
 .page-controls-container > span {
@@ -378,12 +402,12 @@ ul.system-card-list {
 }
 
 .page-controls-container > .left {
-  margin-left: var(--page-control-pull-outside-margin);
+  margin-left: calc(-1*var(--page-control-pull-outside-margin));
 }
 
 .page-controls-container > .right {
   margin-left: auto;
-  margin-right: var(--page-control-pull-outside-margin);
+  margin-right: calc(-1*var(--page-control-pull-outside-margin));
 }
 
 /*#endregion */
@@ -470,7 +494,7 @@ ul.system-card-list {
 }
 
 #lambda-button > span {
-  margin-top: -6px;  
+  margin-top: -8px;  
 }
 
 .nav-input-text {
@@ -484,12 +508,26 @@ ul.system-card-list {
 /*#region paste_bar */
 
 .pastebar {
+  background-color: var(--off-primary-color);
+  border-top-left-radius: var(--card-border-radius);
+  border-top-right-radius: var(--card-border-radius);  
   display: flex;
-  justify-content: center;
-  border: 10px;
-  background-color: #777788;
+  align-items: center;
+  justify-content: center;  
   padding: 10px;
-  margin: 15px 0 0 0;
+  margin-top: 15px;
+}
+
+.pastebar.global-edit {
+  justify-content: center;
+}
+
+.editor-container .pastebar {
+  margin-top: 0px;
+}
+
+.pastebar .edit-actions {
+  margin-left: auto;
 }
 
 /*#endregion */
@@ -553,7 +591,7 @@ ul.system-card-list {
 }
 
 .lambda-button > span {
-  margin-top: -10px;
+  margin-top: -8px;
 }
 
 .calculated-out {
@@ -673,3 +711,4 @@ main {
 }
 
 /*#endregion */
+

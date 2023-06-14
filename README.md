@@ -96,7 +96,7 @@ cd cb
 bb run-minimal
 ```
 
-Then navigate to [](http://localhost:4545/) in your browser.
+Then navigate to [http://localhost:4545/](http://localhost:4545/) in your browser.
 
 You should be running your wiki. By default CardiganBay starts on port 4545 and looks in the local `bedrock` directory for its pages. You'll find several pages with the beginnings of some documentation and examples there.
 
