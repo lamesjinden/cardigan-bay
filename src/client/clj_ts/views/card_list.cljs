@@ -1,6 +1,5 @@
 (ns clj-ts.views.card-list
-  (:require [clj-ts.mode :as mode]
-            [reagent.core]
+  (:require [reagent.core]
             [clj-ts.highlight :as highlight]
             [clj-ts.view :as view]
             [clj-ts.views.inner-html-card :refer [inner-html]]
@@ -34,7 +33,7 @@
                           {:reagent-render (fn [] (inner-html (str data)))}
 
                           "hiccup"
-                          {:reagent-render (fn [] "THIS SHOULD BE HICCUP RENDERED")}
+                          {:reagent-render (fn [] data)}
 
                           "workspace"
                           {:reagent-render (fn [] [workspace db card])}
@@ -42,6 +41,12 @@
                           (str "UNKNOWN TYPE ( " render-type " ) " data))
         class (reagent.core/create-class inner-component)]
     class))
+
+(defn error-card [exception]
+  {"render_type"          "hiccup"
+   "server_prepared_data" [:div
+                           [:h4 "Error"]
+                           (str exception)]})
 
 (defn card-list [db]
   (reagent.core/create-class
@@ -57,22 +62,14 @@
        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
          [:<>
           [:div.user-card-list
-           (try
-             (let [cards (-> @db :cards)]
-               (for [card (filter view/not-blank? cards)]
-                 (try
-                   [:div.user-car-list-item {:key (key-fn card)}
-                    [(card-shell db) card (card->component db card) true]]
-                   (catch :default e
-                     [:article.card-outer
-                      [:div.card
-                       [:h4 "Error"]
-                       (str e)]]))))
-             (catch :default e
-               (do
-                 (js/console.log "ERROR")
-                 (js/console.log (str e))
-                 (js/alert e))))]
+           (let [cards (-> @db :cards)]
+             (for [card (filter view/not-blank? cards)]
+               [:div.user-car-list-item {:key (key-fn card)}
+                (try
+                  [(card-shell db) card (card->component db card) true]
+                  (catch :default e
+                    (let [error-card (error-card e)]
+                      [(card-shell db) error-card (card->component db error-card) false])))]))]
           [:div.system-card-list
            (try
              (let [cards (-> @db :system-cards)]

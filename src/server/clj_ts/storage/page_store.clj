@@ -73,10 +73,10 @@
         (spit (.toString x) data))))
 
   (report [_this]
-    (str "Page Directory :\t" (str page-path) "\n"
-         "Is Git Repo? :\t\t" (str git-repo?) "\n"
-         "System Directory :\t" (str system-path) "\n"
-         "Export Directory :\t" (str export-path) "\n"))
+    (str "Page Directory:  \t" (str page-path) "\n"
+         "System Directory:\t" (str system-path) "\n"
+         "Export Directory:\t" (str export-path) "\n"
+         "Within Git Repo?:\t" (str git-repo?) "\n"))
 
   (similar-page-names [this page-name]
     (let [all-pages (.pages-as-new-directory-stream this)

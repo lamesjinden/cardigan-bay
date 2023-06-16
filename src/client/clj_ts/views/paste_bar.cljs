@@ -120,7 +120,7 @@
         [:div.edit-actions
          [:span.button-container
           [:button.big-btn.big-btn-left
-           {:on-click (fn [] (nav/reload-async! db))}
+           {:on-click (fn [] (swap! local-db assoc :mode :viewing))}
            [:span {:class [:material-symbols-sharp :clickable]} "close"]]
           [:button.big-btn.big-btn-right
            {:on-click (fn [] (replace-card-async! db local-db))}

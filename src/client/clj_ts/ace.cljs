@@ -1,7 +1,9 @@
 (ns clj-ts.ace
   (:require [cljsjs.ace]))
 
-(def default-ace-options {:fontSize "1.6rem"})
+(def default-ace-options {:fontSize "1.2rem"
+                          :minLines 5})
+
 (def ace-theme "ace/theme/cloud9_day")
 (def ace-mode-clojure "ace/mode/clojure")
 (def ace-mode-markdown "ace/mode/markdown")

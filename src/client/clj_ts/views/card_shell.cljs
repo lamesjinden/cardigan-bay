@@ -24,16 +24,15 @@
 
 (defn enter-edit-mode! [local-db]
   (when (not= :editing (:mode @local-db))
-    (swap! local-db assoc :mode :editing)
-    (println "enter-edit-mode!" (:mode @local-db))))
+    (swap! local-db assoc :mode :editing)))
 
 ;; region single-card editor
 
 (defn- setup-editor [local-db]
   (let [editor-element (:editor-element @local-db)
-        ace-instance (.edit js/ace editor-element)]
-    (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown {:fontSize "1.2rem"
-                                                                     :maxLines "Infinity"})
+        ace-instance (.edit js/ace editor-element)
+        ace-options (assoc ace/default-ace-options :maxLines "Infinity")]
+    (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown ace-options)
     (.focus ace-instance)
     (swap! local-db assoc :ace-instance ace-instance)))
 

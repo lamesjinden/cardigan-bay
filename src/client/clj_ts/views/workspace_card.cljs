@@ -34,9 +34,8 @@
   (let [editor (:editor @state)
         next-size (->> (:code-editor-size @state)
                        (get ->next-size))
-        editor-options (->> next-size
-                            (get size->editor-max-lines)
-                            (assoc {} :maxLines))]
+        editor-max-lines (get size->editor-max-lines next-size)
+        editor-options (assoc ace/default-ace-options :maxLines editor-max-lines)]
     (swap! state assoc :code-editor-size next-size)
     (ace/configure-ace-instance! editor ace/ace-mode-clojure editor-options)))
 
@@ -74,9 +73,9 @@
     (reagent.core/create-class
       {:component-did-mount    (fn [] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
                                             ace-instance (.edit js/ace editor-element)
-                                            editor-options (->> (:code-editor-size @state)
-                                                                (get size->editor-max-lines)
-                                                                (assoc {} :maxLines))]
+                                            max-lines (->> (:code-editor-size @state)
+                                                           (get size->editor-max-lines))
+                                            editor-options (assoc ace/default-ace-options :maxLines max-lines)]
                                         (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure editor-options)
                                         (swap! state assoc :editor ace-instance)))
        :component-will-unmount (fn []

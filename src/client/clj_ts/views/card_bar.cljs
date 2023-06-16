@@ -44,19 +44,16 @@
              :hash      hash
              :direction direction})))
 
-(defn toggle! [state text-val card]
+(defn toggle! [state]
   (if (= (-> @state :toggle) "none")
-    (do
-      (swap! state #(conj % {:toggle "block"}))
-      (reset! text-val (get card "source_data")))
+    (swap! state #(conj % {:toggle "block"}))
     (swap! state #(conj % {:toggle "none"}))))
 
 (defn card-bar [card]
   (let [meta-id (str "cardmeta" (get card "hash"))
         state (r/atom {:toggle "none"})
         send-value (r/atom "")
-        text-value (r/atom (get card "source_data"))        ;; Edit box
-        toggle-fn! (fn [] (toggle! state text-value card))]
+        toggle-fn! (fn [] (toggle! state))]
     (fn [db card]
       [:div
        [:div {:class :card-gutter}
