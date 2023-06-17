@@ -69,7 +69,7 @@
       ;; delay focus of editor when editing
       (when (editing? local-db)
         (when-let [ace-instance (:ace-instance @local-db)]
-          (r/after-render (fn [] (.focus ace-instance)))))
+          (js/setTimeout (fn [] (.focus ace-instance)))))
 
       [:div.card-shell
        [:article.card-outer {:style           {:display (->display (viewing? local-db))}
