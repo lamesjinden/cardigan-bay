@@ -33,7 +33,6 @@
         ace-instance (.edit js/ace editor-element)
         ace-options (assoc ace/default-ace-options :maxLines "Infinity")]
     (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown ace-options)
-    (.focus ace-instance)
     (swap! local-db assoc :ace-instance ace-instance)))
 
 (defn- destroy-editor [local-db]
@@ -66,10 +65,15 @@
     (swap! local-db assoc :toggle (= :expanded (:card-list-expanded-state @db)))
 
     (fn [card component editable?]
+
+      ;; delay focus of editor when editing
+      (when (editing? local-db)
+        (when-let [ace-instance (:ace-instance @local-db)]
+          (r/after-render (fn [] (.focus ace-instance)))))
+
       [:div.card-shell
        [:article.card-outer {:style           {:display (->display (viewing? local-db))}
-                             :on-double-click (fn [] (when editable?
-                                                       (enter-edit-mode! local-db)))}
+                             :on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
         [:div.card-meta-parent
          [:div.card-meta
           [:span.toggle-container {:on-click (fn [e] (toggle-local-expanded-state! local-db e))}
