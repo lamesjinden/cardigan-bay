@@ -46,7 +46,8 @@
   {"render_type"          "hiccup"
    "server_prepared_data" [:div
                            [:h4 "Error"]
-                           (str exception)]})
+                           [:div (str exception)]
+                           [:div (.-stack exception)]]})
 
 (defn card-list [db]
   (reagent.core/create-class
@@ -66,15 +67,15 @@
              (for [card (filter view/not-blank? cards)]
                [:div.user-car-list-item {:key (key-fn card)}
                 (try
-                  [(card-shell db) card (card->component db card) true]
+                  [card-shell db card (card->component db card)]
                   (catch :default e
                     (let [error-card (error-card e)]
-                      [(card-shell db) error-card (card->component db error-card) false])))]))]
+                      [card-shell db error-card (card->component db error-card)])))]))]
           [:div.system-card-list
            (try
              (let [cards (-> @db :system-cards)]
                (for [card cards]
                  [:div.system-card-list-item {:key (key-fn card)}
-                  [(card-shell db) card (card->component db card) false]]))
+                  [card-shell db card (card->component db card)]]))
              (catch :default e
                (js/alert e)))]]))}))

@@ -25,6 +25,7 @@ Bookmarked " timestamp ": <" url ">
 
 ")))
 
+;; todo - why does process-card-map return a vector of 1 element?
 (defn process-card-map
   [server-snapshot i {:keys [source_type source_data]} render-context]
   (try

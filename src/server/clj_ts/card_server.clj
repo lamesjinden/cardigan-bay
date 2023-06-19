@@ -37,10 +37,6 @@
   [^Atom card-server key val]
   (swap! card-server assoc key val))
 
-(defn set-start-page!
-  [^Atom card-server page-name]
-  (set-state! card-server :start-page page-name))
-
 (defn- set-facts-db!
   [^Atom card-server facts-db]
   {:pre [(satisfies? facts/IFactsDb facts-db)]}
@@ -179,20 +175,24 @@ If you would *like* to create a page with this name, simply click the [Edit] but
   (let [server-snapshot @card-server
         ps (.page-store server-snapshot)
         cards (.get-page-as-card-maps ps page-name)
-        match (common/find-card-by-hash cards hash)
-        new-cards (if (not match)
-                    cards
-                    (let [source-type (:source_type match)
-                          source-type-implicit? (:source_type_implicit? match)
-                          new-body (if (and (= source-type :markdown) source-type-implicit?)
-                                     new-body
-                                     (str source-type "\n" new-body))
-                          new-card (common/raw-card-text->card-map new-body)]
-                      (common/replace-card
+        match (common/find-card-by-hash cards hash)]
+    (if (not match)
+      :not-found
+      (let [source-type (:source_type match)
+            source-type-implicit? (:source_type_implicit? match)
+            new-body (if (and (= source-type :markdown) source-type-implicit?)
+                       new-body
+                       (str source-type "\n" new-body))
+            new-card (common/raw-card-text->card-map new-body)
+            new-cards (common/replace-card
                         cards
                         #(common/match-hash % hash)
-                        new-card)))]
-    (write-page-to-file! card-server page-name (common/cards->raw new-cards))))
+                        new-card)]
+        (write-page-to-file! card-server page-name (common/cards->raw new-cards))
+        (let [render-context {:user-authored? true :for-export? false}
+              packaged-card (-> (cards/process-card-map server-snapshot -1 new-card render-context)
+                                (first))]
+          (dissoc packaged-card :id))))))
 
 (defn load-media-file [server-snapshot file-name]
   (-> server-snapshot :page-store (.load-media-file file-name)))

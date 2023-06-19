@@ -33,6 +33,7 @@
         ace-instance (.edit js/ace editor-element)
         ace-options (assoc ace/default-ace-options :maxLines "Infinity")]
     (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown ace-options)
+    (.focus ace-instance)
     (swap! local-db assoc :ace-instance ace-instance)))
 
 (defn- destroy-editor [local-db]
@@ -40,53 +41,46 @@
     (when editor
       (.destroy editor))))
 
-(defn- single-editor [db local-db card]
+(defn- single-editor [db local-db]
   (reagent.core/create-class
     {:component-did-mount    (fn [] (setup-editor local-db))
      :component-will-unmount (fn [] (destroy-editor local-db))
      :reagent-render         (fn []
-                               ;; todo - consider alternatives
-                               (swap! local-db assoc :card card)
                                [:<>
                                 [paste-bar db local-db]
-                                [:div.edit-box-single {:ref (fn [element]
-                                                              (swap! local-db assoc :editor-element element))}
-                                 (get card "source_data")]])}))
+                                [:div.edit-box-single {:ref (fn [element] (swap! local-db assoc :editor-element element))}
+                                 (get (:card @local-db) "source_data")]])}))
 
 ;; endregion
 
-(defn card-shell [db]
+(defn card-shell [db card component]
   (let [local-db (r/atom {:toggle       true
                           :mode         :viewing
-                          :current-page (:current-page @db)})]
+                          :current-page (:current-page @db)
+                          :card         card})
+        editable? (get card "user_authored?")]
 
     ; listen for global expanded state changes and set local-db accordingly
     ; note: local state can still be updated via toggle-local-expanded-state!
-    (swap! local-db assoc :toggle (= :expanded (:card-list-expanded-state @db)))
-
-    (fn [card component editable?]
-
-      ;; delay focus of editor when editing
-      (when (editing? local-db)
-        (when-let [ace-instance (:ace-instance @local-db)]
-          (js/setTimeout (fn [] (.focus ace-instance)))))
-
+    ; todo - dispose of track! return value]
+    (reagent.core/track! (fn [] (swap! local-db assoc :toggle (= :expanded (:card-list-expanded-state @db)))))
+    (fn [db card component]
       [:div.card-shell
-       [:article.card-outer {:style           {:display (->display (viewing? local-db))}
-                             :on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
-        [:div.card-meta-parent
-         [:div.card-meta
-          [:span.toggle-container {:on-click (fn [e] (toggle-local-expanded-state! local-db e))}
-           (if (collapsed? local-db)
-             [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
-             [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
-        [:div.card
-         {:on-click (fn [e] (when (has-link-target? e)
-                              (navigate-via-link-async! db e)))}
-         [:div.card-parent {:class (when (collapsed? local-db) :collapsed)}
-          [:div.card-child.container
-           [component]]
-          [:div.card-child.overlay {:style {:display (->display (collapsed? local-db))}}]]]
-        [(card-bar card) db card]]
-       [:div.editor-container {:style {:display (->display (editing? local-db))}}
-        [single-editor db local-db card]]])))
+       (if (viewing? local-db)
+         [:article.card-outer {:on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
+          [:div.card-meta-parent
+           [:div.card-meta
+            [:span.toggle-container {:on-click (fn [e] (toggle-local-expanded-state! local-db e))}
+             (if (collapsed? local-db)
+               [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
+               [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
+          [:div.card
+           {:on-click (fn [e] (when (has-link-target? e)
+                                (navigate-via-link-async! db e)))}
+           [:div.card-parent {:class (when (collapsed? local-db) :collapsed)}
+            [:div.card-child.container
+             [component]]
+            [:div.card-child.overlay {:style {:display (->display (collapsed? local-db))}}]]]
+          [(card-bar card) db card]]
+         [:div.editor-container
+          [single-editor db local-db]])])))

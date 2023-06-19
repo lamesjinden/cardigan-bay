@@ -43,14 +43,29 @@
     (card-server/reorder-card! card-server page-name hash direction)
     (util/create-ok)))
 
+(defn get-page-data [server-snapshot arguments]
+  (let [source-page (card-server/resolve-source-page server-snapshot nil arguments nil)
+        server-prepared-page (card-server/resolve-page server-snapshot nil arguments nil)]
+    {:source_page          source-page
+     :server_prepared_page server-prepared-page}))
+
 (defn handle-api-replace-card [{:keys [card-server] :as request}]
   (let [form-body (-> request :body .bytes slurp edn/read-string)
         page-name (:page form-body)
         hash (:hash form-body)
-        new-val (:data form-body)]
-    (card-server/replace-card! card-server page-name hash new-val)
-    ;; todo - return full page or card
-    (util/create-ok)))
+        new-val (:data form-body)
+        new-card (card-server/replace-card! card-server page-name hash new-val)]
+    (if (= :not-found new-card)
+      (util/create-not-found (str page-name "/" hash))
+      (let [server-snapshot @card-server
+            arguments {:page_name page-name}
+            page-data (get-page-data server-snapshot arguments)
+            response (-> (select-keys page-data [:source_page])
+                         (assoc :replaced-hash hash)
+                         (assoc :new-card new-card))]
+        (-> response
+            (json/write-str)
+            (util/->json-response))))))
 
 (defn export-page-handler [{:keys [card-server] :as request}]
   (let [page-name (-> request :params :page)
@@ -66,12 +81,6 @@
     (if (= result :not-exported)
       (util/create-not-available "export all pages is not available")
       (util/->zip-file-response result))))
-
-(defn get-page-data [server-snapshot body]
-  (let [source-page (card-server/resolve-source-page server-snapshot nil body nil)
-        server-prepared-page (card-server/resolve-page server-snapshot nil body nil)]
-    {:source_page          source-page
-     :server_prepared_page server-prepared-page}))
 
 ;; using custom tag to take advantage of overriding :tag-second
 ;; as simple variable substitution is not as customizable

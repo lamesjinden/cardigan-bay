@@ -529,7 +529,6 @@ ul.system-card-list {
   justify-content: center;
   padding: var(--paste-bar-padding);
   margin-top: 15px;
-  position: relative;
 }
 
 .pastebar.global-edit {
@@ -541,8 +540,8 @@ ul.system-card-list {
 }
 
 .pastebar .edit-actions {
-  position: absolute;
   right: var(--paste-bar-padding);
+  margin-left: auto;
 }
 
 /*#endregion */

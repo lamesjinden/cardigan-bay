@@ -42,6 +42,16 @@
     (when ace-instance
       (.insert ace-instance s))))
 
+(defn- replace-card! [snapshot replaced-hash new-card raw]
+  (let [matching-index (->> (:cards snapshot)
+                            (map-indexed (fn [i x] [i x]))
+                            (filter (fn [[_i x]]
+                                      (= (get x "hash") replaced-hash)))
+                            (ffirst))]
+    (-> snapshot
+        (assoc :raw raw)
+        (update-in [:cards matching-index] merge new-card))))
+
 (defn replace-card-async! [db local-db]
   (let [current-page (:current-page @db)
         card-hash (-> @local-db (:card) (get "hash"))
@@ -50,7 +60,12 @@
           current-page
           card-hash
           new-body)
-        (p/then (fn [_] (nav/reload-async! db))))))
+        (p/then (fn [json]
+                  (let [edn (js->clj json)
+                        replaced-hash (get edn "replaced-hash")
+                        new-card (get edn "new-card")
+                        raw (get-in edn ["source_page" "body"])]
+                    (swap! db replace-card! replaced-hash new-card raw)))))))
 
 (defn paste-bar
   ([db local-db]
