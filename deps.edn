@@ -72,7 +72,7 @@
                 ring-cors/ring-cors {:mvn/version "0.1.13"}}}
 
   :run-dev-server
-  {:main-opts ["-m" "dev_server"]}
+  {:main-opts ["-m" "dev-server"]}
 
   :nrepl-main
   {:extra-deps {nrepl/nrepl {:mvn/version "1.0.0"}}

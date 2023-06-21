@@ -163,8 +163,8 @@ If you would *like* to create a page with this name, simply click the [Edit] but
 (defn reorder-card!
   [^Atom card-server page-name hash direction]
   (let [server-snapshot @card-server
-        ps (.page-store server-snapshot)
-        cards (.get-page-as-card-maps ps page-name)
+        page-store (.page-store server-snapshot)
+        cards (.get-page-as-card-maps page-store page-name)
         new-cards (if (= "up" direction)
                     (common/move-card-up cards hash)
                     (common/move-card-down cards hash))]
@@ -173,8 +173,8 @@ If you would *like* to create a page with this name, simply click the [Edit] but
 (defn replace-card!
   [^Atom card-server page-name hash new-body]
   (let [server-snapshot @card-server
-        ps (.page-store server-snapshot)
-        cards (.get-page-as-card-maps ps page-name)
+        page-store (.page-store server-snapshot)
+        cards (.get-page-as-card-maps page-store page-name)
         match (common/find-card-by-hash cards hash)]
     (if (not match)
       :not-found
@@ -191,8 +191,9 @@ If you would *like* to create a page with this name, simply click the [Edit] but
         (write-page-to-file! card-server page-name (common/cards->raw new-cards))
         (let [render-context {:user-authored? true :for-export? false}
               packaged-card (-> (cards/process-card-map server-snapshot -1 new-card render-context)
-                                (first))]
-          (dissoc packaged-card :id))))))
+                                (first)
+                                (dissoc :id))]
+          packaged-card)))))
 
 (defn load-media-file [server-snapshot file-name]
   (-> server-snapshot :page-store (.load-media-file file-name)))

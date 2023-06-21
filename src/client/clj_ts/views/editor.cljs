@@ -24,6 +24,6 @@
      :reagent-render         (fn [] [:div
                                      [paste-bar db]
                                      [:div.edit-box
-                                      {:on-key-down (fn [e] (keyboard/editor-on-key-press db e))
+                                      {:on-key-down (fn [e] (keyboard/editor-on-key-down db e))
                                        :on-key-up   (fn [e] (keyboard/editor-on-key-up db e))}
                                       (:raw @db)]])}))

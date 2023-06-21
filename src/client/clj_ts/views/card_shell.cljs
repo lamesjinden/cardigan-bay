@@ -1,5 +1,6 @@
 (ns clj-ts.views.card-shell
   (:require [clj-ts.ace :as ace]
+            [clj-ts.keyboard :as keyboard]
             [reagent.core :as r]
             [clj-ts.card :refer [has-link-target? navigate-via-link-async!]]
             [clj-ts.view :refer [->display]]
@@ -48,7 +49,9 @@
      :reagent-render         (fn []
                                [:<>
                                 [paste-bar db local-db]
-                                [:div.edit-box-single {:ref (fn [element] (swap! local-db assoc :editor-element element))}
+                                [:div.edit-box-single {:ref         (fn [element] (swap! local-db assoc :editor-element element))
+                                                       :on-key-down (fn [e] (keyboard/single-editor-on-key-down db local-db e))
+                                                       :on-key-up   (fn [e] (keyboard/single-editor-on-key-up local-db e))}
                                  (get (:card @local-db) "source_data")]])}))
 
 ;; endregion

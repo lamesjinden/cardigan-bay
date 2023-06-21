@@ -5,7 +5,7 @@
     [promesa.core :as p]
     [clj-ts.mode :as mode]
     [clj-ts.navigation :as nav]
-    [clj-ts.views.app_header :refer [app-header]]
+    [clj-ts.views.app-header :refer [app-header]]
     [clj-ts.views.app-page-controls :refer [app-page-controls]]
     [clj-ts.views.app-main :refer [app-main]]))
 

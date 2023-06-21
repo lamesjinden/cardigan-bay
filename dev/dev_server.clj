@@ -1,4 +1,4 @@
-(ns dev_server
+(ns dev-server
   (:require
     [clojure.pprint]
     [org.httpkit.server :as http]

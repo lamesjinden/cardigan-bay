@@ -15,16 +15,19 @@
 
 (defn raw-card-text->card-map [raw-card-text]
   (let [regex #"^:(\S+)"
-        card-text (string/trim raw-card-text)
-        card-body (string/replace-first card-text regex "")]
+        card-text (-> raw-card-text
+                      (string/trim))
+        card-body (-> (string/replace-first card-text regex "")
+                      (string/trim))
+        card-hash (hash-it card-body)]
     (if (not (re-find regex card-text))
       {:source_type           :markdown
        :source_type_implicit? true
        :source_data           card-text
-       :hash                  (hash-it card-text)}
+       :hash                  card-hash}
       {:source_type (->> raw-card-text (re-find regex) second keyword)
        :source_data card-body
-       :hash        (hash-it card-body)})))
+       :hash        card-hash})))
 
 (defn raw-text->card-maps [raw]
   (->> raw

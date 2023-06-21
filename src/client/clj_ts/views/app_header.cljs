@@ -1,4 +1,4 @@
-(ns clj-ts.views.app_header
+(ns clj-ts.views.app-header
   (:require [clj-ts.views.nav-bar :refer [nav-bar]]
             [clj-ts.views.page-header :refer [page-header]]))
 

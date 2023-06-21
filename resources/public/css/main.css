@@ -567,6 +567,27 @@ ul.system-card-list {
 
 .workspace-header-container {
   display: flex;
+  align-items: flex-start;
+}
+
+.workspace-header-container>* {
+  flex: 1 1 0;
+  margin-bottom: 1em;
+  ;
+}
+
+.visibility-buttons {
+  display: flex;
+}
+
+.visibility-buttons>* {
+  width: 150px;
+  flex: 1 1 0;
+}
+
+.visibility-buttons>button.pressed {
+  border-style: inset;
+  background-color: lightgray;
 }
 
 .workspace-header {
@@ -574,22 +595,21 @@ ul.system-card-list {
   margin-bottom: 5px;
 }
 
-.workspace-section {
+:is(.code-section-header-container, .calculated-section, .result-section)>h4 {
+  margin: 0.912rem 5px 0 0 !important;
+}
+
+.code-section-header-container {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  align-content: flex-end;
 }
 
-.workspace-section>h4 {
-  margin: 0.912rem 5px 0.912rem 0 !important;
+.code-section-header-container>h4 {
+  display: inline-block;
 }
 
-.workspace-note {
-  font-size: 0.8rem;
-}
-
-.code {
-  font-size: 1.6rem;
+.code-section-header-container>.workspace-buttons {
+  margin-left: auto;
 }
 
 .workspace-padding {
@@ -598,6 +618,11 @@ ul.system-card-list {
 
 .workspace-buttons {
   display: flex;
+  align-items: flex-end;
+}
+
+.workspace-buttons>:last-child {
+  margin-right: 0;
 }
 
 .lambda-button {
@@ -613,7 +638,7 @@ ul.system-card-list {
 }
 
 .results {
-  font-size: 1rem;
+  font-size: 1em;
 }
 
 /*#endregion */

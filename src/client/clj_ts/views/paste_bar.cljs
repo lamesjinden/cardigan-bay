@@ -1,7 +1,7 @@
 (ns clj-ts.views.paste-bar
   (:require [clj-ts.common :as common]
-            [clj-ts.navigation :as nav]
             [clj-ts.page :as page]
+            [clj-ts.card :as cards]
             [promesa.core :as p]))
 
 (def system-search-template "
@@ -42,30 +42,13 @@
     (when ace-instance
       (.insert ace-instance s))))
 
-(defn- replace-card! [snapshot replaced-hash new-card raw]
-  (let [matching-index (->> (:cards snapshot)
-                            (map-indexed (fn [i x] [i x]))
-                            (filter (fn [[_i x]]
-                                      (= (get x "hash") replaced-hash)))
-                            (ffirst))]
-    (-> snapshot
-        (assoc :raw raw)
-        (update-in [:cards matching-index] merge new-card))))
+(defn- on-close-clicked [local-db]
+  (swap! local-db assoc :mode :viewing))
 
-(defn replace-card-async! [db local-db]
-  (let [current-page (:current-page @db)
-        card-hash (-> @local-db (:card) (get "hash"))
-        new-body (->> @local-db (:ace-instance) (.getValue))]
-    (-> (page/save-card-async!
-          current-page
-          card-hash
-          new-body)
-        (p/then (fn [json]
-                  (let [edn (js->clj json)
-                        replaced-hash (get edn "replaced-hash")
-                        new-card (get edn "new-card")
-                        raw (get-in edn ["source_page" "body"])]
-                    (swap! db replace-card! replaced-hash new-card raw)))))))
+(defn- on-save-clicked [db local-db]
+  (let [current-hash (-> @local-db :card (get "hash"))
+        new-body (->> @local-db :ace-instance (.getValue))]
+    (cards/replace-card-async! db current-hash new-body)))
 
 (defn paste-bar
   ([db local-db]
@@ -135,10 +118,11 @@
         [:div.edit-actions
          [:span.button-container
           [:button.big-btn.big-btn-left
-           {:on-click (fn [] (swap! local-db assoc :mode :viewing))}
+           {:on-click (fn [] (on-close-clicked local-db))}
            [:span {:class [:material-symbols-sharp :clickable]} "close"]]
           [:button.big-btn.big-btn-right
-           {:on-click (fn [] (replace-card-async! db local-db))}
+           {:on-click (fn [] #_(replace-card-async! db local-db)
+                        (on-save-clicked db local-db))}
            [:span {:class [:material-symbols-sharp :clickable]} "save"]]]])]))
   ([db]
    (paste-bar db nil)))

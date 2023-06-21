@@ -5,10 +5,9 @@
             [sci.core :as sci]
             [clj-ts.ace :as ace]
             [cljfmt.core :as format]
-            [clj-ts.page :as page]
-            [clj-ts.navigation :as nav]
+            [clj-ts.card :as cards]
             [clj-ts.view :refer [->display]]
-            [promesa.core :as p]))
+            [clj-ts.keyboard :as keyboard]))
 
 (defn execute-code [state]
   (let [code (.getValue (:editor @state))
@@ -51,25 +50,26 @@
         formatted (format/reformat-string code)]
     (.setValue editor formatted)))
 
-(defn save-code-async! [db state]
-  (let [editor-instance (:editor @state)
-        editor-value (.getValue editor-instance)]
-    (-> (page/save-card-async! (-> @db :current-page)
-                               (-> @state :hash)
-                               editor-value)
-        (p/then (fn [_] (nav/reload-async! db))))))
+(defn- on-save-clicked [db state]
+  (let [current-hash (-> @state :hash)
+        new-body (-> @state :editor (.getValue))]
+    (cards/replace-card-async! db current-hash new-body)))
 
 (defn workspace [db card]
-  (let [state (r/atom {:code-toggle      true
-                       :code-editor-size :small
+  (let [match (->> @db
+                   (:cards)
+                   (filter #(= (:hash card) (:hash %)))
+                   (first))
+        state (r/atom {:code-toggle      true
                        :calc-toggle      false
                        :result-toggle    true
-                       :code             (get card "server_prepared_data")
                        :calc             []
                        :result           ""
-                       :hash             (get card "hash")
-                       :source_type      (get card "source_type")
-                       :editor           (atom nil)})]
+                       :editor           (atom nil)
+                       :code-editor-size :small
+                       :code             (get match "server_prepared_data")
+                       :hash             (get match "hash")
+                       :source_type      (get match "source_type")})]
     (reagent.core/create-class
       {:component-did-mount    (fn [] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
                                             ace-instance (.edit js/ace editor-element)
@@ -86,57 +86,43 @@
                                  (let []
                                    [:div.workspace
                                     [:div.workspace-header-container
-                                     [:h3.workspace-header "Workspace"]]
-                                    [:div.workspace-note
-                                     [:i "Note : this is a ClojureScript workspace based on "
-                                      [:a {:href "https://github.com/borkdude/sci"} "SCI"]
-                                      ". Be aware that it does not save any changes you make in the textbox. You'll need to  edit the page fully to make permanent changes to the code. "]]
+                                     [:h3.workspace-header "Workspace"]
+                                     [:div.visibility-buttons
+                                      [:button.big-btn.big-btn-left {:class    (when (-> @state :code-toggle) "pressed")
+                                                                     :on-click (fn [] (toggle-code! state))}
+                                       "SOURCE"]
+                                      [:button.big-btn.big-btn-middle {:class    (when (-> @state :result-toggle) "pressed")
+                                                                       :on-click (fn [] (toggle-result! state))}
+                                       "RESULT"]
+                                      [:button.big-btn.big-btn-right {:class    (when (-> @state :calc-toggle) "pressed")
+                                                                      :on-click (fn [] (toggle-calc! state))}
+                                       "CALCULATED"]]
+                                     [:div]]
+
                                     [:div.code.workspace-padding
-
-                                     [:div.workspace-section
-                                      [:h4 "Source"]
-                                      [:span {:on-click (fn [] (toggle-code! state))
-                                              :class    [:material-symbols-sharp :clickable]
-                                              :style    {:display (->display (-> @state :code-toggle))}}
-                                       "visibility_off"]
-                                      [:span {:on-click (fn [] (toggle-code! state))
-                                              :class    [:material-symbols-sharp :clickable]
-                                              :style    {:display (->display (-> @state :code-toggle not))}}
-                                       "visibility"]]
                                      [:div.code-section {:style {:display (->display (-> @state :code-toggle))}}
-                                      [:div.workspace-buttons
-                                       [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
-                                       [:button.big-btn.big-btn-middle {:on-click (fn [] (save-code-async! db state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "save"]]
-                                       [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
-                                       [:button.big-btn {:on-click (fn [] (resize-editor! state))}
-                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]
-                                      [:div.workspace-editor {:class [:workspace-editor]} (str/trim (-> @state :code))]]]
+                                      [:div.code-section-header-container
+                                       [:h4 "Source"]
+                                       [:div.workspace-buttons
+                                        [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code state))}
+                                         [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
+                                        [:button.big-btn.big-btn-middle {:on-click (fn [] (on-save-clicked db state))}
+                                         [:span {:class [:material-symbols-sharp :clickable]} "save"]]
+                                        [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace state))}
+                                         [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
+                                        [:button.big-btn {:on-click (fn [] (resize-editor! state))}
+                                         [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
+                                      [:div.workspace-editor {:class [:workspace-editor]
+                                                              :on-key-down (fn [e] (keyboard/workspace-editor-on-key-down db state e))}
+                                       (str/trim (-> @state :code))]]]
 
-                                    [:div.workspace-section
+                                    [:div.calculated-section {:style {:display (->display (-> @state :calc-toggle))}}
                                      [:h4 "Calculated"]
-                                     [:span {:on-click (fn [] (toggle-calc! state))
-                                             :class    [:material-symbols-sharp :clickable]
-                                             :style    {:display (->display (-> @state :calc-toggle))}} "visibility_off"]
-                                     [:span {:on-click (fn [] (toggle-calc! state))
-                                             :class    [:material-symbols-sharp :clickable]
-                                             :style    {:display (->display (-> @state :calc-toggle not))}} "visibility"]]
-                                    [:div.calculated-section {
-                                                              :style {:display (->display (-> @state :calc-toggle))}}
                                      [:pre {:style {:white-space "pre-wrap"}}
                                       (with-out-str (pprint (str (-> @state :calc))))]]
 
-                                    [:div.workspace-section
-                                     [:h4 "Result"]
-                                     [:span {:on-click (fn [] (toggle-result! state))
-                                             :class    [:material-symbols-sharp :clickable]
-                                             :style    {:display (->display (-> @state :result-toggle))}} "visibility_off"]
-                                     [:span {:on-click (fn [] (toggle-result! state))
-                                             :class    [:material-symbols-sharp :clickable]
-                                             :style    {:display (->display (-> @state :result-toggle not))}} "visibility"]]
                                     [:div.result-section {:style {:display (->display (-> @state :result-toggle))}}
+                                     [:h4 "Result"]
                                      [:div
                                       (let [result (-> @state :result)]
                                         (cond

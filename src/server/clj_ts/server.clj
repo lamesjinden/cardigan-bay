@@ -21,8 +21,6 @@
   (:import (clojure.lang Atom)))
 
 (defn handle-api-system-db [{:keys [card-server] :as _request}]
-  ;; todo - questionable: need to call regenerate-db! on a GET
-  (card-server/regenerate-db! card-server)
   (-> @card-server
       (render/raw-db)
       (util/->html-response)))
@@ -171,10 +169,12 @@
         (resp/response)
         (resp/content-type "application/rss+xml"))))
 
+(def media-request-pattern #"/media/(\S+)")
+
 (defn handle-media [{:keys [card-server uri] :as _request}]
-  (let [file-name (-> uri
-                      (#(re-matches #"/media/(\S+)" %))
-                      second)
+  (let [file-name (->> uri
+                       (re-matches media-request-pattern)
+                       second)
         server-snapshot @card-server
         file (card-server/load-media-file server-snapshot file-name)]
     (if (.isFile file)
@@ -216,7 +216,7 @@
     (= uri "/api/rss/recentchanges") :api-rss-recent-changes
     (= uri "/api/exportpage") :api-export-page
     (= uri "/api/exportallpages") :api-export-all-ages
-    (re-matches #"/media/\S+" uri) :media
+    (re-matches media-request-pattern uri) :media
     :default :not-found))
 
 (defn request-handler [request]

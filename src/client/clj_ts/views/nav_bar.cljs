@@ -1,16 +1,21 @@
 (ns clj-ts.views.nav-bar
   (:require [clj-ts.http :as http]
             [clj-ts.view :as view]
+            [clj-ts.navigation :as nav]
+            [clj-ts.keyboard :as keyboard]
             [clojure.string :as str]
             [reagent.core :as r]
             [promesa.core :as p]
-            [clj-ts.navigation :as nav]
+
             [sci.core :as sci]))
 
 ;; region input
 
-(defn- clear-input! [inputValue]
-  (reset! inputValue nil))
+(defn- clear-input! [input-value]
+  (reset! input-value nil))
+
+(defn- on-clear-clicked [^Atom input-value]
+  (clear-input! input-value))
 
 ;; endregion
 
@@ -41,35 +46,56 @@
                          (view/string->html result))))
 
 (defn- search-text-async! [db query-text]
-  (let [cleaned-query (-> query-text
-                          (#(str/replace % "\"" ""))
-                          (#(str/replace % "'" "")))
-        query (->> {:query_string cleaned-query}
-                   (clj->js)
-                   (.stringify js/JSON))
-        callback (fn [e] (load-search-results! db cleaned-query e))]
-    (http/http-post-async
-      "/api/search"
-      callback
-      query
-      {:headers {"Content-Type" "application/json"}})))
+  (let [cleaned-query (-> (or query-text "")
+                          (str/replace "\"" "")
+                          (str/replace "'" "")
+                          (str/trim))]
+    (when (not (str/blank? cleaned-query))
+      (let [query (->> {:query_string cleaned-query}
+                       (clj->js)
+                       (.stringify js/JSON))
+            callback (fn [e] (load-search-results! db cleaned-query e))]
+        (http/http-post-async
+          "/api/search"
+          callback
+          query
+          {:headers {"Content-Type" "application/json"}})))))
+
+(defn- on-search-clicked [db query-text]
+  (let [query-text (-> (or query-text "")
+                       (str/trim))]
+    (when (not (str/blank? query-text))
+      (search-text-async! db query-text))))
+
+(defn- on-navigate-clicked [db input-value]
+  (let [inputValue (-> (or input-value "")
+                       (str/trim))]
+    (when (not (str/blank? inputValue))
+      (navigate-async! db inputValue))))
 
 ;; endregion
 
 ;; region eval
 
-(defn- eval-input! [db current]
-  (let [code (-> @current str)
+(defn- eval-input! [db input-value]
+  (let [code input-value
         result (sci/eval-string code)]
     (prepend-transcript! db code result)))
 
+(defn- on-eval-clicked [db input-value]
+  (let [current (-> (or input-value "")
+                    (str/trim))]
+    (when (not (str/blank? current))
+      (eval-input! db current))))
+
 ;; endregion
 
-(defn nav-input [value]
+(defn nav-input [db value]
   [:input {:type        "text"
            :class       :nav-input-text
            :value       @value
            :on-change   #(reset! value (-> % .-target .-value))
+           :on-key-up   #(keyboard/nav-input-on-key-enter db %)
            :placeholder "Navigate, Search, or Eval"}])
 
 (defn nav-bar [db]
@@ -91,18 +117,18 @@
           [:a.rss_link {:href "/api/rss/recentchanges"}
            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
          [:div#header-input
-          [nav-input inputValue]
+          [nav-input db inputValue]
           [:button#close-button.header-input-button
            {:style    {:display (view/->display (not (nil? @inputValue)) :flex)}
-            :on-click (fn [] (clear-input! inputValue))}
+            :on-click (fn [] (on-clear-clicked inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "close"]
            [:span.header-input-separator]]
           [:button#go-button.header-input-button
-           {:on-click (fn [] (navigate-async! db @inputValue))}
+           {:on-click (fn [] (on-navigate-clicked db @inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
           [:button.header-input-button
-           {:on-click (fn [] (search-text-async! db (-> @inputValue str)))}
+           {:on-click (fn [] (on-search-clicked db @inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "search"]]
           [:button#lambda-button.header-input-button
-           {:on-click (fn [] (eval-input! db inputValue))}
+           {:on-click (fn [] (on-eval-clicked db @inputValue))}
            [:span {:class [:material-symbols-sharp :clickable]} "λ"]]]]))))
