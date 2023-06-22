@@ -2,8 +2,17 @@
   (:require [clj-ts.http :as http]
             [clj-ts.navigation :as nav]))
 
+(defn enter-view-mode! [db]
+  (swap! db assoc :mode :viewing))
+
+(defn enter-edit-mode! [db]
+  (swap! db assoc :mode :editing))
+
+(defn enter-transcript-mode! [db]
+  (swap! db assoc :mode :transcript))
+
 (defn cancel-async! [db]
-  (nav/reload-async! db))
+  (enter-view-mode! db))
 
 (defn save-page-async!
   ([db http-callback]
