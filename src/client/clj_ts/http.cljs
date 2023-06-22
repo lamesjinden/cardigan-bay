@@ -20,21 +20,20 @@
   (when (not method)
     (throw (js/error "method was not defined")))
 
-  (let [url (if (= env "dev")
-              (gstring/format "//localhost:%s%s" env-port url)
+  (let [hostname (.-hostname js/location)
+        url (if (= env "dev")
+              (gstring/format "//%s:%s%s" hostname env-port url)
               url)
         ; replace callback with a function that resolves a promise
         ; return the resolved promise
         deferred (p/deferred)
         adapted-callback (fn [e]
                            (if (.isSuccess (.-target e))
-                             (do
-                               (let [callback-result (callback e)]
-                                 (p/resolve! deferred callback-result)))
-                             (do
-                               (let [status {:status     (.getStatus (.-target e))
-                                             :statusText (.getStatusText (.-target e))}]
-                                 (p/reject! deferred status)))))]
+                             (let [callback-result (callback e)]
+                               (p/resolve! deferred callback-result))
+                             (let [status {:status     (.getStatus (.-target e))
+                                           :statusText (.getStatusText (.-target e))}]
+                               (p/reject! deferred status))))]
     (.send XhrIo
            url
            adapted-callback
