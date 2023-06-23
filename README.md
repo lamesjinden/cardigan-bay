@@ -1,83 +1,34 @@
+# (a fork of) [CardiganBay](https://github.com/interstar/cardigan-bay)
 
-## CardiganBay
+![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/248161747-f3481de3-0c0b-42be-9fb2-d41ff497bcab.png)
 
-CardiganBay is a new wiki-engine which aims to combine the best ideas from classic wiki with up-to-date technologies and an eye to the future. 
+## Deviations from Upstream
 
+### Usability
 
-![How it looks](https://user-images.githubusercontent.com/7298563/245357862-4c3c708f-4b07-446f-8eac-a05de6252725.png)
+* Upstream release 0.7.3 transitioned to providing a 'paste bar' for accessing card templates. This change is not (yet) reflected here.
+* Styling changes across the application
+* Replaced default editor with [Ace](https://ace.c9.io/)
+* Search is case-insensitive
+* Included [highlight.js](https://highlightjs.org/) themes for `clojure` and `bash`
+* Replace forward/back functionality with browser-native `push-state`/`pop-state` navigation
+* Exports are compressed (Zip) and downloadable
+* Card-level editing (aka single-card editing) is accessed via double-clicking on the target card
+* Workspace card editor is configured in `clojure` mode with syntax highlighting
+* Added [cljfmt](https://github.com/weavejester/cljfmt) formatting to Workspace cards
+* Added Expand-All / Collapse-All cards functionality 
+* Added keyboard shortcuts when editing page content
 
-[Easy Install and Introduction on YouTube](https://www.youtube.com/watch?v=1QA5imZMdSI)
+### Development
 
-### CardiganBay motivations
-
-I need a new wiki-engine that can 
-* Be the engine to manage and maintain my long-running, publicly facing, and somewhat in need of cleaning up [ThoughtStormsWiki](http://thoughtstorms.info/view/ThoughtStorms).
-* Be an engine to manage a couple of smaller, more specific wikis and sites, with some specialized media types embedded in pages. 
-* Be the engine to run my own private notebook of ideas. Replacing my long defunct [SdiDesk](http://thoughtstorms.info/view/SdiDesk) and more recent [OutlinerWithWikiLinking](http://thoughtstorms.info/view/OutlinerWithWikiLinking)
-* Be something I can use when travelling. To work on these notebooks even when I'm away from my main machine or off-line.
-* Be a platform to explore new ideas and functionalities for wiki.
-* Be a platform not simply for writing and capturing information, but for making sense of, and finding meaning in it.
-* Be a platform to help me DO things as well as write about them.
- 
-
-
-### Design decisions
-
-* A classic wiki with named pages.
-* Names of pages are [concrete](http://thoughtstorms.info/view/ConcretePageNames). (Ie. the name is the id of the page) This allows for spontaneous discovery and link-making (when writing on one page, we can guess the names of relevant other pages without having to look them up.)
-* Pages are made from a sequence of "cards"
-* Each card has an explicit *type*. By default, *Markdown*, but other types for other media or data which are rendered (or even editable) differently. This is how we support embedding from YouTube, SoundCloud, BandCamp etc. There's an Embedded type which is used for embedded media from elsewhere.
-* **Despite the emphasis on cards, full pages always have a canonical representation which is a single, plain-text file.** And pages can be edited in their entirety in a single textbox. (This was [my main beef with the SmallestFederatedWiki](http://thoughtstorms.info/view/LeavingTheSFW))
-* Borrowing from [SmallestFederatedWiki](http://fed.wiki.org/view/welcome-visitors) the wiki engine is intended to have a single user. The expectation is that collaboration happens when each user has their own fork of the wiki data. 
-* **Unlike SFW** we rely on external tools such as Git to manage and merge forks rather than trying to do this ourselves.
-* The wiki engine is a personal tool rather than intended for a public server. The assumption is that public facing sites will be exported as either completely flat sites, or minimal engines without editing capabilities.
-
-
-
-### Technical Decisions
-
-* The wiki is a Single Page App written in [Clojure](https://clojure.org/) / ClojureScript. 
-* It uses [Reagent](https://reagent-project.github.io/) (the ClojureScript wrapper for React) as its client-side framework.
-* All UI components are therefore written in [hiccup format](https://github.com/weavejester/hiccup)
-* [Markdown](https://daringfireball.net/projects/markdown/) is the default markup type
-* By default, cards of other types that need to contain some structured data will use [EDN](https://github.com/edn-format/edn)
-* Where possible embedding uses [oembed](https://oembed.com/).
-* Pages are stored as simple text files in the file system
-* Assume [git](https://git-scm.com/) for managing page history / version control, rather than writing our own.
-* We have been capturing information about the collection of pages in a [Core.Logic](https://github.com/clojure/core.logic) database. And, as much as possible, use core.logic logic programming to query and reason about it. Eg. to find broken links, orphaned pages etc. *This decision is currently under review. It works but it's very slow. Would something like DataScript be better?*
-* As a Clojure program, the wiki engine runs on the Java Virtual Machine and can be distributed as an [UberJAR](https://stackoverflow.com/questions/11947037/what-is-an-uber-jar) file, without the need for potential users to install or understand any dependencies.
-
-
-## Quick Start (for Users)
-
-*[See also on YouTube in video form](https://www.youtube.com/watch?v=H7_THeK9EBw)*
-
-Make sure you have Java on your machine. 
-
-Go to https://github.com/interstar/cardigan-bay/releases and download the latest zip file. 
-
-Unzip it.
-
-**On Linux.** (And hopefully Mac)
-
-```bash
-cd cardigan
-./go.sh
-```
-
-This should run the jar file. Using the default pages in `bedrock`.
-
-(**On Windows**, go to the unzipped folder and run the `go.bat` file.)
-
-On either OS, then go to http://localhost:4545/index.html in your browser.
-
-You are now looking at and can edit your wiki.
-
+* Project dependencies (additions, subtractions, updates)
+* Restructure project configuration (aliases) within deps.edn
+* Use [Babaska](https://book.babashka.org/#tasks) task runner to invoke dev scripts
+* Restructure src layout (client and server applications)
+* API endpoints (additions, subtractions, updates)
+* Represent async client operations using Promesa promises
 
 ## Getting Started (as Developer)
-
-CardiganBay is a Clojure project, originally kickstarted in [LightMod](https://sekao.net/lightmod/) but now compiled and run using the CLI tools.
-
 
 Make sure you have the [JDK](https://openjdk.org/install/), [Clojure](https://clojure.org/guides/install_clojure), and [Babashka](https://github.com/babashka/babashka#installation) installed.
 
@@ -102,53 +53,33 @@ You should be running your wiki. By default CardiganBay starts on port 4545 and 
 
 To change server settings during development, modify the parameters provided to the `run-dev-server` task in `bb.edn`.
 
-### Development Tasks
+### Advanced Development
 
-There are several development tasks defined within `bb.edn`:
-* `run-minimal`
-  * First, performs a build of the clojurescript client application
-  * Then, starts the server application through `dev-server`
-    * `dev-server` utilizes the `ring` middleware, `wrap-reload` to update the running server with the lastest updates    
-* `run-dev-client`
-  * Starts FigWheel for client application development
-    * FigWheel manages compilation and reloading of the latest changes to client code (and css)
-  * Note: `run-dev-client` does _not_ run a server instance. 
-* `run-dev-server`
-  * Starts the server application through `dev-server`. 
-    * `dev-server` utilizes the `ring` middleware, `wrap-reload` to update the running server with the lastest updates    
-* `run-dev-client-repl`
-  * Enables repl-based development worklfow for client application development
+Depending on the desired workflow, choose between:
+
+#### Option 1: `run-minimal`
+  * suitable for higher-level server development; not suitable for client development (see better options below) 
+  * builds the client application once (**subsequent changes will not be reflected until another build**)
+  * builds and runs the server application, serving the compiled client app
+    * the server is executed under Ring's `wrap-reload` middleware, so changes made to server source files will be compiled, reloaded
+
+#### Option 2: (and (Pick 1 of (or `run-dev-client` `run-dev-client-repl`)) (Pick 1 of (or `run-dev-server` `run-dev-server-repl`))
+  * `run-dev-client`
+    * starts `Figwheel.main` to continuously compile and reload client changes
+      * changes (including css) are reflected (almost) immediately from Figwheel's reported url (defaults to port 9500)
+      * changes are also reflected (less) immediately from the paired `run-dev-server*` process (defaults to port 4545)
+        * because Figwheel compiles to a directory served by the server process
+  * `run-dev-client-repl`
+    * starts `rebel.main` to enable bootstrapping the client repl
     * see `dev/dev_client.clj` for usage instructions
-* `run-dev-server-repl`
-  * Enables repl-based development workflow for server application development
-
-
-### Features of CardiganBay
-
-* Classic wiki, with editable pages.
-* create links using [[PageName]] format.
-* RecentChanges
-* **Automatic backlinks** (Because you guys all seem to love this) 
-* List of Broken Links (links whose destination pages don't exist)
-* List of Orphan Pages (pages without links to them)
-* Pages are sequences of cards, with card-types. 
-* Support for embedding from YouTube, Vimeo, BandCamp, SoundCloud, Twitter, RSS Feeds and generic OEmbed servers
-* Support for embedding snippets of Clojure (executed on the server). 
-* Experimental support for embedding an interactive ClojureScript workspace (executed on the browser).
-* Card oriented manipulation (eg. Move Card to another page)
-* Support for Patterning patterns (https://github.com/interstar/Patterning-Core) embedded in pages.
-
-* Exports flat HTML pages to make a static site. You can configure your own template / css for how this looks.
-
-* Easily distributed in a JAR file.
-
-### DISCLAIMER
-
-CardiganBay is currently actively developed Work-in-Progress and has some nice features. It also has some pretty rough edges, bugs, corner-cases, hardwired magic etc. And the current web-design is not quite so terrible as it was, but nothing to be proud of. 
-
-This software is probably not yet ready for usage in most of the real world except as a private notekeeping app. (Which is how I'm current using it.) I can't guarantee that a bug won't delete your data, so I highly recommend you only use this if you are keeping backups of your pages (ideally in git or similar)
-
-OTOH, if you're excited by the potential, please get involved. Send me a bug-report or feature request. Or start hacking.
+    * this configuration is more involved, but enables fine-grained control over the client application
+  * `run-dev-server`
+    * starts the server application through `dev-server`
+    * `dev-server` utilizes the Ring middleware, `wrap-reload` to update the running server with the latest updates
+  * `run-dev-server-repl`
+    * enables repl-based development workflow for server application development
+      * i.e. connect to the repl from an editor
+  * run the chosen 'dev-client' task and the chose 'dev-server' task in separate terminals 
 
 ### Building for Distribution
 
@@ -158,83 +89,8 @@ bb all
 
 Will build everything into an UberJAR, under the `target` directory
 
-You can then run the UberJAR like this :
+You can then run the UberJAR like this:
 
 ```bash
 java -jar PATH/TO/clj-ts-0.1.0-SNAPSHOT-standalone-YYYY-MM-DD.jar
 ```
-
-### Hacker Roadmap
-
-**Want to change the look of CardiganBay?**
-
-All the css is in 
-
-* `resources/public/css/main.css`
-
-All the layout / widgets of the UI are defined (in hiccup format) in 
-
-* `src/client/clj_ts/views/`
-* `src/client/clj_ts/client.cljs` is the entry point into the client application
-
-----
-
-**Most of the work on managing pages**, including parsing them into cards and handling the rendering of cards is in
-
-* `src/common/clj_ts/common.cljc` - common functions for parsing raw text into cards and manipulating lists of cards) that can be used both on the server and in the client.
-* `src/server/clj_ts/card_server.clj` - the main functionality for creating / manipulating the wiki full of cards.
-* `src/server/clj_ts/storage/page_store.clj` - the bit that deals with the file-system
-
-----
-
-**If you want to creat a new card type** or edit how a particular type is being rendered, have a look in  `src/server/card_server.clj` 
-
-Cards that are not Markdown or raw-text are usually represented with their type, and a small map in EDN format, with the required parameters.
-
-A non Markdown card usually looks like this
-```
-----
-:cardtype
-
-{:some "cardtype specific data"
- :in [:EDN "format"] 
- }
- 
-----
-```
-
-----
-
-**The core.logic stuff** happens in 
-
-* `src/server/clj_ts/query/logic.clj` 
-
-If you want to capture more information in logic format or ask new queries on it, that's the place to look at.
-
-The convention for using logic queries is that calls to them are embedded in :system type cards. (See `card-server/system-card` to see how to add a new system command.)
-
-----
-
-**Where's the web-server?**
-
-* `src/server/clj_ts/server.clj`
-
-## Final Comments / Queries
-
-#### *Does CardiganBay deprecate [Project ThoughtStorms](https://github.com/interstar/ThoughtStorms)?*
-
-**Pretty much. CardiganBay has now replaced Project ThoughtStorms. It's used to manage ThoughtStorms wiki's pages, and the public ThoughtStorms site is now just static HTML exported from Cardigan Bay**
-
-I *like* Python (the language of the previous ThoughtStorms server). But I like Clojure a whole lot more. And the more I get into it, (and writing this has helped me with that) the more I see Clojure as the language I want to be using for most things in future. I don't need a legacy Python wiki code-base to be responsible for. And the world sure as hell doesn't need A.N.Other Python wiki-engine. Certainly not mine.
-
-Whereas it feels like in Clojure I might yet be able to push my vision of wiki forward sufficiently to actually make something new and interesting.
-
-#### *What was that you were saying about usage on mobile devices?*
-
-Sorry to disappoint you, but right now there is no CardiganBay app. for Android. Possibly, because it's all Clojure (and therefore Java) there will be. Or maybe ClojureScript and ReactNative is the future. Long term there's an aspiration towards that but it's not in the immediate future.
-
-**However** I am having success running normal CardiganBay on Ubuntu on the [UserLand VM](https://www.fossmint.com/userland-run-linux-distros-on-android/) on my Android tablet. And by success, I don't just mean that it kind of works. I spent [several weeks travelling](http://sdi.thoughtstorms.info/?p=1392) in Jan 2020 and was actually developing the software (with the CLI tools, and running Emacs all in the UserLand app on the tablet.) While simultaneously using CardiganBay through the tablet's normal Chrome browser. With an 8" tablet and external keyboard this was actually a pleasant experience, as it acts like a very small laptop / netbook. Even without the keyboard, I'm finding CardiganBay *usable* on the tablet. Though it's not as comfortable or slick an experience as it is writing in a well designed Android app.
-
-The bottom line is that, even if this isn't the greatest user experience, for people who know about Linux, wiki and Clojure, this is totally usable right now. 
-
-(Just use git when you get home to sync your work back into your laptop based notebook.)
