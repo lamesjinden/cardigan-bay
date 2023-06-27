@@ -1,6 +1,7 @@
 (ns clj-ts.cards.system
   (:require [clj-ts.common :as common]
-            [clj-ts.search :as search]))
+            [clj-ts.search :as search]
+            [clojure.edn :as edn]))
 
 (defn- ldb-query->mdlist-card [i source_data title result _qname f render-context]
   (let [items (apply str (map f result))
@@ -11,7 +12,7 @@
 
 (defn system-card
   [server-snapshot i data render-context]
-  (let [info (read-string data)
+  (let [info (edn/read-string data)
         cmd (:command info)
         db (-> server-snapshot :facts-db)
         ps (-> server-snapshot :page-store)]

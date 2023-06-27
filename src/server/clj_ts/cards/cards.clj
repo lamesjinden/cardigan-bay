@@ -1,5 +1,6 @@
 (ns clj-ts.cards.cards
-  (:require [clj-ts.cards.embed :as embed]
+  (:require [clojure.tools.reader.edn :as edn]
+            [clj-ts.cards.embed :as embed]
             [clj-ts.cards.system :as system]
             [clj-ts.common :as common]
             [clj-ts.patterning :as patterning]
@@ -18,8 +19,7 @@
 ;; {:for-export false :user-authored? true}
 
 (defn- bookmark-card [data]
-  ;; todo - replace read-string with edn/read-string
-  (let [{:keys [url timestamp]} (read-string data)]
+  (let [{:keys [url timestamp]} (edn/read-string data)]
     (str "
 Bookmarked " timestamp ": <" url ">
 
@@ -85,7 +85,7 @@ Bookmarked " timestamp ": <" url ">
 
 (defn- transclude
   [server-snapshot i source-data render-context]
-  (let [{:keys [from _process ids]} (read-string source-data)
+  (let [{:keys [from _process ids]} (edn/read-string source-data)
         ps (.page-store server-snapshot)
         matched-cards (.get-cards-from-page ps from ids)
         card-maps->processed (fn [id-start card-maps render-context]

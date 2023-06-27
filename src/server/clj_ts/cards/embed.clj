@@ -1,5 +1,6 @@
 (ns clj-ts.cards.embed
-  (:require [org.httpkit.client :as http]
+  (:require [clojure.edn :as edn]
+            [org.httpkit.client :as http]
             [org.httpkit.sni-client :as sni]
             [clojure.string :as string]
             [remus :refer [parse-url parse-file parse-stream]]
@@ -240,7 +241,7 @@ seamless><a href='" url "'>" description "</a></iframe></div></div>"
     caption-renderer))
 
 (defn process [s render-context caption-renderer server-state]
-  (let [data (read-string s)]
+  (let [data (edn/read-string s)]
     (try
       (condp = (:type data)
 

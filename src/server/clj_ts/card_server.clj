@@ -2,7 +2,6 @@
   [:require
     [clj-ts.render :as render]
     [clojure.string :as str]
-    [clojure.string :as string]
     [clj-ts.query.logic :as ldb]
     [clj-ts.storage.page_store :as pagestore]
     [clj-ts.query.facts-db :as facts]
@@ -126,7 +125,7 @@ If you would *like* to create a page with this name, simply click the [Edit] but
                       {:title (str pname " changed on " date)
                        :link  (link-fn pname)}))
         rc (-> (.read-recent-changes ps)
-               string/split-lines
+               str/split-lines
                (#(map make-link %)))]
     (rss/channel-xml {:title       "RecentChanges"
                       :link        (-> server-snapshot :site-url)

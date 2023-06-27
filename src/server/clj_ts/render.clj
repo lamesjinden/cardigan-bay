@@ -1,6 +1,7 @@
 (ns clj-ts.render
   (:require [clj-ts.common :as common]
             [clj-ts.util :as util]
+            [clojure.edn :as edn]
             [clojure.pprint :as pp]
             [markdown.core :as md]))
 
@@ -15,8 +16,7 @@
       (common/double-bracket-links)))
 
 (defn file-link [data]
-  ;; todo replace read-string with edn/read-string
-  (let [{:keys [file-name label]} (-> data read-string)]
+  (let [{:keys [file-name label]} (-> data edn/read-string)]
     (str "<a href='" "/media/" file-name "'>"
          (if label label file-name)
          "</a>")))

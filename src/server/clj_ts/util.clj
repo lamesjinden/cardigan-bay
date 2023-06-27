@@ -75,9 +75,7 @@
    BUT ..."
   [data]
   (let [code data
-        evaluated (try
-                    (#(apply str (sci/eval-string code)))
-                    (catch Exception _ exception-stack))]
+        evaluated (#(apply str (sci/eval-string code)))]
     evaluated))
 
 (defn zip-directory
