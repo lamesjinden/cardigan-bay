@@ -110,25 +110,25 @@
          [:nav#header-nav
           (->> nav-links
                (mapcat #(vector [:span {:key      %
-                                        :on-click (fn [] (on-link-click %))} %]
-                                [:span {:key   (str % "-spacer")
-                                        :class :nav-spacer}])))
+                                        :on-click (fn [] (on-link-click %))} %])))
           [:a {:href "/api/exportallpages"} "Export All"]
           [:a.rss-link {:href "/api/rss/recentchanges"}
            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
          [:div#header-input
           [nav-input db inputValue]
-          [:button#close-button.header-input-button
-           {:style    {:display (view/->display (not (nil? @inputValue)) :flex)}
-            :on-click (fn [] (on-clear-clicked inputValue))}
-           [:span {:class [:material-symbols-sharp :clickable]} "close"]
-           [:span.header-input-separator]]
-          [:button#go-button.header-input-button
-           {:on-click (fn [] (on-navigate-clicked db @inputValue))}
-           [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
-          [:button.header-input-button
-           {:on-click (fn [] (on-search-clicked db @inputValue))}
-           [:span {:class [:material-symbols-sharp :clickable]} "search"]]
-          [:button#lambda-button.header-input-button
-           {:on-click (fn [] (on-eval-clicked db @inputValue))}
-           [:span {:class [:material-symbols-sharp :clickable]} "λ"]]]]))))
+          [:div.header-input-actions
+           (when (not (nil? @inputValue))
+             [:button#close-button.header-input-button
+              {:on-click (fn [] (on-clear-clicked inputValue))}
+              [:span {:class [:material-symbols-sharp :clickable]} "close"]])
+           (when (not (nil? @inputValue))
+             [:div.header-input-separator])
+           [:button#go-button.header-input-button
+            {:on-click (fn [] (on-navigate-clicked db @inputValue))}
+            [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
+           [:button.header-input-button
+            {:on-click (fn [] (on-search-clicked db @inputValue))}
+            [:span {:class [:material-symbols-sharp :clickable]} "search"]]
+           [:button#lambda-button.header-input-button
+            {:on-click (fn [] (on-eval-clicked db @inputValue))}
+            [:span {:class [:material-symbols-sharp :clickable]} "λ"]]]]]))))
