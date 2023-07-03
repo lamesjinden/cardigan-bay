@@ -1,5 +1,5 @@
 (ns clj-ts.views.app-page-controls
-  (:require [clj-ts.view :as view]))
+  (:require [clj-ts.mode :as mode]))
 
 (defn expand-all-cards [db]
   (swap! db assoc :card-list-expanded-state :expanded))
@@ -8,10 +8,9 @@
   (swap! db assoc :card-list-expanded-state :collapsed))
 
 (defn app-page-controls [db]
-  [:div.page-controls-container
-   [:span {:class    [:material-symbols-sharp :clickable :left]
-           :style    {:display (view/->display (= :viewing (:mode @db)))}
-           :on-click (fn [e] (expand-all-cards db))} "unfold_more_double"]
-   [:span {:class    [:material-symbols-sharp :clickable :right]
-           :style    {:display (view/->display (= :viewing (:mode @db)))}
-           :on-click (fn [e] (collapse-all-cards db))} "unfold_less_double"]])
+  (when (mode/viewing? db)
+    [:div.page-controls-container
+     [:span {:class    [:material-symbols-sharp :clickable :left]
+             :on-click (fn [] (expand-all-cards db))} "unfold_more_double"]
+     [:span {:class    [:material-symbols-sharp :clickable :right]
+             :on-click (fn [] (collapse-all-cards db))} "unfold_less_double"]]))

@@ -1,12 +1,12 @@
 (ns clj-ts.views.nav-bar
   (:require [clj-ts.http :as http]
+            [clj-ts.mode :as mode]
             [clj-ts.view :as view]
             [clj-ts.navigation :as nav]
             [clj-ts.keyboard :as keyboard]
             [clojure.string :as str]
             [reagent.core :as r]
             [promesa.core :as p]
-
             [sci.core :as sci]))
 
 ;; region input
@@ -36,7 +36,7 @@
   (let [current-transcript (-> @db :transcript)
         updated-transcript (updated-transcript code result current-transcript)]
     (swap! db assoc :transcript updated-transcript)
-    (swap! db assoc :mode :transcript)))
+    (mode/set-transcript-mode! db)))
 
 (defn- load-search-results! [db cleaned-query e]
   (let [edn (-> e .-target .getResponseJson js->clj)
@@ -114,7 +114,7 @@
                                 [:span {:key   (str % "-spacer")
                                         :class :nav-spacer}])))
           [:a {:href "/api/exportallpages"} "Export All"]
-          [:a.rss_link {:href "/api/rss/recentchanges"}
+          [:a.rss-link {:href "/api/rss/recentchanges"}
            [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
          [:div#header-input
           [nav-input db inputValue]

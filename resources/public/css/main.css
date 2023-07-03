@@ -1,6 +1,13 @@
 /*#region css variables */
 
 :root {
+  /* --main-panel-background-color: #1f1f1f; */
+  /* --secondary-background-color: #181818; */
+  /* --primary-accent-color: #0078d4; */
+  /* --active-text-color: #c6c0bb; */
+  /* --inactive-text-color: #8c8c8c; */
+  /* --panel-divider-color: #2a2a2a; */
+
   --page-control-pull-outside-margin: 6px;
   --material-icon-size: 25px;
   --card-list-item-margin: 20px;
@@ -14,12 +21,39 @@
   --card-min-height: 50px;
   --card-box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
 
-  --big-btn-padding-vertical: 4px;
-  --big-btn-padding-horizontal: 8px;
+  --big-btn-padding-top: 7px;
+  --big-btn-padding-bottom: 4px;
+  --big-btn-padding-left: 8px;
+  --big-btn-padding-right: 8px;
+  --big-btn-padding: var(--big-btn-padding-top) var(--big-btn-padding-right) var(--big-btn-padding-bottom) var(--big-btn-padding-left);
   --big-btn-margin: 5px;
   --big-btn-height: 40px;
   --big-btn-width: 70px;
   --big-btn-border-radius: 5px;
+  --big-btn-background-color: #F0F0F0;
+  --big-btn-border-color: #DFDFDF;
+
+  --base-body-color: #4a4a4a;
+  --base-body-background-color: #F7F7F7;
+  --base-button-border-color: #DFDFDF;
+  --base-input-background-color: #F7F7F7;
+  --base-header-background-color: #ffffff;
+
+  --header-input-background-color: #ffffff;
+  --card-background-color: #ffffff;
+  --card-outer-background-color: #ffffff;
+  --page-controls-container-color: #d3d3d3;
+  --nav-container-color: #f5f5f5;
+  --header-input-separator-color: #dbdde1;
+  --rss-link-color: #ffffff;
+  --visibility-button-pressed-background-color: #d3d3d3;
+  --header-link-color: #264141;
+  --page-header-container-color: #f5f5f5;
+  --wikilink-color: #85144b;
+  --double-comma-table-border-color: #808080;
+  --double-comma-table-td-border-color: #808080;
+  --double-comma-table-tr-hover-background-color: #f5f5f5;
+  --manual-copy-background-color: #fafcf2;
 }
 
 /*#endregion */
@@ -31,14 +65,14 @@ html {
 }
 
 body {
+  background-color: var(--base-body-background-color);
+  color: var(--base-body-color);
   font-family: Roboto, Noto, sans-serif;
   font-size: 1.6rem;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
   margin: auto;
-  color: #4a4a4a;
+  overflow-wrap: break-word;
   padding: 0;
-  background-color: #F7F7F7;
+  word-wrap: break-word;
 }
 
 h1,
@@ -116,51 +150,31 @@ button {
   padding: 5px;
 
   border-width: 1px;
-  border-color: #DFDFDF;
+  border-color: var(--base-button-border-color);
 }
 
 input {
   font-size: 1.2rem;
   font-family: sans;
   border-width: 1px;
-  border-color: #F7F7F7;
+  border-color: var(--base-input-background-color);
   padding: 8px;
-}
-
-blockquote {
-  margin: 20px 0;
-  padding-left: 1.5rem;
-  border-left: 5px solid #ee6e73;
 }
 
 pre {
   font-size: 1rem;
   overflow: auto;
 }
-/*#region nav */
 
-nav ul {
-  display: flex;
-  flex-direction: row;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+img {
+  max-width: 100%;
+  display: block;
 }
 
-nav ul li {
-  padding: 8px 16px;
+main {
+  padding: 0 20px 20px 20px;
+  margin: calc(-1*var(--material-icon-size)) 5px 5px 5px;
 }
-
-nav ul li a {
-  text-decoration: none;
-  color: #333;
-}
-
-nav ul li a:hover {
-  color: var(--primary-color);
-}
-
-/*#endregion */
 
 /*#region input */
 
@@ -187,7 +201,7 @@ div textarea {
 
 /* todo - shared by card_list and card_shell; code smell? */
 .card {
-  background-color: white;
+  background-color: var(--card-background-color);
   padding: 7px;
   margin: 2px 0;
   min-height: var(--card-min-height);
@@ -195,12 +209,14 @@ div textarea {
 
 .big-btn {
   cursor: pointer;
+  background-color: var(--big-btn-background-color);
+  border-color: var(--big-btn-border-color);
   border-style: solid;
   border-radius: var(--big-btn-border-radius);
   height: var(--big-btn-height);
   width: var(--big-btn-width);
   font-size: 1.2rem;
-  padding: var(--big-btn-padding-vertical) var(--big-btn-padding-horizontal);
+  padding: var(--big-btn-padding);
   margin: var(--big-btn-margin);
 }
 
@@ -227,15 +243,6 @@ div textarea {
 
 .clickable {
   cursor: pointer;
-}
-
-.wikilink {
-  cursor: pointer;
-}
-
-.wikiname {
-  color: #555555;
-  text-align: right;
 }
 
 /*#endregion */
@@ -281,12 +288,6 @@ div textarea {
   border-width: 1px;
 }
 
-.edit-card {
-  background-color: #cccccc;
-  padding: 5px;
-  margin: 5px;
-}
-
 /*#endregion */
 
 /*#region card_list */
@@ -316,7 +317,7 @@ ul.system-card-list {
 .card-outer {
   border-radius: var(--card-border-radius);
   padding: 0 5px;
-  background-color: white;
+  background-color: var(--card-outer-background-color);
   min-height: 90px;
 }
 
@@ -405,7 +406,7 @@ ul.system-card-list {
 }
 
 .page-controls-container>span {
-  color: lightgray;
+  color: var(--page-controls-container-color);
 }
 
 .page-controls-container>.left {
@@ -424,17 +425,19 @@ ul.system-card-list {
 .nav-container {
   padding: 0 10px 5px 10px;
   margin: 0;
-  color: whitesmoke;
+  color: var(--nav-container-color);
   background-color: var(--primary-color);
   box-shadow: 0 0 10px 6px rgb(0 0 0 / 0.2);
   position: relative;
 }
 
 #header-nav {
-  display: flex;
   align-items: center;
-  padding-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   margin-bottom: 10px;
+  padding-top: 4px;
 }
 
 #header-nav span {
@@ -446,7 +449,7 @@ ul.system-card-list {
 }
 
 #header-input {
-  background-color: white;
+  background-color: var(--header-input-background-color);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -469,17 +472,19 @@ ul.system-card-list {
   font-size: 1.2rem;
   background-color: transparent;
   margin: 0 6px;
-  padding: 0;
+  padding-top: var(--big-btn-padding-top);
+  padding-bottom: var(--big-btn-padding-bottom);
 }
 
 .header-input-separator {
   height: 85%;
-  border-left: 1px solid #dadce0;
+  /* border-left: 1px solid #dadce0; */
+  border-left: 1px solid var(--header-input-separator-color);
   margin-left: 10px;
 }
 
-.rss_link {
-  color: white;
+.rss-link {
+  color: var(--rss-link-color);
   margin-left: auto;
   margin-right: -4px;
 }
@@ -498,10 +503,11 @@ ul.system-card-list {
 
 #lambda-button {
   margin-right: 8px;
+  padding-top: 0px !important;
 }
 
 #lambda-button>span {
-  margin-top: -8px;
+  margin-top: -1px;
 }
 
 .nav-input-text {
@@ -543,12 +549,12 @@ ul.system-card-list {
 /*#region tool_bar */
 
 .toolbar-container {
-  grid-column: 2;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
   margin-right: 5px;
   padding-bottom: 5px;
+  margin-left: auto;
 }
 
 .button-container {
@@ -581,7 +587,7 @@ ul.system-card-list {
 
 .visibility-buttons>button.pressed {
   border-style: inset;
-  background-color: lightgray;
+  background-color: var(--visibility-button-pressed-background-color);
 }
 
 .workspace-header {
@@ -640,36 +646,47 @@ ul.system-card-list {
 /*#region client */
 
 header {
-  background-color: white;
+  background-color: var(--base-header-background-color);
 }
 
 header a {
-  color: rgb(38, 65, 65);
+  color: var(--header-link-color);
 }
 
 .page-header-container {
-  display: grid;
-  color: whitesmoke;
   background-color: var(--off-primary-color);
   border-width: 0px;
+  color: var(--page-header-container-color);
+  display: flex;
+  flex-wrap: wrap;
   padding: 0 0 0 10px;
 }
 
 .page-title-container {
-  grid-column: 1;
-  display: flex;
   align-items: center;
+  display: flex;
   padding: 5px;
 }
 
 .page-title-container>h1 {
   margin-top: 0;
   margin-bottom: 0;
+  white-space: nowrap;
 }
 
-main {
-  padding: 0 20px 20px 20px;
-  margin: calc(-1*var(--material-icon-size)) 5px 5px 5px;
+@media (max-width: 500px) {
+  .page-header-container {
+    display: block;
+  }
+
+  .page-title-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .toolbar-container {
+    justify-content: center;
+  }
 }
 
 /*#endregion */
@@ -679,32 +696,33 @@ main {
 /*#region common.cljc */
 
 .wikilink {
-  color: #85144b;
+  cursor: pointer;
+  color: var(--wikilink-color);
 }
 
 .double-comma-table {
   border-style: dotted;
   border-width: 1px;
-  border-color: gray;
+  border-color: var(--double-comma-table-border-color);
   width: 100%;
 }
 
 .double-comma-table td {
-  padding: 10px;
   border-style: dotted;
   border-width: 1px;
-  border-color: gray;
+  border-color: var(--double-comma-table-td-border-color);
+  padding: 10px;
 }
 
 .double-comma-table tr:hover {
-  background-color: #f5f5f5;
+  background-color: var(--double-comma-table-tr-hover-background-color);
 }
 
 /*#endregion */
 
 /* shared by client.card_list and server.static_export */
 .manual-copy {
-  background-color: #fafcf2;
+  background-color: var(--manual-copy-background-color);
   padding: 5px;
   margin: 2px;
   border-radius: 10px;
