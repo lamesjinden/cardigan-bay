@@ -34,7 +34,7 @@
   --big-btn-border-color: #DFDFDF;
 
   --main-padding-top: 0;
-  --main-padding-right: 20px;  
+  --main-padding-right: 20px;
   --main-padding-bottom: 20px;
   --main-padding-left: 20px;
 
@@ -148,15 +148,22 @@ a {
 }
 
 button {
-  font-size: 1.2rem;
-
-  color: var(--primary-color);
-  margin: 5px;
   background-repeat: no-repeat;
-  padding: 5px;
-
-  border-width: 1px;
   border-color: var(--base-button-border-color);
+  border-width: 1px;
+  color: var(--primary-color);
+  font-size: 1.2rem;  
+  margin: 5px;  
+  padding: 5px; 
+  transition: filter 100ms steps(4, jump-start);
+}
+
+button:hover {
+  filter: brightness(95%);  
+}
+
+button:active {
+  filter:brightness(90%)
 }
 
 input {
@@ -177,7 +184,7 @@ img {
 }
 
 main {
-  padding: var(--main-padding-top) var(--main-padding-right) var(--main-padding-bottom) var(--main-padding-left); 
+  padding: var(--main-padding-top) var(--main-padding-right) var(--main-padding-bottom) var(--main-padding-left);
   margin: calc(-1*var(--material-icon-size)) 5px 5px 5px;
 }
 
@@ -216,34 +223,37 @@ div textarea {
   cursor: pointer;
   background-color: var(--big-btn-background-color);
   border-color: var(--big-btn-border-color);
-  border-style: solid;
   border-radius: var(--big-btn-border-radius);
-  height: var(--big-btn-height);
-  width: var(--big-btn-width);
+  border-style: solid;
+  border-width: 1px;
   font-size: 1.2rem;
-  padding: var(--big-btn-padding);
+  height: var(--big-btn-height);
   margin: var(--big-btn-margin);
+  padding: var(--big-btn-padding);
+  width: var(--big-btn-width);
 }
 
 .big-btn-left {
-  border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  border-top-right-radius: 0;  
   margin-right: 0 !important;
 }
 
 .big-btn-right {
-  border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+  border-left-width: 0;
+  border-top-left-radius: 0;    
   margin-left: 0 !important;
 }
 
 .big-btn-middle {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  margin-right: 0 !important;
-  margin-left: 0 !important;
+  border-bottom-right-radius: 0;  
+  border-left-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-left: 0 !important;  
+  margin-right: 0 !important;  
 }
 
 .clickable {
@@ -383,27 +393,36 @@ ul.system-card-list {
   box-shadow: var(--card-box-shadow);
 }
 
-.edit-box-single {
-  padding: 0;
-  margin: 0;
+.edit-box-single { 
+  border-bottom-color: var(--off-primary-color);
   border-bottom-left-radius: var(--card-border-radius);
   border-bottom-right-radius: var(--card-border-radius);
   border-bottom-style: solid;
-  border-bottom-width: calc(var(--big-btn-margin) + var(--paste-bar-padding));
-  border-bottom-color: var(--off-primary-color);
+  border-bottom-width: calc(var(--big-btn-margin) + var(--paste-bar-padding));  
+  margin: 0;
+  padding: 0;
 }
 
 /*#endregion */
 
 /*#region editor */
 
-.edit-box {
-  min-height: 100%;
-  padding: 0;
-  margin: 0;
-  box-shadow: var(--card-box-shadow);
+.edit-box-container {
   border-bottom-left-radius: var(--card-border-radius);
   border-bottom-right-radius: var(--card-border-radius);
+  box-shadow: var(--card-box-shadow);
+  margin-top: calc(2 * var(--material-icon-size));
+}
+
+.edit-box {
+  border-bottom-color: var(--off-primary-color);
+  border-bottom-left-radius: var(--card-border-radius);
+  border-bottom-right-radius: var(--card-border-radius);
+  border-bottom-style: solid;
+  border-bottom-width: calc(var(--big-btn-margin) + var(--paste-bar-padding));  
+  margin: 0;
+  min-height: 100%;
+  padding: 0;
 }
 
 /*#endregion */
@@ -507,7 +526,7 @@ ul.system-card-list {
   margin-right: -4px;
 }
 
-@media (max-width: 500px) { 
+@media (max-width: 500px) {
   .rss-link {
     margin-left: unset;
   }
@@ -515,8 +534,12 @@ ul.system-card-list {
 
 #lambda-button {
   margin-left: 10px;
-  padding-top: 0px !important;
+  padding-top: var(--big-btn-padding-bottom) !important;
   padding-left: 0px !important;
+}
+
+#lambda-button > span { 
+  font-family: sans-serif !important;
 }
 
 .nav-input-text {
@@ -639,7 +662,7 @@ ul.system-card-list {
 }
 
 .lambda-button>span {
-  margin-top: -8px;
+  font-family: sans-serif !important;
 }
 
 .calculated-out {

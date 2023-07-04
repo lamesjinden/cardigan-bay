@@ -21,7 +21,7 @@
   (reagent.core/create-class
     {:component-did-mount    (fn [] (setup-editor db))
      :component-will-unmount (fn [] (destroy-editor db))
-     :reagent-render         (fn [] [:div
+     :reagent-render         (fn [] [:div.edit-box-container
                                      [paste-bar db]
                                      [:div.edit-box
                                       {:on-key-down (fn [e] (keyboard/editor-on-key-down db e))
