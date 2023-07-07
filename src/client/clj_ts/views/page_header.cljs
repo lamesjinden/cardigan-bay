@@ -7,8 +7,8 @@
       [:div.page-header-container
        [:div.page-title-container
         [:h1 "Transcript"]]
-       [tool-bar db]]
+       [tool-bar db db-mode db-current-page]]
       [:div.page-header-container
        [:div.page-title-container
         [:h1 @db-current-page]]
-       [tool-bar db]])))
+       [tool-bar db db-mode db-current-page]])))

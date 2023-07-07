@@ -1,6 +1,8 @@
 # (a fork of) [CardiganBay](https://github.com/interstar/cardigan-bay)
 
-![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/248161747-f3481de3-0c0b-42be-9fb2-d41ff497bcab.png)
+![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/251646162-117b5389-a9d5-4621-8b0f-d055a2578bf0.png)
+
+![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/251645715-0c2951b3-77fc-4646-a87c-ec94cc9bbb59.png)
 
 ## Deviations from Upstream
 
@@ -11,6 +13,7 @@
 * Replaced default editor with [Ace](https://ace.c9.io/)
 * Search is case-insensitive
 * Included [highlight.js](https://highlightjs.org/) themes for `clojure` and `bash`
+* Added dark mode option
 * Replace forward/back functionality with browser-native `push-state`/`pop-state` navigation
 * Exports are compressed (Zip) and downloadable
 * Card-level editing (aka single-card editing) is accessed via double-clicking on the target card

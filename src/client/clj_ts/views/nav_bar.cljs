@@ -1,13 +1,14 @@
 (ns clj-ts.views.nav-bar
-  (:require [clj-ts.http :as http]
+  (:require [clojure.string :as str]
+            [reagent.core :as r]
+            [promesa.core :as p]
+            [sci.core :as sci]
+            [clj-ts.http :as http]
             [clj-ts.mode :as mode]
             [clj-ts.view :as view]
             [clj-ts.navigation :as nav]
             [clj-ts.keyboard :as keyboard]
-            [clojure.string :as str]
-            [reagent.core :as r]
-            [promesa.core :as p]
-            [sci.core :as sci]))
+            [clj-ts.views.app-menu :refer [app-menu]]))
 
 ;; region input
 
@@ -98,10 +99,10 @@
            :on-key-up   #(keyboard/nav-input-on-key-enter db %)
            :placeholder "Navigate, Search, or Eval"}])
 
-(defn nav-bar [db]
+(defn nav-bar [db db-nav-links]
   (let [inputValue (r/atom nil)]
     (fn []
-      (let [nav-links (-> @db :nav-links)
+      (let [nav-links @db-nav-links
             on-link-click (fn [target]
                             (if (= target "Transcript")
                               (swap! db assoc :mode :transcript)
@@ -111,9 +112,7 @@
           (->> nav-links
                (mapcat #(vector [:span {:key      %
                                         :on-click (fn [] (on-link-click %))} %])))
-          [:a {:href "/api/exportallpages"} "Export All"]
-          [:a.rss-link {:href "/api/rss/recentchanges"}
-           [:span {:class [:material-symbols-sharp :clickable]} "rss_feed"]]]
+          [app-menu db (r/cursor db [:theme])]]
          [:div#header-input
           [nav-input db inputValue]
           [:div.header-input-actions

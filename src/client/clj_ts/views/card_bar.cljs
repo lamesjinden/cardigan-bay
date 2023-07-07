@@ -49,7 +49,7 @@
     (swap! state #(conj % {:toggle "block"}))
     (swap! state #(conj % {:toggle "none"}))))
 
-(defn card-bar [card]
+(defn card-bar [db card]
   (let [meta-id (str "cardmeta" (get card "hash"))
         state (r/atom {:toggle "none"})
         send-value (r/atom "")

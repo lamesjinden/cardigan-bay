@@ -12,5 +12,7 @@
 (defn editing? [db]
   (= :editing (:mode @db)))
 
-(defn viewing? [db]
-  (= :viewing (:mode @db)))
+(defn viewing? [db-or-mode]
+  (let [value @db-or-mode]
+    (or (= :viewing value)
+        (= :viewing (:mode value)))))

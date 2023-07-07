@@ -2,9 +2,9 @@
   (:require [clj-ts.mode :as mode]
             [clj-ts.page :as page]))
 
-(defn tool-bar [db]
+(defn tool-bar [db db-mode db-current-page]
   (fn []
-    (let [mode (-> @db :mode)]
+    (let [mode @db-mode]
       [:div.toolbar-container
        (condp = mode
 
@@ -28,7 +28,7 @@
            {:on-click #(swap! db assoc :mode :editing)}
            [:span {:class [:material-symbols-sharp :clickable]} "edit"]]
           [:button.big-btn.big-btn-right
-           [:a {:href (str "/api/exportpage?page=" (-> @db :current-page))}
+           [:a {:href (str "/api/exportpage?page=" @db-current-page)}
             [:span {:class [:material-symbols-sharp :clickable]} "deployed_code_update"]]]]
 
          :transcript

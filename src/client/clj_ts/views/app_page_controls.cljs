@@ -7,8 +7,8 @@
 (defn collapse-all-cards [db]
   (swap! db assoc :card-list-expanded-state :collapsed))
 
-(defn app-page-controls [db]
-  (when (mode/viewing? db)
+(defn app-page-controls [db db-mode]
+  (when (mode/viewing? db-mode)
     [:div.page-controls-container
      [:span {:class    [:material-symbols-sharp :clickable :left]
              :on-click (fn [] (expand-all-cards db))} "unfold_more_double"]

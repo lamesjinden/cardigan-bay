@@ -1,5 +1,5 @@
 (ns clj-ts.views.card-list
-  (:require [reagent.core]
+  (:require [reagent.core :as r]
             [clj-ts.highlight :as highlight]
             [clj-ts.view :as view]
             [clj-ts.views.inner-html-card :refer [inner-html]]
@@ -36,7 +36,7 @@
                           {:reagent-render (fn [] data)}
 
                           "workspace"
-                          {:reagent-render (fn [] [workspace db card])}
+                          {:reagent-render (fn [] [workspace db (r/cursor db [:cards]) card])}
 
                           (str "UNKNOWN TYPE ( " render-type " ) " data))
         class (reagent.core/create-class inner-component)]
@@ -49,12 +49,12 @@
                            [:div (str exception)]
                            [:div (.-stack exception)]]})
 
-(defn card-list [db]
+(defn card-list [db db-cards db-system-cards]
   (reagent.core/create-class
     {:component-did-mount
      (fn [_this] (let [set-key (fn [card] (assoc card :key (random-uuid)))
-                       cards (->> (:cards @db) (mapv set-key))
-                       system-cards (->> (:system-cards @db) (mapv set-key))]
+                       cards (->> @db-cards (mapv set-key))
+                       system-cards (->> @db-system-cards (mapv set-key))]
                    (swap! db assoc :cards cards)
                    (swap! db assoc :system-cards system-cards)))
 
@@ -63,7 +63,7 @@
        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
          [:<>
           [:div.user-card-list
-           (let [cards (-> @db :cards)]
+           (let [cards @db-cards]
              (for [card (filter view/not-blank? cards)]
                [:div.user-car-list-item {:key (key-fn card)}
                 (try
@@ -73,9 +73,9 @@
                       [card-shell db error-card (card->component db error-card)])))]))]
           [:div.system-card-list
            (try
-             (let [cards (-> @db :system-cards)]
-               (for [card cards]
-                 [:div.system-card-list-item {:key (key-fn card)}
-                  [card-shell db card (card->component db card)]]))
+             (let [system-cards @db-system-cards]
+               (for [system-card system-cards]
+                 [:div.system-card-list-item {:key (key-fn system-card)}
+                  [card-shell db system-card (card->component db system-card)]]))
              (catch :default e
                (js/alert e)))]]))}))

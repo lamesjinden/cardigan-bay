@@ -4,6 +4,7 @@
     [reagent.dom :as dom]
     [promesa.core :as p]
     [clj-ts.mode :as mode]
+    [clj-ts.theme :as theme]
     [clj-ts.navigation :as nav]
     [clj-ts.views.app-header :refer [app-header]]
     [clj-ts.views.app-page-controls :refer [app-page-controls]]
@@ -12,26 +13,34 @@
 ;; region top-level ratom
 
 (defonce db (r/atom
-              {:current-page "HelloWorld"
-               :raw          ""
-               :transcript   ""
-               :cards        []
-               :wiki-name    "Wiki Name"
-               :site-url     "Site URL"
-               :initialized? false
-               :mode         :viewing
+              {:current-page             "HelloWorld"
+               :raw                      ""
+               :transcript               ""
+               :cards                    []
+               :wiki-name                "Wiki Name"
+               :site-url                 "Site URL"
+               :initialized?             false
+               :mode                     :viewing
                :card-list-expanded-state :expanded
-               :env-port     4545}))
+               :theme                    :light
+               :env-port                 4545}))
 
 ;; endregion
 
 ;; region top-level components
 
 (defn app []
-  [:div {:class :app-container}
-   [app-header db]
-   [app-page-controls db]
-   [app-main db]])
+  (reagent.core/track! (fn [] (let [theme (:theme @db)
+                                    body-element (first (js->clj (js/Array.from (js/document.getElementsByTagName "html"))))]
+                                (if (theme/light-theme? theme)
+                                  (.remove (.-classList body-element) "theme-dark")
+                                  (.add (.-classList body-element) "theme-dark")))))
+
+  (let [rx-mode (r/cursor db [:mode])]
+    [:div.app-container
+     [app-header db]
+     [app-page-controls db rx-mode]
+     [app-main db]]))
 
 ;; endregion
 
@@ -46,7 +55,6 @@
     resolved
     (let [init (first (.-init js/window))
           loaded-p (if (object? init)
-                     ;; todo - delete window["init"]
                      (p/resolved (nav/load-page db init))
                      (nav/load-start-page-async! db))]
       (p/then loaded-p (fn []

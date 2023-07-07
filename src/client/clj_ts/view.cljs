@@ -25,5 +25,6 @@
       (.catch (fn [error] (js/console.error "Failed to copy text:", error)))))
 
 (defn ->display
-  ([x display] (if x display :none))
+  ([x display]
+   (if x display :none))
   ([x] (->display x :block)))
