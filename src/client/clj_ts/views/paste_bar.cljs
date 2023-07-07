@@ -65,13 +65,13 @@
 
 (defn- on-save-clicked [db local-db]
   (let [current-hash (-> @local-db :card (get "hash"))
-        new-body (->> @local-db :ace-instance (.getValue))]
+        new-body (->> @local-db :editor (.getValue))]
     (cards/replace-card-async! db current-hash new-body)))
 
 (defn paste-bar
   ([db local-db]
    (let [global-edit? (nil? local-db)
-         ace-instance (or (and local-db (:ace-instance @local-db)) (:ace-instance @db))]
+         ace-instance (or (and local-db (:editor @local-db)) (:editor @db))]
      ;; todo - are these separate components yet?
      (if global-edit?
        [:div.pastebar.global-edit

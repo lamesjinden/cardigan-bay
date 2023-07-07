@@ -65,7 +65,7 @@
 (defn single-editor-on-key-s-press [db local-db e]
   (.preventDefault e)
   (let [current-hash (-> @local-db :card (get "hash"))
-        new-body (->> @local-db :ace-instance (.getValue))]
+        new-body (->> @local-db :editor (.getValue))]
     (cards/replace-card-async! db current-hash new-body)))
 
 (defn single-editor-on-key-down [db local-db e]
