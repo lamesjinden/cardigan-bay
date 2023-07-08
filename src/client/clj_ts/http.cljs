@@ -1,7 +1,6 @@
 (ns clj-ts.http
   (:require
     [promesa.core :as p]
-    [goog.string :as gstring]
     [goog.string.format])
   (:import [goog.net XhrIo]))
 
@@ -22,7 +21,7 @@
 
   (let [hostname (.-hostname js/location)
         url (if (= env "dev")
-              (gstring/format "//%s:%s%s" hostname env-port url)
+              (str "//" hostname ":" env-port url)
               url)
         ; replace callback with a function that resolves a promise
         ; return the resolved promise

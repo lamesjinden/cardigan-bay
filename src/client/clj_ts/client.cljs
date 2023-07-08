@@ -30,11 +30,7 @@
 ;; region top-level components
 
 (defn app []
-  (reagent.core/track! (fn [] (let [theme (:theme @db)
-                                    body-element (first (js->clj (js/Array.from (js/document.getElementsByTagName "html"))))]
-                                (if (theme/light-theme? theme)
-                                  (.remove (.-classList body-element) "theme-dark")
-                                  (.add (.-classList body-element) "theme-dark")))))
+  (reagent.core/track! (partial theme/toggle-app-theme db))
 
   (let [rx-mode (r/cursor db [:mode])]
     [:div.app-container

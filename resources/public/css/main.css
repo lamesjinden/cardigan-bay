@@ -1,14 +1,13 @@
 /*#region css variables */
 
 :root {
+  --primary-color: #0078d7;
+  --primary-accent-color: #0078d7;
   --primary-background-color: #FFFFFF;
   --primary-foreground-color: #4A4A4A;
   --secondary-background-color: #F7F7F7;
   --secondary-foreground-color: #D3D3D3;
   --inverted-foreground-color: #FFFFFF;
-  --inverted-background-color: #0078D7; /* not used */
-  --primary-color: #0078d7;
-  --primary-accent-color: #0078d7;
   --off-primary-color: #107dd6;
   /* custom, per-element colors */
   --base-button-border-color: #DFDFDF;
@@ -17,10 +16,10 @@
   --base-button-hover-invert: 0%;
   --base-button-active-invert: 0%;
   --base-a-tag-color: #39CCCC;
+  --header-input-background-color: var(--primary-background-color);
   --header-input-separator-color: #dbdde1;
   --wikilink-color: #85144b;
   --double-comma-table-border-color: #808080;
-  --double-comma-table-td-border-color: #808080;
   --manual-copy-background-color: #fafcf2;
 
   --page-control-pull-outside-margin: 6px;
@@ -52,20 +51,20 @@
 }
 
 .theme-dark {
-  --primary-background-color: #1f1f1f;
+  --primary-color: #24292f;
+  --off-primary-color: #24292f;
+  --primary-background-color: #1e1e1e;
   --primary-foreground-color: #c6c0bb;
   --secondary-background-color: #181818;
   --secondary-foreground-color: #2f2f2f;
   --inverted-foreground-color: #c6c0bb;
-  --inverted-background-color: #24292f; /* not used */
-  --primary-color: #24292f;
-  --off-primary-color: #24292f;
     /* custom, per-element colors */
   --base-button-border-color:  #181818;
   --base-button-hover-brightness: 100%;
   --base-button-active-brightness: 100%;
   --base-button-hover-invert: 5%;
   --base-button-active-invert: 10%;
+  --header-input-background-color: var(--secondary-background-color);
   --header-input-separator-color:  #2a2a2a;
 }
 
@@ -178,7 +177,7 @@ input {
   border-width: 1px;
   border-color: var(--secondary-background-color);
   padding: 8px;
-  background-color: var(--primary-background-color);
+  background-color: transparent;
   color: var(--primary-foreground-color);
 }
 
@@ -499,7 +498,7 @@ ul.system-card-list {
 }
 
 #header-input {
-  background-color: var(--primary-background-color);
+  background-color: var(--header-input-background-color);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -827,7 +826,7 @@ header a {
   border-width: 0;
   border-bottom-width: 1px;
   border-style: solid;
-  border-color: var(--primary-foreground-color);
+  border-color: var(--double-comma-table-border-color);
   padding: 10px 0;
 }
 
