@@ -57,35 +57,33 @@
         new-body (-> @state :editor (.getValue))]
     (cards/replace-card-async! db current-hash new-body)))
 
-(defn workspace [db db-cards card]
-  (let [match (->> @db-cards
-                   (filter #(= (:hash card) (:hash %)))
-                   (first))
-        state (r/atom {:code-toggle      true
-                       :calc-toggle      false
-                       :result-toggle    true
-                       :calc             []
-                       :result           ""
-                       :editor           nil
-                       :code-editor-size :small
-                       :code             (get match "server_prepared_data")
-                       :hash             (get match "hash")
-                       :source_type      (get match "source_type")})
+(defn workspace [db card]
+  (let [local-db (r/atom {:code-toggle      true
+                          :calc-toggle      false
+                          :result-toggle    true
+                          :calc             []
+                          :result           ""
+                          :editor           nil
+                          :editor-element   nil
+                          :code-editor-size :small
+                          :code             (get card "server_prepared_data")
+                          :hash             (get card "hash")
+                          :source_type      (get card "source_type")})
         tracking (reagent.core/track! (fn []
                                         (if (theme/light-theme? db)
-                                          (ace/set-theme! (:editor @state) ace/ace-theme)
-                                          (ace/set-theme! (:editor @state) ace/ace-theme-dark))))]
+                                          (ace/set-theme! (:editor @local-db) ace/ace-theme)
+                                          (ace/set-theme! (:editor @local-db) ace/ace-theme-dark))))]
     (reagent.core/create-class
-      {:component-did-mount    (fn [] (let [editor-element (first (array-seq (.getElementsByClassName js/document "workspace-editor")))
+      {:component-did-mount    (fn [] (let [editor-element (:editor-element @local-db)
                                             ace-instance (.edit js/ace editor-element)
-                                            max-lines (->> (:code-editor-size @state)
+                                            max-lines (->> (:code-editor-size @local-db)
                                                            (get size->editor-max-lines))
                                             editor-options (assoc ace/default-ace-options :maxLines max-lines)
                                             theme (if (theme/light-theme? db) ace/ace-theme ace/ace-theme-dark)]
                                         (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure theme editor-options)
-                                        (swap! state assoc :editor ace-instance)))
+                                        (swap! local-db assoc :editor ace-instance)))
        :component-will-unmount (fn []
-                                 (let [editor (:editor @state)]
+                                 (let [editor (:editor @local-db)]
                                    (when editor
                                      (.destroy editor)))
                                  (r/dispose! tracking))
@@ -94,55 +92,58 @@
                                   [:div.workspace-header-container
                                    [:h3.workspace-header "Workspace"]
                                    [:div.visibility-buttons
-                                    [:button.big-btn.big-btn-left {:class    (when (-> @state :code-toggle) "pressed")
-                                                                   :on-click (fn [] (toggle-code! state))}
+                                    [:button.big-btn.big-btn-left {:class    (when (-> @local-db :code-toggle) "pressed")
+                                                                   :on-click (fn [] (toggle-code! local-db))}
                                      "SOURCE"]
-                                    [:button.big-btn.big-btn-middle {:class    (when (-> @state :result-toggle) "pressed")
-                                                                     :on-click (fn [] (toggle-result! state))}
+                                    [:button.big-btn.big-btn-middle {:class    (when (-> @local-db :result-toggle) "pressed")
+                                                                     :on-click (fn [] (toggle-result! local-db))}
                                      "RESULT"]
-                                    [:button.big-btn.big-btn-right {:class    (when (-> @state :calc-toggle) "pressed")
-                                                                    :on-click (fn [] (toggle-calc! state))}
+                                    [:button.big-btn.big-btn-right {:class    (when (-> @local-db :calc-toggle) "pressed")
+                                                                    :on-click (fn [] (toggle-calc! local-db))}
                                      "CALCULATED"]]
                                    [:div]]
 
                                   [:div.code.workspace-padding
-                                   [:div.code-section {:style {:display (->display (-> @state :code-toggle))}}
+                                   ;; visibility controlled by style.display instead of 'when because the editor control needs to be initialized when (re)created
+                                   [:div.code-section {:style {:display (->display (-> @local-db :code-toggle))}}
                                     [:div.code-section-header-container
                                      [:h4 "Source"]
                                      [:div.workspace-buttons
-                                      [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code state))}
+                                      [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
-                                      [:button.big-btn.big-btn-middle {:on-click (fn [] (on-save-clicked db state))}
+                                      [:button.big-btn.big-btn-middle {:on-click (fn [] (on-save-clicked db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "save"]]
-                                      [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace state))}
+                                      [:button.big-btn.big-btn-right {:on-click (fn [] (format-workspace local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
-                                      [:button.big-btn {:on-click (fn [] (resize-editor! db state))}
+                                      [:button.big-btn {:on-click (fn [] (resize-editor! db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
-                                    [:div.workspace-editor {:class       [:workspace-editor]
-                                                            :on-key-down (fn [e] (keyboard/workspace-editor-on-key-down db state e))}
-                                     (str/trim (-> @state :code))]]]
+                                    [:div.workspace-editor {:ref         (fn [element] (swap! local-db assoc :editor-element element))
+                                                            :on-key-down (fn [e] (keyboard/workspace-editor-on-key-down db local-db e))}
+                                     (str/trim (-> @local-db :code))]]]
 
-                                  [:div.calculated-section {:style {:display (->display (-> @state :calc-toggle))}}
-                                   [:h4 "Calculated"]
-                                   [:pre {:style {:white-space "pre-wrap"}}
-                                    (with-out-str (pprint (str (-> @state :calc))))]]
+                                  (when (:calc-toggle @local-db)
+                                    [:div.calculated-section
+                                     [:h4 "Calculated"]
+                                     [:pre {:style {:white-space "pre-wrap"}}
+                                      (with-out-str (pprint (str (-> @local-db :calc))))]])
 
-                                  [:div.result-section {:style {:display (->display (-> @state :result-toggle))}}
-                                   [:h4 "Result"]
-                                   [:div
-                                    (let [result (-> @state :result)]
-                                      (cond
+                                  (when (:result-toggle @local-db)
+                                    [:div.result-section
+                                     [:h4 "Result"]
+                                     [:div
+                                      (let [result (-> @local-db :result)]
+                                        (cond
 
-                                        (number? result)
-                                        (str result)
+                                          (number? result)
+                                          (str result)
 
-                                        (string? result)
-                                        (if (= (first result) \<)
-                                          [:div {:dangerouslySetInnerHTML {:__html result}}]
-                                          result)
+                                          (string? result)
+                                          (if (= (first result) \<)
+                                            [:div {:dangerouslySetInnerHTML {:__html result}}]
+                                            result)
 
-                                        (= (first result) :div)
-                                        result
+                                          (= (first result) :div)
+                                          result
 
-                                        :else
-                                        (str result)))]]])})))
+                                          :else
+                                          (str result)))]])])})))

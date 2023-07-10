@@ -36,7 +36,7 @@
                           {:reagent-render (fn [] data)}
 
                           "workspace"
-                          {:reagent-render (fn [] [workspace db (r/cursor db [:cards]) card])}
+                          {:reagent-render (fn [] [workspace db card])}
 
                           (str "UNKNOWN TYPE ( " render-type " ) " data))
         class (reagent.core/create-class inner-component)]
