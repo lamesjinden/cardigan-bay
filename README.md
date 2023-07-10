@@ -2,7 +2,7 @@
 
 ![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/251646162-117b5389-a9d5-4621-8b0f-d055a2578bf0.png)
 
-![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/251645715-0c2951b3-77fc-4646-a87c-ec94cc9bbb59.png)
+![How it looks](https://github-production-user-asset-6210df.s3.amazonaws.com/7298563/252206197-7e3c8abe-6851-41af-a1db-32958db8ea83.png)
 
 ## Deviations from Upstream
 
