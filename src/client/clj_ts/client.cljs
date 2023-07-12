@@ -22,7 +22,7 @@
                :initialized?             false
                :mode                     :viewing
                :card-list-expanded-state :expanded
-               :theme                    :light
+               :theme                    (theme/get-initial-theme :light)
                :env-port                 4545}))
 
 ;; endregion

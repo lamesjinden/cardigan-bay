@@ -1,6 +1,8 @@
 /*#region css variables */
 
 :root {
+  color-scheme: light dark;
+
   --primary-color: #0078d7;
   --primary-accent-color: #0078d7;
   --primary-background-color: #FFFFFF;

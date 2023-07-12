@@ -20,8 +20,14 @@
 
 ;; region DOM theming
 
-(defn- get-body-element []
-  (first (js->clj (js/Array.from (js/document.getElementsByTagName "html")))))
+(defn get-initial-theme [fallback-theme]
+  (let [persisted-theme (js/localStorage.getItem "theme")]
+    (if persisted-theme
+      (keyword persisted-theme)
+      fallback-theme)))
+
+(defn- get-theme-host-element []
+  (.-documentElement js/document))
 
 (defn- get-link-element [title]
   (js/document.querySelector (str "link[title=\"" title "\"]")))
@@ -34,19 +40,21 @@
 
 (def dark-mode-class-name "theme-dark")
 
-(defn- toggle-highlightjs-stylesheets [enable disable]
-  (.setAttribute disable "disabled" "disabled")
-  (.removeAttribute enable "disabled"))
+(defn- toggle-highlightjs-stylesheets [to-be-enabled-stylesheet to-be-disabled-stylesheet]
+  (.setAttribute to-be-disabled-stylesheet "disabled" "disabled")
+  (.removeAttribute to-be-enabled-stylesheet "disabled"))
 
 (defn- apply-dark-mode []
-  (let [body-element (get-body-element)]
-    (.add (.-classList body-element) dark-mode-class-name))
+  (js/localStorage.setItem "theme" "dark")
+  (let [theme-host (get-theme-host-element)]
+    (.add (.-classList theme-host) dark-mode-class-name))
   (let [light-mode-stylesheet (get-link-element-light)
         dark-mode-stylesheet (get-link-element-dark)]
     (toggle-highlightjs-stylesheets dark-mode-stylesheet light-mode-stylesheet)))
 
 (defn- apply-light-mode []
-  (let [body-element (get-body-element)]
+  (js/localStorage.setItem "theme" "light")
+  (let [body-element (get-theme-host-element)]
     (.remove (.-classList body-element) dark-mode-class-name))
   (let [light-mode-stylesheet (get-link-element-light)
         dark-mode-stylesheet (get-link-element-dark)]
