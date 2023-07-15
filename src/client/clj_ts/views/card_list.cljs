@@ -11,12 +11,6 @@
         data (get card "server_prepared_data")
         inner-component (condp = render-type
 
-                          "code"
-                          {:reagent-render (fn [] (inner-html (str "<code>" data "</code>")))}
-
-                          "raw"
-                          {:reagent-render (fn [] (inner-html (str "<pre>" data "</pre>")))}
-
                           "markdown" {:reagent-render      (fn [] (inner-html (view/card->html card)))
                                       :component-did-mount highlight/highlight-all}
 
@@ -26,20 +20,24 @@
                                                          (view/card->html card)
                                                          "</div>")))}
 
-                          "html"
-                          {:reagent-render (fn [] (inner-html (str data)))}
+                          "raw"
+                          {:reagent-render (fn [] (inner-html (str "<pre>" data "</pre>")))}
 
-                          "stamp"
-                          {:reagent-render (fn [] (inner-html (str data)))}
-
-                          "hiccup"
-                          {:reagent-render (fn [] data)}
+                          "code"
+                          {:reagent-render (fn [] (inner-html (str "<code>" data "</code>")))}
 
                           "workspace"
                           {:reagent-render (fn [] [workspace db card])}
 
+                          "html"
+                          {:reagent-render      (fn [] (inner-html data))
+                           :component-did-mount highlight/highlight-all}
+
+                          "hiccup"
+                          {:reagent-render (fn [] data)}
+
                           (str "UNKNOWN TYPE ( " render-type " ) " data))
-        class (reagent.core/create-class inner-component)]
+        class (r/create-class inner-component)]
     class))
 
 (defn error-card [exception]
@@ -50,7 +48,7 @@
                            [:div (.-stack exception)]]})
 
 (defn card-list [db db-cards db-system-cards]
-  (reagent.core/create-class
+  (r/create-class
     {:component-did-mount
      (fn [_this] (let [set-key (fn [card] (assoc card :key (random-uuid)))
                        cards (->> @db-cards (mapv set-key))
@@ -78,4 +76,5 @@
                  [:div.system-card-list-item {:key (key-fn system-card)}
                   [card-shell db system-card (card->component db system-card)]]))
              (catch :default e
-               (js/alert e)))]]))}))
+               (let [error-card (error-card e)]
+                 [card-shell db error-card (card->component db error-card)])))]]))}))

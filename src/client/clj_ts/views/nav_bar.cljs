@@ -1,7 +1,6 @@
 (ns clj-ts.views.nav-bar
   (:require [clojure.string :as str]
             [reagent.core :as r]
-            [promesa.core :as p]
             [sci.core :as sci]
             [clj-ts.http :as http]
             [clj-ts.mode :as mode]
@@ -17,14 +16,6 @@
 
 (defn- on-clear-clicked [^Atom input-value]
   (clear-input! input-value))
-
-;; endregion
-
-;; region navigation
-
-(defn- navigate-async! [db page-name]
-  (-> (nav/go-new-async! db page-name)
-      (p/then (fn [] (nav/navigate-to page-name)))))
 
 ;; endregion
 
@@ -72,7 +63,7 @@
   (let [inputValue (-> (or input-value "")
                        (str/trim))]
     (when (not (str/blank? inputValue))
-      (navigate-async! db inputValue))))
+      (nav/navigate-async! db inputValue))))
 
 ;; endregion
 
@@ -89,6 +80,15 @@
     (when (not (str/blank? current))
       (eval-input! db current))))
 
+(defn- on-link-click [db e target aux-clicked?]
+  (.preventDefault e)
+  (cond
+    (= target "Transcript")
+    (swap! db assoc :mode :transcript)
+
+    :else
+    (nav/on-link-clicked db e target aux-clicked?)))
+
 ;; endregion
 
 (defn nav-input [db value]
@@ -102,16 +102,14 @@
 (defn nav-bar [db db-nav-links]
   (let [inputValue (r/atom nil)]
     (fn []
-      (let [nav-links @db-nav-links
-            on-link-click (fn [target]
-                            (if (= target "Transcript")
-                              (swap! db assoc :mode :transcript)
-                              (navigate-async! db target)))]
+      (let [nav-links @db-nav-links]
         [:div.nav-container
          [:nav#header-nav
           (->> nav-links
-               (mapcat #(vector [:span {:key      %
-                                        :on-click (fn [] (on-link-click %))} %])))
+               (mapcat #(vector [:a.clickable {:key          %
+                                               :on-click     (fn [e] (on-link-click db e % false))
+                                               :on-aux-click (fn [e] (on-link-click db e % true))
+                                               :href         (str "/pages/" %)} %])))
           [app-menu db (r/cursor db [:theme])]]
          [:div#header-input
           [nav-input db inputValue]

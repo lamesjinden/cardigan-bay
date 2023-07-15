@@ -3,7 +3,8 @@
             [clj-ts.ace :as ace]
             [clj-ts.keyboard :as keyboard]
             [clj-ts.theme :as theme]
-            [clj-ts.card :refer [has-link-target? navigate-via-link-async!]]
+            [clj-ts.navigation :as nav]
+            [clj-ts.card :as cards]
             [clj-ts.view :refer [->display]]
             [clj-ts.views.card-bar :refer [card-bar]]
             [clj-ts.views.paste-bar :refer [paste-bar]]))
@@ -67,6 +68,10 @@
                                                        :on-key-up   (fn [e] (keyboard/single-editor-on-key-up local-db e))}
                                  (get (:card @local-db) "source_data")]])}))
 
+(defn- on-link-clicked [db e aux-clicked?]
+  (when-let [target (cards/wikilink-data e)]
+    (nav/on-link-clicked db e target aux-clicked?)))
+
 ;; endregion
 
 (defn card-shell [db card component]
@@ -93,8 +98,8 @@
                [:span {:class [:material-symbols-sharp :clickable]} "unfold_more"]
                [:span {:class [:material-symbols-sharp :clickable]} "unfold_less"])]]]
           [:div.card
-           {:on-click (fn [e] (when (has-link-target? e)
-                                (navigate-via-link-async! db e)))}
+           {:on-click     (fn [e] (on-link-clicked db e false))
+            :on-aux-click (fn [e] (on-link-clicked db e true))}
            [:div.card-parent {:class (when (collapsed? local-db) :collapsed)}
             [:div.card-child.container
              [component]]

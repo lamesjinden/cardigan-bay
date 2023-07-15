@@ -63,7 +63,7 @@
 
 ;; region history
 
-(defn- page-name->url [page-name]
+(defn page-name->url [page-name]
   (if (= "/" page-name)
     "/"
     (str "/pages/" page-name)))
@@ -113,7 +113,7 @@
 
 ;; endregion
 
-;; public history api
+;; region public history api
 
 (defn hook-pop-state [db]
   (js/window.addEventListener "popstate" (fn [e]
@@ -133,5 +133,22 @@
             page-name (pathname->page-name pathname)
             state {:page-name page-name}]
         (replace-state state url)))))
+
+;; endregion
+
+;; region links
+
+(defn navigate-async! [db page-name]
+  (-> (go-new-async! db page-name)
+      (p/then (fn [] (navigate-to page-name)))))
+
+(defn on-link-clicked [db e target aux-clicked?]
+  (.preventDefault e)
+  (cond
+    (or (.-ctrlKey e) aux-clicked?)
+    (js/window.open (page-name->url target))
+
+    :else
+    (navigate-async! db target)))
 
 ;; endregion

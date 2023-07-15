@@ -32,7 +32,7 @@ Bookmarked " timestamp ": <" url ">
     [(condp = source_type
 
        :markdown
-       (common/package-card i source_type :markdown source_data source_data render-context)
+       (common/package-card i source_type :html source_data (render/md->html source_data) render-context)
 
        :manual-copy
        (common/package-card i source_type :manual-copy source_data source_data render-context)
@@ -86,8 +86,8 @@ Bookmarked " timestamp ": <" url ">
 (defn- transclude
   [server-snapshot i source-data render-context]
   (let [{:keys [from _process ids]} (edn/read-string source-data)
-        ps (.page-store server-snapshot)
-        matched-cards (.get-cards-from-page ps from ids)
+        page-store (.page-store server-snapshot)
+        matched-cards (.get-cards-from-page page-store from ids)
         card-maps->processed (fn [id-start card-maps render-context]
                                (mapcat (fn [i card-maps render-context]
                                          (process-card-map server-snapshot i card-maps render-context))

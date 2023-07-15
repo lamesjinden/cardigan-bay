@@ -123,13 +123,16 @@
 
 ;; Rendering / special Markup
 
+;; note - auto-links _probably_ never has an effect
 (defn auto-links [text]
   (string/replace text #"(http(s)?\\/\\/(\S+))"
                   (str "<a href=\"$1\">$1</a>")))
 
 (defn double-bracket-links [text]
-  (string/replace text #"\[\[(.+?)\]\]"
-                  (str "<span class=\"wikilink\" data=\"$1\">$1</span>")))
+  (string/replace
+    text
+    #"\[\[(.+?)\]\]"
+    (str "<a class='wikilink' data='$1' href='/pages/$1'>$1</a>")))
 
 (defn tag [t s] (str "<" t ">" s "</" t ">"))
 (defn td [s] (tag "td" s))

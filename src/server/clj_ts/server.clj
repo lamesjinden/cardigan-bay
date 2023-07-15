@@ -16,7 +16,8 @@
             [ring.middleware.json :refer [wrap-json-body]]
             [ring.util.response :as resp]
             [clojure.data.json :as json]
-            [selmer.parser :as selmer])
+            [selmer.parser]
+            [selmer.util])
   (:gen-class)
   (:import (clojure.lang Atom)))
 
@@ -82,9 +83,9 @@
 
 ;; using custom tag to take advantage of overriding :tag-second
 ;; as simple variable substitution is not as customizable
-(selmer/add-tag! :identity (fn [args context-map]
-                             (let [kw (keyword (first args))]
-                               (get context-map kw))))
+(selmer.parser/add-tag! :identity (fn [args context-map]
+                                    (let [kw (keyword (first args))]
+                                      (get context-map kw))))
 
 (def index-local-path "public/index.html")
 
@@ -94,14 +95,18 @@
      (if page-name
        (let [server-snapshot @card-server
              page-config (get-page-data server-snapshot {:page_name page-name})
+             workspace-card? (as-> (get-in page-config [:server_prepared_page :cards]) $
+                                   (some (fn [card] (= :workspace (:source_type card))) $)
+                                   (if $ "" "defer"))
              page-config-str (json/write-str page-config)
              rendered (selmer.util/without-escaping
-                        (selmer.parser/render
-                          subject-content
-                          {:page-config page-config-str}
-                          {:tag-open   \[
-                           :tag-close  \]
-                           :tag-second \"}))]
+                        (-> (selmer.parser/render
+                              subject-content
+                              {:page-config page-config-str}
+                              {:tag-open   \[
+                               :tag-close  \]
+                               :tag-second \"})
+                            (selmer.parser/render {:has-workspace? workspace-card?})))]
          rendered)
        subject-content))))
 
@@ -217,7 +222,7 @@
     (= uri "/api/exportpage") :api-export-page
     (= uri "/api/exportallpages") :api-export-all-ages
     (re-matches media-request-pattern uri) :media
-    :default :not-found))
+    :else :not-found))
 
 (defn request-handler [request]
   (let [uri (:uri request)
@@ -336,8 +341,8 @@
 (defn -main [& args]
   (let [settings (gather-settings args)
         server-opts (select-keys settings [:port])
-        card-server (initialize-state settings)]
-    (let [app (create-app card-server)]
-      (run-server app server-opts))))
+        card-server (initialize-state settings)
+        app (create-app card-server)]
+    (run-server app server-opts)))
 
 ;; endregion

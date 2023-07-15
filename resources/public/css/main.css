@@ -495,8 +495,9 @@ ul.system-card-list {
   column-gap: 16px;
 }
 
-#header-nav span {
-  cursor: pointer;
+#header-nav a {
+  color: var(--inverted-foreground-color);
+  text-decoration: none;
 }
 
 #header-input {
@@ -627,7 +628,7 @@ ul.system-card-list {
 }
 
 .app-menu-container > .menu-list .label {
-  color: var(--primary-foreground-color);
+  color: var(--primary-foreground-color) !important;
   margin-left: 10px;
   text-decoration: none;
   white-space: nowrap;

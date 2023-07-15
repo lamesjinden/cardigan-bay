@@ -4,9 +4,15 @@
             [promesa.core :as p]))
 
 (defn has-link-target? [e]
-  (let [tag (-> e .-target)
+  (let [tag (.-target e)
         class (.getAttribute tag "class")]
     (= class "wikilink")))
+
+(defn wikilink-data [e]
+  (when (has-link-target? e)
+    (let [tag (.-target e)
+          data (.getAttribute tag "data")]
+      data)))
 
 (defn navigate-via-link-async! [db e]
   (let [tag (-> e .-target)

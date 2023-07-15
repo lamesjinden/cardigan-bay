@@ -7,6 +7,6 @@
   (let [rx-nav-links (r/cursor db [:nav-links])
         rx-mode (r/cursor db [:mode])
         rx-current-page (r/cursor db [:current-page])]
-    [:header {:class :header-bar}
+    [:header.header-bar
      [nav-bar db rx-nav-links]
      [page-header db rx-mode rx-current-page]]))
