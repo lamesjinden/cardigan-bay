@@ -48,33 +48,35 @@
                            [:div (.-stack exception)]]})
 
 (defn card-list [db db-cards db-system-cards]
-  (r/create-class
-    {:component-did-mount
-     (fn [_this] (let [set-key (fn [card] (assoc card :key (random-uuid)))
-                       cards (->> @db-cards (mapv set-key))
-                       system-cards (->> @db-system-cards (mapv set-key))]
-                   (swap! db assoc :cards cards)
-                   (swap! db assoc :system-cards system-cards)))
 
-     :reagent-render
-     (fn [_this]
-       (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
-         [:<>
-          [:div.user-card-list
-           (let [cards @db-cards]
-             (for [card (filter view/not-blank? cards)]
-               [:div.user-car-list-item {:key (key-fn card)}
-                (try
-                  [card-shell db card (card->component db card)]
-                  (catch :default e
-                    (let [error-card (error-card e)]
-                      [card-shell db error-card (card->component db error-card)])))]))]
-          [:div.system-card-list
-           (try
-             (let [system-cards @db-system-cards]
-               (for [system-card system-cards]
-                 [:div.system-card-list-item {:key (key-fn system-card)}
-                  [card-shell db system-card (card->component db system-card)]]))
-             (catch :default e
-               (let [error-card (error-card e)]
-                 [card-shell db error-card (card->component db error-card)])))]]))}))
+  (let [rx-card-list-expanded (r/cursor db [:card-list-expanded-state])]
+    (r/create-class
+     {:component-did-mount
+      (fn [_this] (let [set-key (fn [card] (assoc card :key (random-uuid)))
+                        cards (->> @db-cards (mapv set-key))
+                        system-cards (->> @db-system-cards (mapv set-key))]
+                    (swap! db assoc :cards cards)
+                    (swap! db assoc :system-cards system-cards)))
+
+      :reagent-render
+      (fn [_this]
+        (let [key-fn (fn [card] (or (get card "hash") (:key card)))]
+          [:<>
+           [:div.user-card-list
+            (let [cards @db-cards]
+              (for [card (filter view/not-blank? cards)]
+                [:div.user-car-list-item {:key (key-fn card)}
+                 (try
+                   [card-shell db rx-card-list-expanded card (card->component db card)]
+                   (catch :default e
+                     (let [error-card (error-card e)]
+                       [card-shell db rx-card-list-expanded error-card (card->component db error-card)])))]))]
+           [:div.system-card-list
+            (try
+              (let [system-cards @db-system-cards]
+                (for [system-card system-cards]
+                  [:div.system-card-list-item {:key (key-fn system-card)}
+                   [card-shell db rx-card-list-expanded system-card (card->component db system-card)]]))
+              (catch :default e
+                (let [error-card (error-card e)]
+                  [card-shell db rx-card-list-expanded error-card (card->component db error-card)])))]]))})))

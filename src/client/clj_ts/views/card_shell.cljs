@@ -74,7 +74,7 @@
 
 ;; endregion
 
-(defn card-shell [db card component]
+(defn card-shell [db db-card-list-expanded card component]
   (let [local-db (r/atom {:toggle         true
                           :mode           :viewing
                           :current-page   (:current-page @db)
@@ -85,9 +85,11 @@
 
     ; listen for global expanded state changes and set local-db accordingly
     ; note: local state can still be updated via toggle-local-expanded-state!
-    ; todo - dispose of track! return value]
-    (reagent.core/track! (fn [] (swap! local-db assoc :toggle (= :expanded (:card-list-expanded-state @db)))))
-    (fn [db card component]
+    ; todo - dispose of track! return value
+    (reagent.core/track! (fn []
+                           (let [expanded-state @db-card-list-expanded]
+                             (swap! local-db assoc :toggle (= :expanded expanded-state)))))
+    (fn [db db-card-list-expanded card component]
       [:div.card-shell
        (if (viewing? local-db)
          [:article.card-outer {:on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
