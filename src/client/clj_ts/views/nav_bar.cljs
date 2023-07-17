@@ -1,12 +1,13 @@
 (ns clj-ts.views.nav-bar
   (:require [clojure.string :as str]
+            [promesa.core :as p]
             [reagent.core :as r]
             [sci.core :as sci]
             [clj-ts.http :as http]
-            [clj-ts.mode :as mode]
-            [clj-ts.view :as view]
-            [clj-ts.navigation :as nav]
             [clj-ts.keyboard :as keyboard]
+            [clj-ts.mode :as mode]
+            [clj-ts.navigation :as nav]
+            [clj-ts.view :as view]
             [clj-ts.views.app-menu :refer [app-menu]]))
 
 ;; region input
@@ -30,8 +31,8 @@
     (swap! db assoc :transcript updated-transcript)
     (mode/set-transcript-mode! db)))
 
-(defn- load-search-results! [db cleaned-query e]
-  (let [edn (-> e .-target .getResponseJson js->clj)
+(defn- load-search-results! [db cleaned-query body]
+  (let [edn (js->clj body)
         result (get edn "result_text")]
     (prepend-transcript! db
                          (str "Searching for " cleaned-query)
@@ -46,12 +47,11 @@
       (let [query (->> {:query_string cleaned-query}
                        (clj->js)
                        (.stringify js/JSON))
-            callback (fn [e] (load-search-results! db cleaned-query e))]
-        (http/http-post-async
-          "/api/search"
-          callback
-          query
-          {:headers {"Content-Type" "application/json"}})))))
+            callback (fn [{body-text :body}]
+                       (let [body (.parse js/JSON body-text)]
+                         (load-search-results! db cleaned-query body)))]
+        (-> (http/http-post-async "/api/search" query {:headers {"Content-Type" "application/json"}})
+            (p/then callback))))))
 
 (defn- on-search-clicked [db query-text]
   (let [query-text (-> (or query-text "")

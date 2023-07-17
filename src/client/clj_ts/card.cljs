@@ -1,7 +1,7 @@
 (ns clj-ts.card
-  (:require [clj-ts.navigation :as nav]
-            [clj-ts.page :as page]
-            [promesa.core :as p]))
+  (:require [promesa.core :as p]
+            [clj-ts.navigation :as nav]
+            [clj-ts.page :as page]))
 
 (defn has-link-target? [e]
   (let [tag (.-target e)
@@ -17,8 +17,7 @@
 (defn navigate-via-link-async! [db e]
   (let [tag (-> e .-target)
         data (.getAttribute tag "data")]
-    (-> (nav/go-new-async! db data)
-        (p/then (fn [] (nav/navigate-to data))))))
+    (nav/navigate-async! db data)))
 
 (defn- replace-card [snapshot replaced-hash new-card raw]
   (let [matching-index (->> (:cards snapshot)

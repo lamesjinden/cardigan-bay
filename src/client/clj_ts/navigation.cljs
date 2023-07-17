@@ -5,8 +5,8 @@
 
 ;; region load page
 
-(defn load-page [db load-page-response]
-  (let [edn (js->clj load-page-response)
+(defn load-page [db body]
+  (let [edn (js->clj body)
         source-page (get edn "source_page")
         server-prepared-page (get edn "server_prepared_page")
         raw (get source-page "body")
@@ -27,34 +27,30 @@
            :system-cards system-cards
            :nav-links nav-links
            :mode :viewing
-           :card-list-expanded-state :expanded))
-  (js/window.scroll 0 0))
+           :card-list-expanded-state :expanded)))
 
-(defn load-page-async! [db page-name]
+(defn- load-page-async! [db page-name]
   (let [query (->> {:page_name page-name}
                    (clj->js)
-                   (.stringify js/JSON))
-        callback (fn [e] (let [load-page-response (-> e .-target .getResponseJson)]
-                           (load-page db load-page-response)))]
-    (http/http-post-async
-      "/api/page"
-      callback
-      query
-      {:headers {"Content-Type" "application/json"}})))
+                   (.stringify js/JSON))]
+    (-> (http/http-post-async "/api/page" query {:headers {"Content-Type" "application/json"}})
+        (p/then (fn [{body-text :body}]
+                  (let [body (.parse js/JSON body-text)]
+                    (load-page db body))))
+        (p/then (fn [_] (js/window.scroll 0 0))))))
 
 (defn load-init-async! [db]
-  (let [callback (fn [e]
-                   (let [load-init-response (-> e .-target .getResponseJson)]
-                     (load-page db load-init-response)))]
-    (http/http-get-async "/api/init" callback)))
+  (-> (http/http-get-async "/api/init")
+      (p/then (fn [{body-text :body}]
+                (let [body (.parse js/JSON body-text)]
+                  (load-page db body))))))
 
 (defn reload-async! [db]
   (load-page-async! db (:current-page @db)))
 
-(defn go-new-async! [db page-name]
-  (let [load-page-p (load-page-async! db page-name)]
-    (p/then load-page-p
-            (fn [] (swap! db assoc :mode :viewing)))))
+(defn- go-new-async! [db page-name]
+  (-> (load-page-async! db page-name)
+      (p/then (fn [] (swap! db assoc :mode :viewing)))))
 
 (defn load-start-page-async! [db]
   (load-init-async! db))
@@ -120,11 +116,6 @@
                                            (let [state (.-state e)]
                                              (pop-state-handler db state)))))
 
-(defn navigate-to [page-name]
-  (let [url (page-name->url page-name)
-        state {:page-name page-name}]
-    (push-state state url)))
-
 (defn replace-state-initial []
   (let [pathname (get-pathname)]
     (if (= "/index.html" pathname)
@@ -137,6 +128,11 @@
 ;; endregion
 
 ;; region links
+
+(defn- navigate-to [page-name]
+  (let [url (page-name->url page-name)
+        state {:page-name page-name}]
+    (push-state state url)))
 
 (defn navigate-async! [db page-name]
   (-> (go-new-async! db page-name)

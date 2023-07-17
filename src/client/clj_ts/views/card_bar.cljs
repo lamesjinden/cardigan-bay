@@ -1,11 +1,9 @@
 (ns clj-ts.views.card-bar
-  (:require [clj-ts.http :as http]
-            [clj-ts.page :as page]
+  (:require [promesa.core :as p]
             [reagent.core :as r]
-            [clj-ts.mode :as mode]
+            [clj-ts.http :as http]
             [clj-ts.navigation :as nav]
-            [clj-ts.view :as view]
-            [promesa.core :as p]))
+            [clj-ts.view :as view]))
 
 (defn clip-hash [from-page hash]
   (view/send-to-clipboard
@@ -15,34 +13,19 @@
 {:from \"" from-page "\"
  :ids [\"" hash "\"] } ")))
 
-(defn on-save-clicked-async! [db card]
-  (-> (page/save-card-async!
-        (-> @db :current-page)
-        (get card "hash")
-        (-> js/document
-            (.getElementById (str "edit-" (get card "hash")))
-            .-value))
-      (p/then (fn [_] (nav/reload-async! db)))
-      (p/then (fn [_] (mode/set-view-mode! db)))))
-
 (defn card-send-to-page-async! [db page-name hash new-page-name]
-  (let [move-card-p (http/http-post-async
-                      "/api/movecard"
-                      identity
-                      (pr-str {:from page-name
-                               :to   new-page-name
-                               :hash hash}))]
-    (p/then move-card-p
-            (fn []
-              (nav/go-new-async! db new-page-name)))))
+  (let [body (pr-str {:from page-name
+                      :to   new-page-name
+                      :hash hash})]
+    (-> (http/http-post-async "/api/movecard" body)
+        (p/then (fn [] (nav/navigate-async! db new-page-name))))))
 
 (defn card-reorder-async! [db page-name hash direction]
-  (http/http-post-async
-    "/api/reordercard"
-    (fn [] (nav/reload-async! db))
-    (pr-str {:page      page-name
-             :hash      hash
-             :direction direction})))
+  (let [body (pr-str {:page      page-name
+                      :hash      hash
+                      :direction direction})]
+    (-> (http/http-post-async "/api/reordercard" body)
+        (p/then (fn [] (nav/reload-async! db))))))
 
 (defn toggle! [state]
   (if (= (-> @state :toggle) "none")

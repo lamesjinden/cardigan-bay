@@ -130,7 +130,7 @@
                                   (when (:result-toggle @local-db)
                                     [:div.result-section
                                      [:h4 "Result"]
-                                     [:div
+                                     [:output
                                       (let [result (-> @local-db :result)]
                                         (cond
 

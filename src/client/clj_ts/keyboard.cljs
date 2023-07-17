@@ -16,7 +16,7 @@
 
 (defn editor-on-key-s-press [db e]
   (.preventDefault e)
-  (page/save-page-async! db identity))
+  (page/save-page-async! db))
 
 (defn editor-on-ctrl-shift-s-press [db e]
   (.preventDefault e)
@@ -54,9 +54,8 @@
         input-value (-> e .-target .-value str/trim)
         page-name input-value]
     (when (and (= key-code key-enter-code)
-               (not (empty? input-value)))
-      (-> (nav/go-new-async! db page-name)
-          (p/then (fn [] (nav/navigate-to page-name)))))))
+               (seq input-value))
+      (nav/navigate-async! db page-name))))
 
 ;; endregion
 
