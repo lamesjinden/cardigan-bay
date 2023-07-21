@@ -1,6 +1,6 @@
 (ns clj-ts.navigation
-  (:require [clojure.string :as str]
-            [promesa.core :as p]
+  (:require [cljs.core.async :as a]
+            [clojure.string :as str]
             [clj-ts.http :as http]))
 
 ;; region load page
@@ -32,37 +32,149 @@
 (defn- load-page-async! [db page-name]
   (let [query (->> {:page_name page-name}
                    (clj->js)
-                   (.stringify js/JSON))]
-    (-> (http/http-post-async "/api/page" query {:headers {"Content-Type" "application/json"}})
-        (p/then (fn [{body-text :body}]
-                  (let [body (.parse js/JSON body-text)]
-                    (load-page db body))))
-        (p/then (fn [_] (js/window.scroll 0 0))))))
+                   (.stringify js/JSON))
+        options {:headers {"Content-Type" "application/json"}}]
+    (a/go
+      (when-let [result (a/<! (http/<http-post "/api/page" query options))]
+        (let [{body-text :body} result
+              body (.parse js/JSON body-text)]
+          (load-page db body))
+        (js/window.scroll 0 0)))))
 
 (defn load-init-async! [db]
-  (-> (http/http-get-async "/api/init")
-      (p/then (fn [{body-text :body}]
-                (let [body (.parse js/JSON body-text)]
-                  (load-page db body))))))
+  (a/go
+    (when-let [result (a/<! (http/<http-get "/api/init"))]
+      (let [{body-text :body} result
+            body (.parse js/JSON body-text)]
+        (load-page db body)))))
 
 (defn reload-async! [db]
   (load-page-async! db (:current-page @db)))
-
-(defn- go-new-async! [db page-name]
-  (-> (load-page-async! db page-name)
-      (p/then (fn [] (swap! db assoc :mode :viewing)))))
 
 (defn load-start-page-async! [db]
   (load-init-async! db))
 
 ;; endregion
 
-;; region history
+;; region nav2
+
+(def ^:private editing$ (a/chan))
+(def ^:private editing-mult$ (a/mult editing$))
+
+(defn notify-editing-begin [id]
+  (a/put! editing$ {:id     id
+                    :action :start}))
+
+(defn notify-editing-end [id]
+  (a/put! editing$ {:id     id
+                    :action :end}))
+
+(defn- update-edit-sessions [editing {:keys [id action]}]
+  (if (= action :start)
+    (conj editing id)
+    (disj editing id)))
+
+(def ^:private onbeforeload-processor
+  (let [editing-onbeforeload$ (a/tap editing-mult$ (a/chan))]
+    (a/go-loop [editing #{}]
+               (when-some [value (a/<! editing-onbeforeload$)]
+                 (let [editing' (update-edit-sessions editing value)]
+                   (if (empty? editing')
+                     (set! (.-onbeforeunload js/window) nil)
+                     (set! (.-onbeforeunload js/window) (fn [] true)))
+                   (recur editing'))))))
+
+(def ^:private navigating$ (a/chan))
+(defn- notify-navigation [page-name out-chan]
+  (a/put! navigating$ {:page-name page-name
+                       :out-chan  out-chan}))
+
+(def confirmation-request$ (a/chan))
+
+(def confirmation-response$ (a/chan))
+
+(def ^:private nav-processor
+  (let [editing-nav$ (a/tap editing-mult$ (a/chan))
+        do-post (fn [page-name]
+                  (http/<http-post "/api/page"
+                                    (->> {:page_name page-name}
+                                         (clj->js)
+                                         (.stringify js/JSON))
+                                    {:headers {"Content-Type" "application/json"}}))]
+    (a/go-loop [editing #{}]
+               (let [[value channel] (a/alts! [navigating$ editing-nav$])]
+                 (condp = channel
+                   navigating$ (let [{:keys [page-name out-chan]} value]
+                                 (if (empty? editing)
+                                   (let [result (a/<! (do-post page-name))]
+                                     (a/put! out-chan result)
+                                     (recur #{}))
+
+                                   (let [_ (a/>! confirmation-request$ :confirmation-requested)
+                                         response (a/<! confirmation-response$)]
+                                     (if (= response :ok)
+                                       (let [result (a/<! (do-post page-name))]
+                                         (a/put! out-chan result)
+                                         (recur #{}))
+                                       (recur editing)))))
+                   editing-nav$ (do
+                                  (println "handling message from editing$")
+                                  (recur (update-edit-sessions editing value))))))))
+
+(defn- <load-page! [db page-name]
+  (a/go
+    (let [completed (a/promise-chan)
+          _ (notify-navigation page-name completed)
+          result (a/<! completed)]
+      (when (not (= :canceled result))
+        (let [{body-text :body :as _response} (a/<! completed)
+              body (js/JSON.parse body-text)]
+          (load-page db body)
+          (js/window.scroll 0 0))))))
+
+(defn <reload-page [db]
+  (<load-page! db (:current-page @db)))
+
+(defn- <go-new! [db page-name]
+  (a/go
+    (a/<! (<load-page! db page-name))
+    (swap! db assoc :mode :viewing)))
 
 (defn page-name->url [page-name]
   (if (= "/" page-name)
     "/"
     (str "/pages/" page-name)))
+
+(defn push-state
+  ([state-map url]
+   (js/history.pushState (clj->js state-map) "" url))
+  ([state-map]
+   (push-state state-map "")))
+
+(defn navigate-to [page-name]
+  (let [url (page-name->url page-name)
+        state {:page-name page-name}]
+    (push-state state url)))
+
+(defn <navigate! [db page-name]
+  (a/go
+    (a/<! (<go-new! db page-name))
+    (navigate-to page-name)))
+
+(defn <on-link-clicked [db e target aux-clicked?]
+  (.preventDefault e)
+  (cond
+    (or (.-ctrlKey e) aux-clicked?)
+    (let [chan (a/put! (a/promise-chan) :open)]
+      (js/window.open (page-name->url target))
+      chan)
+
+    :else
+    (<navigate! db target)))
+
+;; endregion
+
+;; region history
 
 (defn- get-pathname [] (-> js/window .-location .-pathname))
 
@@ -97,15 +209,11 @@
   ([state-map]
    (replace-state state-map "")))
 
-(defn- push-state
-  ([state-map url]
-   (js/history.pushState (clj->js state-map) "" url))
-  ([state-map]
-   (push-state state-map "")))
+;; note - push-state resides above
 
 (defn- pop-state-handler [db state]
   (let [page-name (popstate->page-name db state)]
-    (go-new-async! db page-name)))
+    (<go-new! db page-name)))
 
 ;; endregion
 
@@ -124,27 +232,5 @@
             page-name (pathname->page-name pathname)
             state {:page-name page-name}]
         (replace-state state url)))))
-
-;; endregion
-
-;; region links
-
-(defn- navigate-to [page-name]
-  (let [url (page-name->url page-name)
-        state {:page-name page-name}]
-    (push-state state url)))
-
-(defn navigate-async! [db page-name]
-  (-> (go-new-async! db page-name)
-      (p/then (fn [] (navigate-to page-name)))))
-
-(defn on-link-clicked [db e target aux-clicked?]
-  (.preventDefault e)
-  (cond
-    (or (.-ctrlKey e) aux-clicked?)
-    (js/window.open (page-name->url target))
-
-    :else
-    (navigate-async! db target)))
 
 ;; endregion

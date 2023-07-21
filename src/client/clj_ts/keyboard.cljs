@@ -1,9 +1,8 @@
 (ns clj-ts.keyboard
-  (:require [clj-ts.card :as cards]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
+            [clj-ts.card :as cards]
             [clj-ts.navigation :as nav]
-            [clj-ts.page :as page]
-            [promesa.core :as p]))
+            [clj-ts.page :as page]))
 
 (def key-enter-code 13)
 (def key-escape-code 27)
@@ -16,7 +15,7 @@
 
 (defn editor-on-key-s-press [db e]
   (.preventDefault e)
-  (page/save-page-async! db))
+  (page/save-page-async! db identity))
 
 (defn editor-on-ctrl-shift-s-press [db e]
   (.preventDefault e)
@@ -55,7 +54,7 @@
         page-name input-value]
     (when (and (= key-code key-enter-code)
                (seq input-value))
-      (nav/navigate-async! db page-name))))
+      (nav/<navigate! db page-name))))
 
 ;; endregion
 

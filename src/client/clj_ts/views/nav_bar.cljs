@@ -1,6 +1,6 @@
 (ns clj-ts.views.nav-bar
-  (:require [clojure.string :as str]
-            [promesa.core :as p]
+  (:require [cljs.core.async :as a]
+            [clojure.string :as str]
             [reagent.core :as r]
             [sci.core :as sci]
             [clj-ts.http :as http]
@@ -47,11 +47,12 @@
       (let [query (->> {:query_string cleaned-query}
                        (clj->js)
                        (.stringify js/JSON))
-            callback (fn [{body-text :body}]
-                       (let [body (.parse js/JSON body-text)]
-                         (load-search-results! db cleaned-query body)))]
-        (-> (http/http-post-async "/api/search" query {:headers {"Content-Type" "application/json"}})
-            (p/then callback))))))
+            options {:headers {"Content-Type" "application/json"}}]
+        (a/go
+          (when-let [result (a/<! (http/<http-post "/api/search" query options))]
+            (let [{body-text :body} result
+                  body (.parse js/JSON body-text)]
+              (load-search-results! db cleaned-query body))))))))
 
 (defn- on-search-clicked [db query-text]
   (let [query-text (-> (or query-text "")
@@ -60,10 +61,10 @@
       (search-text-async! db query-text))))
 
 (defn- on-navigate-clicked [db input-value]
-  (let [inputValue (-> (or input-value "")
-                       (str/trim))]
-    (when (not (str/blank? inputValue))
-      (nav/navigate-async! db inputValue))))
+  (let [input-value (-> (or input-value "")
+                        (str/trim))]
+    (when (not (str/blank? input-value))
+      (nav/<navigate! db input-value))))
 
 ;; endregion
 
@@ -87,7 +88,7 @@
     (swap! db assoc :mode :transcript)
 
     :else
-    (nav/on-link-clicked db e target aux-clicked?)))
+    (nav/<on-link-clicked db e target aux-clicked?)))
 
 ;; endregion
 

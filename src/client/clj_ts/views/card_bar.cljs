@@ -1,5 +1,5 @@
 (ns clj-ts.views.card-bar
-  (:require [promesa.core :as p]
+  (:require [cljs.core.async :as a]
             [reagent.core :as r]
             [clj-ts.http :as http]
             [clj-ts.navigation :as nav]
@@ -17,15 +17,17 @@
   (let [body (pr-str {:from page-name
                       :to   new-page-name
                       :hash hash})]
-    (-> (http/http-post-async "/api/movecard" body)
-        (p/then (fn [] (nav/navigate-async! db new-page-name))))))
+    (a/go
+      (when-let [_ (a/<! (http/<http-post "/api/movecard" body))]
+        (nav/<navigate! db new-page-name)))))
 
 (defn card-reorder-async! [db page-name hash direction]
   (let [body (pr-str {:page      page-name
                       :hash      hash
                       :direction direction})]
-    (-> (http/http-post-async "/api/reordercard" body)
-        (p/then (fn [] (nav/reload-async! db))))))
+    (a/go
+      (when-let [_ (a/<! (http/<http-post "/api/reordercard" body))]
+        (nav/<reload-page db)))))
 
 (defn toggle! [state]
   (if (= (-> @state :toggle) "none")

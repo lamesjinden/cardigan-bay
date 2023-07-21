@@ -64,17 +64,17 @@
                           :calc             []
                           :result           ""
                           :editor           nil
-                          :editor-element   nil
                           :code-editor-size :small
                           :code             (get card "server_prepared_data")
                           :hash             (get card "hash")
                           :source_type      (get card "source_type")})
+        !editor-element (clojure.core/atom nil)
         tracking (reagent.core/track! (fn []
                                         (if (theme/light-theme? db)
                                           (ace/set-theme! (:editor @local-db) ace/ace-theme)
                                           (ace/set-theme! (:editor @local-db) ace/ace-theme-dark))))]
     (reagent.core/create-class
-      {:component-did-mount    (fn [] (let [editor-element (:editor-element @local-db)
+      {:component-did-mount    (fn [] (let [editor-element @!editor-element
                                             ace-instance (.edit js/ace editor-element)
                                             max-lines (->> (:code-editor-size @local-db)
                                                            (get size->editor-max-lines))
@@ -90,7 +90,6 @@
        :reagent-render         (fn []
                                  [:div.workspace
                                   [:div.workspace-header-container
-                                   [:h3.workspace-header "Workspace"]
                                    [:div.visibility-buttons
                                     [:button.big-btn.big-btn-left {:class    (when (-> @local-db :code-toggle) "pressed")
                                                                    :on-click (fn [] (toggle-code! local-db))}
@@ -117,7 +116,7 @@
                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
                                       [:button.big-btn {:on-click (fn [] (resize-editor! db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
-                                    [:div.workspace-editor {:ref         (fn [element] (swap! local-db assoc :editor-element element))
+                                    [:div.workspace-editor {:ref         (fn [element] (reset! !editor-element element))
                                                             :on-key-down (fn [e] (keyboard/workspace-editor-on-key-down db local-db e))}
                                      (str/trim (-> @local-db :code))]]]
 

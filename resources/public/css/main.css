@@ -198,6 +198,10 @@ main {
   margin: calc(-1*var(--material-icon-size)) 5px 5px 5px;
 }
 
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 /*#region input */
 
 input:focus-visible {
@@ -664,6 +668,13 @@ ul.system-card-list {
   margin-left: auto;
 }
 
+@media (max-width: 500px) {
+  .pastebar .edit-actions {
+    margin-left: unset;
+    right: unset;
+  }
+}
+
 /*#endregion */
 
 /*#region tool_bar */
@@ -688,10 +699,11 @@ ul.system-card-list {
 .workspace-header-container {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
 }
 
 .workspace-header-container>* {
-  flex: 1 1 0;
+  /* flex: 1 1 0; */
   margin-bottom: 1em;
   ;
 }
@@ -717,6 +729,7 @@ ul.system-card-list {
 
 :is(.code-section-header-container, .calculated-section, .result-section)>h4 {
   margin: 0.912rem 5px 0 0 !important;
+  white-space: nowrap;
 }
 
 .code-section-header-container {

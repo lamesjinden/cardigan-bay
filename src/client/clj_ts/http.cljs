@@ -1,17 +1,15 @@
 (ns clj-ts.http
-  (:require [promesa.core :as p])
+  (:require [cljs.core.async :as a])
   (:import [goog.net XhrIo]))
 
 (goog-define env "production")
 (goog-define env-port "")
 
-;; region promise-based implementations
-
-(defn http-send-async [{:keys [url method body headers timeout with-credentials?]
-                        :or   {body              nil
-                               headers           nil
-                               timeout           0
-                               with-credentials? false}}]
+(defn- <http-send [{:keys [url method body headers timeout with-credentials?]
+                    :or   {body              nil
+                           headers           nil
+                           timeout           0
+                           with-credentials? false}}]
   (when (not url)
     (throw (js/error "url was not defined")))
   (when (not method)
@@ -21,15 +19,14 @@
         url (if (= env "dev")
               (str "//" hostname ":" env-port url)
               url)
-        deferred (p/deferred)
+        chan (a/promise-chan)
         callback (fn [e]
-                   (let [response {:status     (.getStatus (.-target e))
-                                   :statusText (.getStatusText (.-target e))
+                   (let [response {:status     (-> e (.-target) (.getStatus))
+                                   :statusText (-> e (.-target) (.getStatusText))
                                    :headers    (-> e (.-target) (.getResponseHeaders))
                                    :body       (-> e (.-target) (.getResponseText))}]
-                     (if (.isSuccess (.-target e))
-                       (p/resolve! deferred response)
-                       (p/reject! deferred response))))]
+                     (when (.isSuccess (.-target e))
+                       (a/put! chan response))))]
     (.send XhrIo
            url
            callback
@@ -38,23 +35,19 @@
            (clj->js headers)
            timeout
            with-credentials?)
-    deferred))
+    chan))
 
-(defn http-get-async [url & {:keys [headers timeout with-credentials?]}]
-  (http-send-async {:url               url
-                    :method            "GET"
-                    :headers           headers
-                    :timeout           timeout
-                    :with-credentials? with-credentials?}))
+(defn <http-get [url & {:keys [headers timeout with-credentials?]}]
+  (<http-send {:url               url
+               :method            "GET"
+               :headers           headers
+               :timeout           timeout
+               :with-credentials? with-credentials?}))
 
-(defn http-post-async [url body & {:keys [headers timeout with-credentials?]}]
-  (http-send-async {:url               url
-                    :method            "POST"
-                    :body              body
-                    :headers           headers
-                    :timeout           timeout
-                    :with-credentials? with-credentials?}))
-
-;; endregion
-
-
+(defn <http-post [url body & {:keys [headers timeout with-credentials?]}]
+  (<http-send {:url               url
+               :method            "POST"
+               :body              body
+               :headers           headers
+               :timeout           timeout
+               :with-credentials? with-credentials?}))

@@ -1,5 +1,5 @@
 (ns clj-ts.page
-  (:require [promesa.core :as p]
+  (:require [cljs.core.async :as a]
             [clj-ts.http :as http]
             [clj-ts.navigation :as nav]))
 
@@ -16,19 +16,22 @@
   (enter-view-mode! db))
 
 (defn save-page-async!
-  [db]
-  (let [page-name (-> @db :current-page)
-        ace-instance (:ace-instance @db)
-        new-data (.getValue ace-instance)
-        body (pr-str {:page page-name
-                      :data new-data})
-        callback (fn [{body-text :body}]
-                   (if (nil? body)
-                     (nav/reload-async! db)
-                     (let [body (js/JSON.parse body-text)]
-                       (nav/load-page db body))))]
-    (-> (http/http-post-async "/api/save" body)
-        (p/then callback))))
+  ([db callback]
+   (let [page-name (-> @db :current-page)
+         editor (:editor @db)
+         new-data (.getValue editor)
+         body (pr-str {:page page-name
+                       :data new-data})]
+     (a/go
+       (when-let [result (a/<! (http/<http-post "/api/save" body))]
+         (callback result)))))
+  ([db]
+   (let [callback (fn [{body-text :body}]
+                    (if (nil? body-text)
+                      (nav/<reload-page db)
+                      (let [body (js/JSON.parse body-text)]
+                        (nav/load-page db body))))]
+     (save-page-async! db callback))))
 
 (defn save-card-async!
   [page-name hash new-val]
@@ -37,5 +40,7 @@
                       :hash hash})
         callback (fn [{body-text :body}]
                    (js/JSON.parse body-text))]
-    (-> (http/http-post-async "/api/replacecard" body)
-        (p/then callback))))
+    (a/go
+      (when-let [result (a/<! (http/<http-post "/api/replacecard" body))]
+        (let [{body-text :body} result]
+          (js/JSON.parse body-text))))))
