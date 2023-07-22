@@ -11,15 +11,15 @@
 ;; region global editor
 
 (defn editor-on-escape-press [db]
-  (nav/reload-async! db))
+  (nav/<reload-page! db))
 
 (defn editor-on-key-s-press [db e]
   (.preventDefault e)
-  (page/save-page-async! db identity))
+  (page/<save-page! db identity))
 
 (defn editor-on-ctrl-shift-s-press [db e]
   (.preventDefault e)
-  (page/save-page-async! db))
+  (page/<save-page! db))
 
 (defn editor-on-key-down [db e]
   (when (= (-> @db :mode) :editing)

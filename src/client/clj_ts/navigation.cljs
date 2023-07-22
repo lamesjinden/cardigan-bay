@@ -5,7 +5,7 @@
 
 ;; region load page
 
-(defn load-page [db body]
+(defn load-page! [db body]
   (let [edn (js->clj body)
         source-page (get edn "source_page")
         server-prepared-page (get edn "server_prepared_page")
@@ -29,30 +29,12 @@
            :mode :viewing
            :card-list-expanded-state :expanded)))
 
-(defn- load-page-async! [db page-name]
-  (let [query (->> {:page_name page-name}
-                   (clj->js)
-                   (.stringify js/JSON))
-        options {:headers {"Content-Type" "application/json"}}]
-    (a/go
-      (when-let [result (a/<! (http/<http-post "/api/page" query options))]
-        (let [{body-text :body} result
-              body (.parse js/JSON body-text)]
-          (load-page db body))
-        (js/window.scroll 0 0)))))
-
-(defn load-init-async! [db]
+(defn <get-init []
   (a/go
     (when-let [result (a/<! (http/<http-get "/api/init"))]
       (let [{body-text :body} result
             body (.parse js/JSON body-text)]
-        (load-page db body)))))
-
-(defn reload-async! [db]
-  (load-page-async! db (:current-page @db)))
-
-(defn load-start-page-async! [db]
-  (load-init-async! db))
+        body))))
 
 ;; endregion
 
@@ -97,10 +79,10 @@
   (let [editing-nav$ (a/tap editing-mult$ (a/chan))
         do-post (fn [page-name]
                   (http/<http-post "/api/page"
-                                    (->> {:page_name page-name}
-                                         (clj->js)
-                                         (.stringify js/JSON))
-                                    {:headers {"Content-Type" "application/json"}}))]
+                                   (->> {:page_name page-name}
+                                        (clj->js)
+                                        (.stringify js/JSON))
+                                   {:headers {"Content-Type" "application/json"}}))]
     (a/go-loop [editing #{}]
                (let [[value channel] (a/alts! [navigating$ editing-nav$])]
                  (condp = channel
@@ -117,9 +99,7 @@
                                          (a/put! out-chan result)
                                          (recur #{}))
                                        (recur editing)))))
-                   editing-nav$ (do
-                                  (println "handling message from editing$")
-                                  (recur (update-edit-sessions editing value))))))))
+                   editing-nav$ (recur (update-edit-sessions editing value)))))))
 
 (defn- <load-page! [db page-name]
   (a/go
@@ -129,10 +109,10 @@
       (when (not (= :canceled result))
         (let [{body-text :body :as _response} (a/<! completed)
               body (js/JSON.parse body-text)]
-          (load-page db body)
+          (load-page! db body)
           (js/window.scroll 0 0))))))
 
-(defn <reload-page [db]
+(defn <reload-page! [db]
   (<load-page! db (:current-page @db)))
 
 (defn- <go-new! [db page-name]

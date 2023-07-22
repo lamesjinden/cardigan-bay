@@ -15,7 +15,7 @@
 (defn cancel-async! [db]
   (enter-view-mode! db))
 
-(defn save-page-async!
+(defn <save-page!
   ([db callback]
    (let [page-name (-> @db :current-page)
          editor (:editor @db)
@@ -28,18 +28,16 @@
   ([db]
    (let [callback (fn [{body-text :body}]
                     (if (nil? body-text)
-                      (nav/<reload-page db)
+                      (nav/<reload-page! db)
                       (let [body (js/JSON.parse body-text)]
-                        (nav/load-page db body))))]
-     (save-page-async! db callback))))
+                        (nav/load-page! db body))))]
+     (<save-page! db callback))))
 
-(defn save-card-async!
+(defn <save-card!
   [page-name hash new-val]
   (let [body (pr-str {:page page-name
                       :data new-val
-                      :hash hash})
-        callback (fn [{body-text :body}]
-                   (js/JSON.parse body-text))]
+                      :hash hash})]
     (a/go
       (when-let [result (a/<! (http/<http-post "/api/replacecard" body))]
         (let [{body-text :body} result]

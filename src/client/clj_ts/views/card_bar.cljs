@@ -13,7 +13,7 @@
 {:from \"" from-page "\"
  :ids [\"" hash "\"] } ")))
 
-(defn card-send-to-page-async! [db page-name hash new-page-name]
+(defn- <card-send-to-page! [db page-name hash new-page-name]
   (let [body (pr-str {:from page-name
                       :to   new-page-name
                       :hash hash})]
@@ -21,15 +21,15 @@
       (when-let [_ (a/<! (http/<http-post "/api/movecard" body))]
         (nav/<navigate! db new-page-name)))))
 
-(defn card-reorder-async! [db page-name hash direction]
+(defn- <card-reorder! [db page-name hash direction]
   (let [body (pr-str {:page      page-name
                       :hash      hash
                       :direction direction})]
     (a/go
       (when-let [_ (a/<! (http/<http-post "/api/reordercard" body))]
-        (nav/<reload-page db)))))
+        (nav/<reload-page! db)))))
 
-(defn toggle! [state]
+(defn- toggle! [state]
   (if (= (-> @state :toggle) "none")
     (swap! state #(conj % {:toggle "block"}))
     (swap! state #(conj % {:toggle "none"}))))
@@ -42,14 +42,14 @@
     (fn [db card]
       [:div
        [:div {:class :card-gutter}
-        [:div {:on-click (fn [] (card-reorder-async!
+        [:div {:on-click (fn [] (<card-reorder!
                                   db
                                   (-> @db :current-page)
                                   (get card "hash")
                                   "up"))
                :class    [:material-symbols-sharp :clickable]}
          "expand_less"]
-        [:div {:on-click (fn [] (card-reorder-async!
+        [:div {:on-click (fn [] (<card-reorder!
                                   db
                                   (-> @db :current-page)
                                   (get card "hash")
@@ -84,7 +84,7 @@
                    :on-change #(reset! send-value (-> % .-target .-value))}]
           [:button {:on-click
                     (fn []
-                      (card-send-to-page-async!
+                      (<card-send-to-page!
                         db
                         (-> @db :current-page)
                         (get card "hash")

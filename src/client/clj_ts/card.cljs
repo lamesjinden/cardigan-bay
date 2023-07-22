@@ -26,7 +26,7 @@
 (defn replace-card-async! [db current-hash new-card-body]
   (let [page-name (:current-page @db)]
     (a/go
-      (when-let [json (a/<! (page/save-card-async! page-name current-hash new-card-body))]
+      (when-let [json (a/<! (page/<save-card! page-name current-hash new-card-body))]
         (let [edn (js->clj json)
               replaced-hash (get edn "replaced-hash")
               new-card (get edn "new-card")

@@ -12,7 +12,6 @@
                                                 (let [return-value (if (= "default" (.-returnValue @!dialog))
                                                                      :ok
                                                                      :cancel)]
-                                                  (println "putting" return-value "derived from" (.-returnValue @!dialog))
                                                   (a/put! response-chan return-value)
                                                   (set! (.-returnValue @!dialog) nil)))}
        [:form

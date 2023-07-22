@@ -1,8 +1,8 @@
 (ns clj-ts.client
   (:require
+    [cljs.core.async :as a]
     [reagent.core :as r]
     [reagent.dom :as dom]
-    [promesa.core :as p]
     [clj-ts.mode :as mode]
     [clj-ts.theme :as theme]
     [clj-ts.navigation :as nav]
@@ -46,26 +46,27 @@
 
 ; request and load the start-page
 
-(def resolved (p/resolved 0))
-
-(defn configure-async! []
-  (if (:initialized? @db)
-    resolved
-    (let [init (first (.-init js/window))
-          loaded-p (if (object? init)
-                     (p/resolved (nav/load-page db init))
-                     (nav/load-start-page-async! db))]
-      (p/then loaded-p (fn []
-                         (mode/set-view-mode! db)
-                         (swap! db assoc :initialized? true)
-                         (nav/hook-pop-state db)
-                         (nav/replace-state-initial)
-                         (js/window.scroll 0 0))))))
-
 (defn render-app []
   (dom/render [app] (.querySelector js/document "#app")))
 
-(-> (configure-async!)
-    (p/then (fn [] (render-app))))
+(let [render$ (cond
+                (:init-dispatch @db)
+                (doto (a/promise-chan) (a/put! 0))
+
+                :else (let [init-config (first (.-init js/window))
+                            init-body$ (if (object? init-config)
+                                         (doto (a/promise-chan) (a/put! init-config))
+                                         (nav/<get-init))]
+                        (a/go
+                          (let [init (a/<! init-body$)]
+                            (nav/load-page! db init)
+                            (mode/set-view-mode! db)
+                            (swap! db assoc :initialized? true)
+                            (nav/hook-pop-state db)
+                            (nav/replace-state-initial)
+                            (js/window.scroll 0 0)))))]
+  (a/go
+    (let [_ (a/<! render$)]
+      (render-app))))
 
 ;; endregion

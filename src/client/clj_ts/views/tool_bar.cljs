@@ -19,7 +19,7 @@
            [:button.big-btn.big-btn-right
             {:on-click (fn []
                          (mode/set-view-mode! db)
-                         (page/save-page-async! db))}
+                         (page/<save-page! db))}
             [:span {:class [:material-symbols-sharp :clickable]} "save"]]]]
 
          :viewing
