@@ -15,14 +15,16 @@
                                                   (a/put! response-chan return-value)
                                                   (set! (.-returnValue @!dialog) nil)))}
        [:form
-        [:p "You have unsaved changes. Do you want to discard them?"]
-        [:div
-         [:button {:value       "cancel"
-                   :form-method "dialog"
-                   :on-click    (fn [e] (.close @!dialog))}
+        [:div.dialog-description-container
+         [:div "You have unsaved changes."]
+         [:div "Do you want to discard them?"]]
+        [:div.dialog-actions-container
+         [:button.big-btn.big-btn-left {:value       "cancel"
+                                        :form-method "dialog"
+                                        :on-click    (fn [_] (.close @!dialog))}
           "Cancel"]
-         [:button {:value    "default"
-                   :on-click (fn [e]
-                               (.preventDefault e)
-                               (.close @!dialog "default"))}
+         [:button.big-btn.big-btn-right {:value    "default"
+                                         :on-click (fn [e]
+                                                     (.preventDefault e)
+                                                     (.close @!dialog "default"))}
           "OK"]]]])))
