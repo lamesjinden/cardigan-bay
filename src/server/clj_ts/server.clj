@@ -1,23 +1,24 @@
 (ns clj-ts.server
-  (:require [clojure.java.io :as io]
+  (:require [clojure.data.json :as json]
             [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.cli :as cli]
-            [clj-ts.util :as util]
-            [clj-ts.render :as render]
-            [clj-ts.card-server :as card-server]
-            [clj-ts.export.static-export :as export]
-            [clj-ts.storage.page_store :as pagestore]
             [org.httpkit.server :refer [run-server]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.json :refer [wrap-json-body]]
+            [ring.util.codec :as codec]
             [ring.util.response :as resp]
-            [clojure.data.json :as json]
             [selmer.parser]
-            [selmer.util])
+            [selmer.util]
+            [clj-ts.util :as util]
+            [clj-ts.render :as render]
+            [clj-ts.card-server :as card-server]
+            [clj-ts.export.static-export :as export]
+            [clj-ts.storage.page_store :as pagestore])
   (:gen-class)
   (:import (clojure.lang Atom)))
 
@@ -32,14 +33,6 @@
         hash (:hash form-body)
         new-page-name (:to form-body)]
     (card-server/move-card! card-server page-name hash new-page-name)
-    (util/create-ok)))
-
-(defn handle-api-reorder-card [{:keys [card-server] :as request}]
-  (let [form-body (-> request :body .bytes slurp edn/read-string)
-        page-name (:page form-body)
-        hash (:hash form-body)
-        direction (:direction form-body)]
-    (card-server/reorder-card! card-server page-name hash direction)
     (util/create-ok)))
 
 (defn get-page-data [server-snapshot arguments]
@@ -148,7 +141,7 @@
 (defn handle-pages-request [{:keys [card-server] :as request}]
   (let [uri (:uri request)
         match (re-matches pages-request-pattern uri)
-        page-name (ring.util.codec/url-decode (get match 1))
+        page-name (codec/url-decode (get match 1))
         server-snapshot @card-server]
     (if (clj-ts.card-server/page-exists? server-snapshot page-name)
       (-> (render-page-config card-server index-local-path page-name)
@@ -161,6 +154,14 @@
         page-name (:page form-body)
         body (:data form-body)]
     (card-server/write-page-to-file! card-server page-name body)
+    (get-page-response card-server page-name)))
+
+(defn handle-api-reorder-card [{:keys [card-server] :as request}]
+  (let [form-body (-> request :body .bytes slurp edn/read-string)
+        page-name (:page form-body)
+        hash (:hash form-body)
+        direction (:direction form-body)]
+    (card-server/reorder-card! card-server page-name hash direction)
     (get-page-response card-server page-name)))
 
 (defn handle-api-rss-recent-changes [{:keys [card-server] :as _request}]

@@ -29,6 +29,12 @@
            :mode :viewing
            :card-list-expanded-state :expanded)))
 
+(defn load-page-response [db response]
+  (let [{body-text :body} response
+        body (js/JSON.parse body-text)]
+    (load-page! db body)
+    (js/window.scroll 0 0)))
+
 (defn <get-init []
   (a/go
     (when-let [result (a/<! (http/<http-get "/api/init"))]
@@ -105,12 +111,9 @@
   (a/go
     (let [completed (a/promise-chan)
           _ (notify-navigation page-name completed)
-          result (a/<! completed)]
-      (when (not (= :canceled result))
-        (let [{body-text :body :as _response} (a/<! completed)
-              body (js/JSON.parse body-text)]
-          (load-page! db body)
-          (js/window.scroll 0 0))))))
+          response (a/<! completed)]
+      (when (not (= :canceled response))
+        (load-page-response db response)))))
 
 (defn <reload-page! [db]
   (<load-page! db (:current-page @db)))

@@ -26,8 +26,8 @@
                       :hash      hash
                       :direction direction})]
     (a/go
-      (when-let [_ (a/<! (http/<http-post "/api/reordercard" body))]
-        (nav/<reload-page! db)))))
+      (when-let [response (a/<! (http/<http-post "/api/reordercard" body))]
+        (nav/load-page-response db response)))))
 
 (defn- toggle! [state]
   (if (= (-> @state :toggle) "none")
