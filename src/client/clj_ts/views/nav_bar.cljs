@@ -18,6 +18,14 @@
 (defn- on-clear-clicked [^Atom input-value]
   (clear-input! input-value))
 
+(defn nav-input-on-key-enter [db e]
+  (let [key-code (.-keyCode e)
+        input-value (-> e .-target .-value str/trim)
+        page-name input-value]
+    (when (and (= key-code keyboard/key-enter-code)
+               (seq input-value))
+      (nav/<navigate! db page-name))))
+
 ;; endregion
 
 ;; region search
@@ -97,7 +105,7 @@
            :class       :nav-input-text
            :value       @value
            :on-change   #(reset! value (-> % .-target .-value))
-           :on-key-up   #(keyboard/nav-input-on-key-enter db %)
+           :on-key-up   #(nav-input-on-key-enter db %)
            :placeholder "Navigate, Search, or Eval"}])
 
 (defn nav-bar [db db-nav-links]

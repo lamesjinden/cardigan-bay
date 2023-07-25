@@ -1,13 +1,10 @@
 (ns clj-ts.views.card-shell
   (:require [reagent.core :as r]
-            [clj-ts.ace :as ace]
             [clj-ts.card :as cards]
-            [clj-ts.keyboard :as keyboard]
             [clj-ts.navigation :as nav]
-            [clj-ts.theme :as theme]
             [clj-ts.view :refer [->display]]
             [clj-ts.views.card-bar :refer [card-bar]]
-            [clj-ts.views.paste-bar :refer [paste-bar]]))
+            [clj-ts.views.editor-single :refer [single-editor]]))
 
 (defn expanded? [local-db]
   (:toggle @local-db))
@@ -29,53 +26,9 @@
   (when (not= :editing (:mode @local-db))
     (swap! local-db assoc :mode :editing)))
 
-;; region single-card editor
-
-(defn- setup-editor [db local-db !editor-element]
-  (let [editor-element @!editor-element
-        ace-instance (.edit js/ace editor-element)
-        ace-options (assoc ace/default-ace-options :maxLines "Infinity")
-        theme (if (theme/light-theme? db) ace/ace-theme ace/ace-theme-dark)]
-    (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown theme ace-options)
-    (.focus ace-instance)
-    (swap! local-db assoc :editor ace-instance)
-
-    ;; note - tracking over 2 ratoms causes the subscribe function to be invoked continuously;
-    ;;        to compensate, tracking declaration closes over the editor instance instead of deref'ing it.
-    (let [tracking (r/track! (fn []
-                               (if (theme/light-theme? db)
-                                 (ace/set-theme! ace-instance ace/ace-theme)
-                                 (ace/set-theme! ace-instance ace/ace-theme-dark))))]
-      (swap! local-db assoc :tracking tracking))))
-
-(defn- destroy-editor [local-db]
-  (let [editor (:editor @local-db)]
-    (when editor
-      (.destroy editor))))
-
-(defn- single-editor [db local-db !editor-element]
-  (r/create-class
-    {:component-did-mount    (fn []
-                               (setup-editor db local-db !editor-element)
-                               (nav/notify-editing-begin (:hash @local-db)))
-     :component-will-unmount (fn []
-                               (destroy-editor local-db)
-                               (when-let [tracking (:tracking @local-db)]
-                                 (r/dispose! tracking))
-                               (nav/notify-editing-end (:hash @local-db)))
-     :reagent-render         (fn []
-                               [:<>
-                                [paste-bar db local-db]
-                                [:div.edit-box-single {:ref         (fn [element] (reset! !editor-element element))
-                                                       :on-key-down (fn [e] (keyboard/single-editor-on-key-down db local-db e))
-                                                       :on-key-up   (fn [e] (keyboard/single-editor-on-key-up local-db e))}
-                                 (get (:card @local-db) "source_data")]])}))
-
 (defn- on-link-clicked [db e aux-clicked?]
   (when-let [target (cards/wikilink-data e)]
     (nav/<on-link-clicked db e target aux-clicked?)))
-
-;; endregion
 
 (defn card-shell [db db-card-list-expanded card component]
   (let [local-db (r/atom {:toggle true

@@ -57,10 +57,18 @@
   (a/put! editing$ {:id     id
                     :action :end}))
 
+(defn notify-editing-ending [id]
+  (let [out-chan (a/promise-chan)]
+    (a/put! editing$ {:id       id
+                      :action   :ending
+                      :out-chan out-chan})
+    out-chan))
+
 (defn- update-edit-sessions [editing {:keys [id action]}]
-  (if (= action :start)
-    (conj editing id)
-    (disj editing id)))
+  (condp = action
+    :start (conj editing id)
+    :end (disj editing id)
+    editing))
 
 (def ^:private onbeforeload-processor
   (let [editing-onbeforeload$ (a/tap editing-mult$ (a/chan))]
@@ -76,6 +84,8 @@
 (defn- notify-navigation [page-name out-chan]
   (a/put! navigating$ {:page-name page-name
                        :out-chan  out-chan}))
+
+;(def ^:private )
 
 (def confirmation-request$ (a/chan))
 
@@ -105,7 +115,21 @@
                                          (a/put! out-chan result)
                                          (recur #{}))
                                        (recur editing)))))
-                   editing-nav$ (recur (update-edit-sessions editing value)))))))
+
+                   editing-nav$ (let [{:keys [id action]} value]
+                                  (if (= action :ending)
+                                    (let [out-chan (:out-chan value)]
+                                      (if (contains? editing id)
+                                        (let [_ (a/>! confirmation-request$ :confirmation-requested)
+                                              response (a/<! confirmation-response$)]
+                                          (a/>! out-chan response)
+                                          (if (= response :ok)
+                                            (recur (update-edit-sessions editing {:id id :action :end}))
+                                            (recur editing)))
+                                        (do
+                                          (a/>! out-chan :ok)
+                                          (recur editing))))
+                                    (recur (update-edit-sessions editing value)))))))))
 
 (defn- <load-page! [db page-name]
   (a/go

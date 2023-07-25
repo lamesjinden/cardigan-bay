@@ -57,6 +57,19 @@
         new-body (-> @state :editor (.getValue))]
     (cards/replace-card-async! db current-hash new-body)))
 
+(defn- workspace-editor-on-key-s-press [db local-db e]
+  (.preventDefault e)
+  (let [current-hash (-> @local-db :hash)
+        new-body (->> @local-db :editor (.getValue))]
+    (cards/replace-card-async! db current-hash new-body)))
+
+(defn- workspace-editor-on-key-down [db local-db e]
+  (let [key-code (.-keyCode e)
+        control? (.-ctrlKey e)]
+    (when (and (= key-code keyboard/key-s-code)
+               control?)
+      (workspace-editor-on-key-s-press db local-db e))))
+
 (defn workspace [db card]
   (let [local-db (r/atom {:code-toggle      true
                           :calc-toggle      false
@@ -117,7 +130,7 @@
                                       [:button.big-btn {:on-click (fn [] (resize-editor! db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
                                     [:div.workspace-editor {:ref         (fn [element] (reset! !editor-element element))
-                                                            :on-key-down (fn [e] (keyboard/workspace-editor-on-key-down db local-db e))}
+                                                            :on-key-down (fn [e] (workspace-editor-on-key-down db local-db e))}
                                      (str/trim (-> @local-db :code))]]]
 
                                   (when (:calc-toggle @local-db)
