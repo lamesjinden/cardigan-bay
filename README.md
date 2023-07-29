@@ -21,6 +21,7 @@
 * Added [cljfmt](https://github.com/weavejester/cljfmt) formatting to Workspace cards
 * Added Expand-All / Collapse-All cards functionality 
 * Added keyboard shortcuts when editing page content
+* Added confirmation dialog when leaving an active editor
 
 ### Development
 
@@ -29,7 +30,7 @@
 * Use [Babaska](https://book.babashka.org/#tasks) task runner to invoke dev scripts
 * Restructure src layout (client and server applications)
 * API endpoints (additions, subtractions, updates)
-* Represent async client operations using Promesa promises
+* Represent async client operations using cljs.core.async
 
 ## Getting Started (as Developer)
 
