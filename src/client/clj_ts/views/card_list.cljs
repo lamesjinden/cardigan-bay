@@ -66,7 +66,7 @@
             [:div.user-card-list
              (let [cards @db-cards]
                (for [card (filter view/not-blank? cards)]
-                 [:div.user-car-list-item {:key (key-fn card)}
+                 [:div.user-card-list-item {:key (key-fn card)}
                   (try
                     [card-shell db card-list-expanded$ card (card->component db card)]
                     (catch :default e

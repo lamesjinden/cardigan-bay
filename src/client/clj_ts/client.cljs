@@ -34,7 +34,7 @@
   (reagent.core/track! (partial theme/toggle-app-theme db))
 
   (let [rx-mode (r/cursor db [:mode])]
-    [:div.app-container
+    [:<>
      [confirmation-dialog nav/confirmation-request$ nav/confirmation-response$]
      [app-header db]
      [app-page-controls db rx-mode]
@@ -47,7 +47,7 @@
 ; request and load the start-page
 
 (defn render-app []
-  (dom/render [app] (.querySelector js/document "#app")))
+  (dom/render [app] (.-body js/document)))
 
 (let [render$ (cond
                 (:initialized? @db)
