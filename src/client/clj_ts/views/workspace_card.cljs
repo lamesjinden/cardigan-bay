@@ -70,6 +70,26 @@
                control?)
       (workspace-editor-on-key-s-press db local-db e))))
 
+(defn- theme-tracker [db local-db]
+  (ace/set-theme! (:editor @local-db)
+                  (if (theme/light-theme? db)
+                    ace/ace-theme
+                    ace/ace-theme-dark)))
+
+(defn- setup-editor [db local-db !editor-element]
+  (let [editor-element @!editor-element
+        ace-instance (.edit js/ace editor-element)
+        max-lines (->> (:code-editor-size @local-db)
+                       (get size->editor-max-lines))
+        editor-options (assoc ace/default-ace-options :maxLines max-lines)
+        theme (if (theme/light-theme? db) ace/ace-theme ace/ace-theme-dark)]
+    (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure theme editor-options)
+    (swap! local-db assoc :editor ace-instance)))
+
+(defn- destroy-editor [local-db]
+  (when-let [editor (:editor @local-db)]
+    (.destroy editor)))
+
 (defn workspace [db card]
   (let [local-db (r/atom {:code-toggle      true
                           :calc-toggle      false
@@ -82,24 +102,13 @@
                           :hash             (get card "hash")
                           :source_type      (get card "source_type")})
         !editor-element (clojure.core/atom nil)
-        tracking (reagent.core/track! (fn []
-                                        (if (theme/light-theme? db)
-                                          (ace/set-theme! (:editor @local-db) ace/ace-theme)
-                                          (ace/set-theme! (:editor @local-db) ace/ace-theme-dark))))]
+        track-theme (r/track! (partial theme-tracker db local-db))]
     (reagent.core/create-class
-      {:component-did-mount    (fn [] (let [editor-element @!editor-element
-                                            ace-instance (.edit js/ace editor-element)
-                                            max-lines (->> (:code-editor-size @local-db)
-                                                           (get size->editor-max-lines))
-                                            editor-options (assoc ace/default-ace-options :maxLines max-lines)
-                                            theme (if (theme/light-theme? db) ace/ace-theme ace/ace-theme-dark)]
-                                        (ace/configure-ace-instance! ace-instance ace/ace-mode-clojure theme editor-options)
-                                        (swap! local-db assoc :editor ace-instance)))
+      {:component-did-mount    (fn []
+                                 (setup-editor db local-db !editor-element))
        :component-will-unmount (fn []
-                                 (let [editor (:editor @local-db)]
-                                   (when editor
-                                     (.destroy editor)))
-                                 (r/dispose! tracking))
+                                 (destroy-editor local-db)
+                                 (r/dispose! track-theme))
        :reagent-render         (fn []
                                  [:div.workspace
                                   [:div.workspace-header-container

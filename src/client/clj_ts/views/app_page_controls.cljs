@@ -1,11 +1,12 @@
 (ns clj-ts.views.app-page-controls
-  (:require [clj-ts.mode :as mode]))
+  (:require [clojure.core.async :as a]
+            [clj-ts.mode :as mode]))
 
 (defn expand-all-cards [db]
-  (swap! db assoc :card-list-expanded-state :expanded))
+  (a/put! (:card-list-expanded$ @db) :expanded))
 
 (defn collapse-all-cards [db]
-  (swap! db assoc :card-list-expanded-state :collapsed))
+  (a/put! (:card-list-expanded$ @db) :collapsed))
 
 (defn app-page-controls [db db-mode]
   (when (mode/viewing? db-mode)

@@ -35,11 +35,19 @@
       (= key-code keyboard/key-escape-code)
       (single-editor-on-escape-press local-db))))
 
-(defn- setup-editor [db local-db !editor-element]
+(defn- theme-tracker [db-theme local-db]
+  (ace/set-theme! (:editor @local-db)
+                  (if (theme/light-theme? @db-theme)
+                    ace/ace-theme
+                    ace/ace-theme-dark)))
+
+(defn- setup-editor [db-theme local-db !editor-element]
   (let [editor-element @!editor-element
         ace-instance (.edit js/ace editor-element)
         ace-options (assoc ace/default-ace-options :maxLines "Infinity")
-        theme (if (theme/light-theme? db) ace/ace-theme ace/ace-theme-dark)]
+        theme (if (theme/light-theme? @db-theme)
+                ace/ace-theme
+                ace/ace-theme-dark)]
     (ace/configure-ace-instance! ace-instance ace/ace-mode-markdown theme ace-options)
     (.focus ace-instance)
     (swap! local-db assoc :editor ace-instance)
@@ -48,33 +56,26 @@
       (.on ace-instance "change" (fn [_delta]
                                    (when-not @!notify
                                      (reset! !notify true)
-                                     (nav/notify-editing-begin id)))))
-    ;; note - tracking over 2 ratoms causes the subscribe function to be invoked continuously;
-    ;;        to compensate, tracking declaration closes over the editor instance instead of deref'ing it.
-    (let [tracking (r/track! (fn []
-                               (if (theme/light-theme? db)
-                                 (ace/set-theme! ace-instance ace/ace-theme)
-                                 (ace/set-theme! ace-instance ace/ace-theme-dark))))]
-      (swap! local-db assoc :tracking tracking))))
+                                     (nav/notify-editing-begin id)))))))
 
 (defn- destroy-editor [local-db]
   (let [editor (:editor @local-db)]
     (when editor
       (.destroy editor))))
 
-(defn single-editor [db local-db !editor-element]
-  (r/create-class
-    {:component-did-mount    (fn []
-                               (setup-editor db local-db !editor-element))
-     :component-will-unmount (fn []
-                               (destroy-editor local-db)
-                               (when-let [tracking (:tracking @local-db)]
-                                 (r/dispose! tracking))
-                               (nav/notify-editing-end (:hash @local-db)))
-     :reagent-render         (fn []
-                               [:<>
-                                [paste-bar db local-db]
-                                [:div.edit-box-single {:ref         (fn [element] (reset! !editor-element element))
-                                                       :on-key-down (fn [e] (single-editor-on-key-down db local-db e))
-                                                       :on-key-up   (fn [e] (single-editor-on-key-up local-db e))}
-                                 (get (:card @local-db) "source_data")]])}))
+(defn single-editor [db db-theme local-db !editor-element]
+  (let [track-theme (r/track! (partial theme-tracker db-theme local-db))]
+    (r/create-class
+      {:component-did-mount    (fn []
+                                 (setup-editor db-theme local-db !editor-element))
+       :component-will-unmount (fn []
+                                 (destroy-editor local-db)
+                                 (r/dispose! track-theme)
+                                 (nav/notify-editing-end (:hash @local-db)))
+       :reagent-render         (fn []
+                                 [:<>
+                                  [paste-bar db local-db]
+                                  [:div.edit-box-single {:ref         (fn [element] (reset! !editor-element element))
+                                                         :on-key-down (fn [e] (single-editor-on-key-down db local-db e))
+                                                         :on-key-up   (fn [e] (single-editor-on-key-up local-db e))}
+                                   (get (:card @local-db) "source_data")]])})))

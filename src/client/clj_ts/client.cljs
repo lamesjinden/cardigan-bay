@@ -14,17 +14,17 @@
 ;; region top-level ratom
 
 (defonce db (r/atom
-              {:current-page             "HelloWorld"
-               :raw                      ""
-               :transcript               ""
-               :cards                    []
-               :wiki-name                "Wiki Name"
-               :site-url                 "Site URL"
-               :initialized?             false
-               :mode                     :viewing
-               :card-list-expanded-state :expanded
-               :theme                    (theme/get-initial-theme :light)
-               :env-port                 4545}))
+              {:current-page        "HelloWorld"
+               :raw                 ""
+               :transcript          ""
+               :cards               []
+               :wiki-name           "Wiki Name"
+               :site-url            "Site URL"
+               :initialized?        false
+               :mode                :viewing
+               :card-list-expanded$ (a/chan)
+               :theme               (theme/get-initial-theme :light)
+               :env-port            4545}))
 
 ;; endregion
 
@@ -50,7 +50,7 @@
   (dom/render [app] (.querySelector js/document "#app")))
 
 (let [render$ (cond
-                (:init-dispatch @db)
+                (:initialized? @db)
                 (doto (a/promise-chan) (a/put! 0))
 
                 :else (let [init-config (first (.-init js/window))

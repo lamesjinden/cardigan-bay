@@ -1,5 +1,6 @@
 (ns clj-ts.views.card-shell
-  (:require [reagent.core :as r]
+  (:require [clojure.core.async :as a]
+            [reagent.core :as r]
             [clj-ts.card :as cards]
             [clj-ts.navigation :as nav]
             [clj-ts.view :refer [->display]]
@@ -30,23 +31,23 @@
   (when-let [target (cards/wikilink-data e)]
     (nav/<on-link-clicked db e target aux-clicked?)))
 
-(defn card-shell [db db-card-list-expanded card component]
+(defn card-shell [db card-list-expanded$ card component]
   (let [local-db (r/atom {:toggle true
                           :mode   :viewing
                           :card   card
                           :hash   (get card "hash")
                           :editor nil})
         !editor-element (clojure.core/atom nil)
-        editable? (get card "user_authored?")]
+        editable? (get card "user_authored?")
+        rx-theme (r/cursor db [:theme])
+        expanded$ (a/tap card-list-expanded$ (a/chan))]
 
-    ; listen for global expanded state changes and set local-db accordingly
-    ; note: local state can still be updated via toggle-local-expanded-state!
-    ; todo - dispose of track! return value
-    (reagent.core/track! (fn []
-                           (let [expanded-state @db-card-list-expanded]
-                             (swap! local-db assoc :toggle (= :expanded expanded-state)))))
+    (a/go-loop []
+               (when-some [expanded-state (a/<! expanded$)]
+                 (swap! local-db assoc :toggle (= :expanded expanded-state)))
+               (recur))
 
-    (fn [db db-card-list-expanded card component]
+    (fn [db card-list-expanded$ card component]
       [:div.card-shell
        (if (viewing? local-db)
          [:article.card-outer {:on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
@@ -65,4 +66,4 @@
             [:div.card-child.overlay {:style {:display (->display (collapsed? local-db))}}]]]
           [card-bar db card]]
          [:div.editor-container
-          [single-editor db local-db !editor-element]])])))
+          [single-editor db rx-theme local-db !editor-element]])])))

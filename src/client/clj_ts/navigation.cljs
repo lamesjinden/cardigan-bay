@@ -27,7 +27,7 @@
            :system-cards system-cards
            :nav-links nav-links
            :mode :viewing
-           :card-list-expanded-state :expanded)))
+           #_:card-list-expanded-state #_:expanded)))
 
 (defn load-page-response [db response]
   (let [{body-text :body} response
@@ -108,24 +108,26 @@
                                      (a/put! out-chan result)
                                      (recur #{}))
 
-                                   (let [_ (a/>! confirmation-request$ :confirmation-requested)
-                                         response (a/<! confirmation-response$)]
-                                     (if (= response :ok)
-                                       (let [result (a/<! (do-post page-name))]
-                                         (a/put! out-chan result)
-                                         (recur #{}))
-                                       (recur editing)))))
+                                   (do
+                                     (a/>! confirmation-request$ :confirmation-requested)
+                                     (let [response (a/<! confirmation-response$)]
+                                       (if (= response :ok)
+                                         (let [result (a/<! (do-post page-name))]
+                                           (a/put! out-chan result)
+                                           (recur #{}))
+                                         (recur editing))))))
 
                    editing-nav$ (let [{:keys [id action]} value]
                                   (if (= action :ending)
                                     (let [out-chan (:out-chan value)]
                                       (if (contains? editing id)
-                                        (let [_ (a/>! confirmation-request$ :confirmation-requested)
-                                              response (a/<! confirmation-response$)]
-                                          (a/>! out-chan response)
-                                          (if (= response :ok)
-                                            (recur (update-edit-sessions editing {:id id :action :end}))
-                                            (recur editing)))
+                                        (do
+                                          (a/>! confirmation-request$ :confirmation-requested)
+                                          (let [response (a/<! confirmation-response$)]
+                                            (a/>! out-chan response)
+                                            (if (= response :ok)
+                                              (recur (update-edit-sessions editing {:id id :action :end}))
+                                              (recur editing))))
                                         (do
                                           (a/>! out-chan :ok)
                                           (recur editing))))
@@ -133,11 +135,11 @@
 
 (defn- <load-page! [db page-name]
   (a/go
-    (let [completed (a/promise-chan)
-          _ (notify-navigation page-name completed)
-          response (a/<! completed)]
-      (when (not (= :canceled response))
-        (load-page-response db response)))))
+    (let [completed$ (a/promise-chan)]
+      (notify-navigation page-name completed$)
+      (let [response (a/<! completed$)]
+        (when (not (= :canceled response))
+          (load-page-response db response))))))
 
 (defn <reload-page! [db]
   (<load-page! db (:current-page @db)))

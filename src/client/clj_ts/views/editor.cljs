@@ -47,6 +47,12 @@
         (= key-code keyboard/key-escape-code)
         (editor-on-escape-press db)))))
 
+(defn- theme-tracker [db]
+  (ace/set-theme! (:editor @db)
+                  (if (theme/light-theme? db)
+                    ace/ace-theme
+                    ace/ace-theme-dark)))
+
 (defn setup-editor [db !editor-element]
   (let [editor-element @!editor-element
         ace-instance (.edit js/ace editor-element)
@@ -68,16 +74,13 @@
 
 (defn editor [db db-raw]
   (let [!editor-element (clojure.core/atom nil)
-        tracking (reagent.core/track! (fn []
-                                        (if (theme/light-theme? db)
-                                          (ace/set-theme! (:editor @db) ace/ace-theme)
-                                          (ace/set-theme! (:editor @db) ace/ace-theme-dark))))]
+        track-theme (r/track! (partial theme-tracker db))]
     (reagent.core/create-class
       {:component-did-mount    (fn []
                                  (setup-editor db !editor-element))
        :component-will-unmount (fn []
                                  (destroy-editor db)
-                                 (r/dispose! tracking)
+                                 (r/dispose! track-theme)
                                  (nav/notify-editing-end editor-id))
        :reagent-render         (fn [] [:div.edit-box-container
                                        [paste-bar db]
