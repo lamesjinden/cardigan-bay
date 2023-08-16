@@ -25,7 +25,6 @@
                :site-url            "Site URL"
                :initialized?        false
                :mode                :viewing
-               :card-list-expanded$ (a/chan)
                :theme               (theme/get-initial-theme :light)
                :env-port            4545}))
 

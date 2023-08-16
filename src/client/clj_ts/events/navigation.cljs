@@ -4,7 +4,7 @@
 (def ^:private navigating$ (a/chan))
 (def ^:private navigating-mult$ (a/mult navigating$))
 
-(defn notify-navigating [page-name]
+(defn <notify-navigating [page-name]
   (let [out-chan (a/promise-chan)]
     (a/put! navigating$ {:page-name page-name
                          :out-chan  out-chan})

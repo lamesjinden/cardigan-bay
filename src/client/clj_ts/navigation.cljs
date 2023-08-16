@@ -48,7 +48,7 @@
 
 (defn- <load-page! [db page-name]
   (a/go
-    (let [completed$ (nav-events/notify-navigating page-name)
+    (let [completed$ (nav-events/<notify-navigating page-name)
           response (a/<! completed$)]
       (when (not (= :canceled response))
         (load-page-response db response)))))

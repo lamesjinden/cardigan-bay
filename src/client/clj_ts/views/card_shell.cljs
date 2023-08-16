@@ -2,6 +2,7 @@
   (:require [clojure.core.async :as a]
             [reagent.core :as r]
             [clj-ts.card :as cards]
+            [clj-ts.events.expansion :as e-expansion]
             [clj-ts.navigation :as nav]
             [clj-ts.view :refer [->display]]
             [clj-ts.views.card-bar :refer [card-bar]]
@@ -31,7 +32,7 @@
   (when-let [target (cards/wikilink-data e)]
     (nav/<on-link-clicked db e target aux-clicked?)))
 
-(defn card-shell [db card-list-expanded$ card component]
+(defn card-shell [db card component]
   (let [local-db (r/atom {:toggle true
                           :mode   :viewing
                           :card   card
@@ -40,14 +41,14 @@
         !editor-element (clojure.core/atom nil)
         editable? (get card "user_authored?")
         rx-theme (r/cursor db [:theme])
-        expanded$ (a/tap card-list-expanded$ (a/chan))]
+        expanded$ (e-expansion/create-expansion$)]
 
     (a/go-loop []
                (when-some [expanded-state (a/<! expanded$)]
                  (swap! local-db assoc :toggle (= :expanded expanded-state)))
                (recur))
 
-    (fn [db card-list-expanded$ card component]
+    (fn [db card component]
       [:div.card-shell
        (if (viewing? local-db)
          [:article.card-outer {:on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
