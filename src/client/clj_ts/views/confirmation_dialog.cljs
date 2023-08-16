@@ -1,19 +1,31 @@
 (ns clj-ts.views.confirmation-dialog
   (:require [cljs.core.async :as a]))
 
-(defn confirmation-dialog [request-chan response-chan]
+(defn confirmation-dialog [confirmation-request$]
   (let [!dialog (clojure.core/atom nil)
-        request-process (a/go-loop [] (when-some [_ (a/<! request-chan)]
-                                        (.showModal @!dialog)
-                                        (recur)))]
-    (fn [request-chan response-chan]
+        modal-closed$ (a/chan)]
+
+    (a/go-loop [current-request nil]
+               (when-some [[value channel] (a/alts! [confirmation-request$ modal-closed$])]
+                 (condp = channel
+                   confirmation-request$ (do
+                                           (let [dialog-element @!dialog]
+                                             (.showModal dialog-element)
+                                             (recur value)))
+                   modal-closed$ (do
+                                    (let [out-chan (:out-chan current-request)]
+                                      (a/>! out-chan value))
+                                    (recur nil)))))
+
+    (fn [confirmation-request$]
       [:dialog#confirmation-dialog {:ref      (fn [element] (reset! !dialog element))
                                     :on-close (fn []
-                                                (let [return-value (if (= "default" (.-returnValue @!dialog))
+                                                (let [dialog-element @!dialog
+                                                      return-value (if (= "default" (.-returnValue dialog-element))
                                                                      :ok
                                                                      :cancel)]
-                                                  (a/put! response-chan return-value)
-                                                  (set! (.-returnValue @!dialog) nil)))}
+                                                  (set! (.-returnValue @!dialog) nil)
+                                                  (a/put! modal-closed$ return-value)))}
        [:form
         [:div.dialog-description-container
          [:div "You have unsaved changes."]

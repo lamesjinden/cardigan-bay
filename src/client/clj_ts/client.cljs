@@ -3,13 +3,16 @@
     [cljs.core.async :as a]
     [reagent.core :as r]
     [reagent.dom :as dom]
+    [clj-ts.confirmation.edit-process :as confirm-edit]
+    [clj-ts.confirmation.navigation-process :as confirm-nav]
+    [clj-ts.confirmation.onbeforeload-process :as confirm-onbeforeload]
+    [clj-ts.events.editing :as e-editing]
+    [clj-ts.events.confirmation :as e-confirm]
+    [clj-ts.events.navigation :as e-nav]
     [clj-ts.mode :as mode]
     [clj-ts.theme :as theme]
     [clj-ts.navigation :as nav]
-    [clj-ts.views.confirmation-dialog :refer [confirmation-dialog]]
-    [clj-ts.views.app-header :refer [app-header]]
-    [clj-ts.views.app-page-controls :refer [app-page-controls]]
-    [clj-ts.views.app-main :refer [app-main]]))
+    [clj-ts.views.app :refer [app]]))
 
 ;; region top-level ratom
 
@@ -28,26 +31,24 @@
 
 ;; endregion
 
-;; region top-level components
-
-(defn app []
-  (reagent.core/track! (partial theme/toggle-app-theme db))
-
-  (let [rx-mode (r/cursor db [:mode])]
-    [:<>
-     [confirmation-dialog nav/confirmation-request$ nav/confirmation-response$]
-     [app-header db]
-     [app-page-controls db rx-mode]
-     [app-main db]]))
-
-;; endregion
-
 ;; region page load
 
 ; request and load the start-page
 
 (defn render-app []
-  (dom/render [app] (.-body js/document)))
+  (let [editing-confirmation-process (confirm-edit/<create-editor-process
+                                       (e-editing/create-editing$))
+
+        nav-confirmation-process (confirm-nav/<create-nav-process
+                                   (e-nav/create-navigating$)
+                                   (e-editing/create-editing$))
+
+        onbeforeload-process (confirm-onbeforeload/<create-onbeforeload-process
+                               (e-editing/create-editing$))
+
+        confirmation-request$ (e-confirm/create-confirmation-request$)]
+
+    (dom/render [app db confirmation-request$] (.-body js/document))))
 
 (let [render$ (cond
                 (:initialized? @db)

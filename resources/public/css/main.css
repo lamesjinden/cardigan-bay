@@ -489,6 +489,36 @@ dialog::backdrop {
 
 /*#endregion */
 
+/*#region dialog */
+
+.progress-bar-outer {
+  background-color: transparent;
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: flex;
+  height: 2px !important;
+  opacity: 0;
+  outline: 1px solid #0000;
+  overflow: hidden;
+  position: fixed;
+  width: 100% !important;
+  z-index: 999;
+
+  transition: opacity .4s linear .4s;
+}
+
+.progress-bar-inner {
+  background-color: var(--primary-color) !important;  
+  left: 0;
+  outline: 2px solid #0000;
+  position: relative;
+  top: 0;
+  transition: width .4s ease;
+  width: 0%;
+}
+
+/*#endregion */
+
 /*#region nav_bar */
 
 .nav-container {

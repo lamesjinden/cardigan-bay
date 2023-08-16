@@ -2,6 +2,7 @@
   (:require [clojure.core.async :as a]
             [reagent.core :as r]
             [clj-ts.ace :as ace]
+            [clj-ts.events.editing :as editing-events]
             [clj-ts.keyboard :as keyboard]
             [clj-ts.navigation :as nav]
             [clj-ts.page :as page]
@@ -35,7 +36,7 @@
 
 (defn- editor-on-escape-press [db]
   (a/go
-    (when-let [response (a/<! (nav/notify-editing-ending editor-id))]
+    (when-let [response (a/<! (editing-events/<notify-editing-ending editor-id))]
       (when (= response :ok)
         (nav/<reload-page! db)))))
 
@@ -65,7 +66,7 @@
       (.on ace-instance "change" (fn [_delta]
                                    (when-not @!notify
                                      (reset! !notify true)
-                                     (nav/notify-editing-begin editor-id)))))))
+                                     (editing-events/notify-editing-begin editor-id)))))))
 
 (defn destroy-editor [db]
   (let [editor (:editor @db)]
@@ -81,7 +82,7 @@
        :component-will-unmount (fn []
                                  (destroy-editor db)
                                  (r/dispose! track-theme)
-                                 (nav/notify-editing-end editor-id))
+                                 (editing-events/notify-editing-end editor-id))
        :reagent-render         (fn [] [:div.edit-box-container
                                        [paste-bar db]
                                        [:div.edit-box

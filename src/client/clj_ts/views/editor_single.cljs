@@ -4,7 +4,7 @@
             [clj-ts.ace :as ace]
             [clj-ts.card :as cards]
             [clj-ts.keyboard :as keyboard]
-            [clj-ts.navigation :as nav]
+            [clj-ts.events.editing :as e-editing]
             [clj-ts.theme :as theme]
             [clj-ts.views.paste-bar :refer [paste-bar]]))
 
@@ -24,7 +24,7 @@
 (defn- single-editor-on-escape-press [local-db]
   (let [id (:hash @local-db)]
     (a/go
-      (when-let [response (a/<! (nav/notify-editing-ending id))]
+      (when-let [response (a/<! (e-editing/<notify-editing-ending id))]
         (when (= response :ok)
           (swap! local-db assoc :mode :viewing))))))
 
@@ -56,7 +56,7 @@
       (.on ace-instance "change" (fn [_delta]
                                    (when-not @!notify
                                      (reset! !notify true)
-                                     (nav/notify-editing-begin id)))))))
+                                     (e-editing/notify-editing-begin id)))))))
 
 (defn- destroy-editor [local-db]
   (let [editor (:editor @local-db)]
@@ -71,7 +71,7 @@
        :component-will-unmount (fn []
                                  (destroy-editor local-db)
                                  (r/dispose! track-theme)
-                                 (nav/notify-editing-end (:hash @local-db)))
+                                 (e-editing/notify-editing-end (:hash @local-db)))
        :reagent-render         (fn []
                                  [:<>
                                   [paste-bar db local-db]

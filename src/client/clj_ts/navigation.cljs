@@ -1,7 +1,8 @@
 (ns clj-ts.navigation
   (:require [cljs.core.async :as a]
             [clojure.string :as str]
-            [clj-ts.http :as http]))
+            [clj-ts.http :as http]
+            [clj-ts.events.navigation :as nav-events]))
 
 ;; region load page
 
@@ -26,8 +27,7 @@
            :cards cards
            :system-cards system-cards
            :nav-links nav-links
-           :mode :viewing
-           #_:card-list-expanded-state #_:expanded)))
+           :mode :viewing)))
 
 (defn load-page-response [db response]
   (let [{body-text :body} response
@@ -46,100 +46,12 @@
 
 ;; region nav2
 
-(def ^:private editing$ (a/chan))
-(def ^:private editing-mult$ (a/mult editing$))
-
-(defn notify-editing-begin [id]
-  (a/put! editing$ {:id     id
-                    :action :start}))
-
-(defn notify-editing-end [id]
-  (a/put! editing$ {:id     id
-                    :action :end}))
-
-(defn notify-editing-ending [id]
-  (let [out-chan (a/promise-chan)]
-    (a/put! editing$ {:id       id
-                      :action   :ending
-                      :out-chan out-chan})
-    out-chan))
-
-(defn- update-edit-sessions [editing {:keys [id action]}]
-  (condp = action
-    :start (conj editing id)
-    :end (disj editing id)
-    editing))
-
-(def ^:private onbeforeload-processor
-  (let [editing-onbeforeload$ (a/tap editing-mult$ (a/chan))]
-    (a/go-loop [editing #{}]
-               (when-some [value (a/<! editing-onbeforeload$)]
-                 (let [editing' (update-edit-sessions editing value)]
-                   (if (empty? editing')
-                     (set! (.-onbeforeunload js/window) nil)
-                     (set! (.-onbeforeunload js/window) (fn [] true)))
-                   (recur editing'))))))
-
-(def ^:private navigating$ (a/chan))
-(defn- notify-navigation [page-name out-chan]
-  (a/put! navigating$ {:page-name page-name
-                       :out-chan  out-chan}))
-
-;(def ^:private )
-
-(def confirmation-request$ (a/chan))
-
-(def confirmation-response$ (a/chan))
-
-(def ^:private nav-processor
-  (let [editing-nav$ (a/tap editing-mult$ (a/chan))
-        do-post (fn [page-name]
-                  (http/<http-post "/api/page"
-                                   (->> {:page_name page-name}
-                                        (clj->js)
-                                        (.stringify js/JSON))
-                                   {:headers {"Content-Type" "application/json"}}))]
-    (a/go-loop [editing #{}]
-               (let [[value channel] (a/alts! [navigating$ editing-nav$])]
-                 (condp = channel
-                   navigating$ (let [{:keys [page-name out-chan]} value]
-                                 (if (empty? editing)
-                                   (let [result (a/<! (do-post page-name))]
-                                     (a/put! out-chan result)
-                                     (recur #{}))
-
-                                   (do
-                                     (a/>! confirmation-request$ :confirmation-requested)
-                                     (let [response (a/<! confirmation-response$)]
-                                       (if (= response :ok)
-                                         (let [result (a/<! (do-post page-name))]
-                                           (a/put! out-chan result)
-                                           (recur #{}))
-                                         (recur editing))))))
-
-                   editing-nav$ (let [{:keys [id action]} value]
-                                  (if (= action :ending)
-                                    (let [out-chan (:out-chan value)]
-                                      (if (contains? editing id)
-                                        (do
-                                          (a/>! confirmation-request$ :confirmation-requested)
-                                          (let [response (a/<! confirmation-response$)]
-                                            (a/>! out-chan response)
-                                            (if (= response :ok)
-                                              (recur (update-edit-sessions editing {:id id :action :end}))
-                                              (recur editing))))
-                                        (do
-                                          (a/>! out-chan :ok)
-                                          (recur editing))))
-                                    (recur (update-edit-sessions editing value)))))))))
-
 (defn- <load-page! [db page-name]
   (a/go
-    (let [completed$ (a/promise-chan)]
-      (notify-navigation page-name completed$)
-      (let [response (a/<! completed$)]
-        (when (not (= :canceled response))
-          (load-page-response db response))))))
+    (let [completed$ (nav-events/notify-navigating page-name)
+          response (a/<! completed$)]
+      (when (not (= :canceled response))
+        (load-page-response db response)))))
 
 (defn <reload-page! [db]
   (<load-page! db (:current-page @db)))
