@@ -9,7 +9,7 @@
             [clj-ts.views.editor-single :refer [single-editor]]))
 
 (defn expanded? [local-db]
-  (:toggle @local-db))
+  (= :expanded (:expanded-state @local-db)))
 
 (defn collapsed? [local-db]
   (not (expanded? local-db)))
@@ -21,7 +21,8 @@
   (= :viewing (:mode @local-db)))
 
 (defn toggle-local-expanded-state! [local-db e]
-  (swap! local-db update :toggle not)
+  (swap! local-db update :expanded-state {:expanded  :collapsed
+                                          :collapsed :expanded})
   (.preventDefault e))
 
 (defn enter-edit-mode! [local-db]
@@ -32,26 +33,34 @@
   (when-let [target (cards/wikilink-data e)]
     (nav/<on-link-clicked db e target aux-clicked?)))
 
+(defn- on-card-double-clicked [local-db]
+  (cond
+    (collapsed? local-db)
+    (swap! local-db assoc :expanded-state :expanded)
+
+    (true? (:editable? @local-db))
+    (enter-edit-mode! local-db)))
+
 (defn card-shell [db card component]
-  (let [local-db (r/atom {:toggle true
-                          :mode   :viewing
-                          :card   card
-                          :hash   (get card "hash")
-                          :editor nil})
+  (let [local-db (r/atom {:expanded-state :expanded
+                          :mode           :viewing
+                          :card           card
+                          :hash           (get card "hash")
+                          :editor         nil
+                          :editable?      (get card "user_authored?")})
         !editor-element (clojure.core/atom nil)
-        editable? (get card "user_authored?")
         rx-theme (r/cursor db [:theme])
         expanded$ (e-expansion/create-expansion$)]
 
     (a/go-loop []
                (when-some [expanded-state (a/<! expanded$)]
-                 (swap! local-db assoc :toggle (= :expanded expanded-state)))
+                 (swap! local-db assoc :expanded-state expanded-state))
                (recur))
 
     (fn [db card component]
       [:div.card-shell
        (if (viewing? local-db)
-         [:article.card-outer {:on-double-click (fn [] (when editable? (enter-edit-mode! local-db)))}
+         [:article.card-outer {:on-double-click (fn [] (on-card-double-clicked local-db))}
           [:div.card-meta-parent
            [:div.card-meta
             [:span.toggle-container {:on-click (fn [e] (toggle-local-expanded-state! local-db e))}
