@@ -12,7 +12,7 @@
 (defn enter-transcript-mode! [db]
   (swap! db assoc :mode :transcript))
 
-(defn cancel-async! [db]
+(defn cancel-editing! [db]
   (enter-view-mode! db))
 
 (defn <save-page!

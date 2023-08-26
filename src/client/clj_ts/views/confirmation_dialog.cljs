@@ -13,9 +13,9 @@
                                              (.showModal dialog-element)
                                              (recur value)))
                    modal-closed$ (do
-                                    (let [out-chan (:out-chan current-request)]
-                                      (a/>! out-chan value))
-                                    (recur nil)))))
+                                   (let [out-chan (:out-chan current-request)]
+                                     (a/>! out-chan value))
+                                   (recur nil)))))
 
     (fn [confirmation-request$]
       [:dialog#confirmation-dialog {:ref      (fn [element] (reset! !dialog element))

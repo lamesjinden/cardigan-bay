@@ -9,8 +9,6 @@
             [clj-ts.theme :as theme]
             [clj-ts.views.paste-bar :refer [paste-bar]]))
 
-(def ^:private editor-id "global")
-
 (defn- editor-on-key-s-press [db e]
   (.preventDefault e)
   (page/<save-page! db identity))
@@ -36,7 +34,7 @@
 
 (defn- editor-on-escape-press [db]
   (a/go
-    (when-let [response (a/<! (editing-events/<notify-editing-ending editor-id))]
+    (when-let [response (a/<! (editing-events/<notify-global-editing-ending))]
       (when (= response :ok)
         (nav/<reload-page! db)))))
 
@@ -44,8 +42,7 @@
   ;; note - escape doesn't fire for key-press, only key-up
   (when (= (-> @db :mode) :editing)
     (let [key-code (.-keyCode e)]
-      (cond
-        (= key-code keyboard/key-escape-code)
+      (when (= key-code keyboard/key-escape-code)
         (editor-on-escape-press db)))))
 
 (defn- theme-tracker [db]
@@ -66,7 +63,7 @@
       (.on ace-instance "change" (fn [_delta]
                                    (when-not @!notify
                                      (reset! !notify true)
-                                     (editing-events/notify-editing-begin editor-id)))))))
+                                     (editing-events/notify-global-editing-start)))))))
 
 (defn destroy-editor [db]
   (let [editor (:editor @db)]
@@ -82,7 +79,7 @@
        :component-will-unmount (fn []
                                  (destroy-editor db)
                                  (r/dispose! track-theme)
-                                 (editing-events/notify-editing-end editor-id))
+                                 (editing-events/notify-global-editing-end))
        :reagent-render         (fn [] [:div.edit-box-container
                                        [paste-bar db]
                                        [:div.edit-box

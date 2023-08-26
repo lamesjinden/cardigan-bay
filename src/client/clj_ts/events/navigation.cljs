@@ -1,8 +1,8 @@
 (ns clj-ts.events.navigation
   (:require [cljs.core.async :as a]))
 
-(def ^:private navigating$ (a/chan))
-(def ^:private navigating-mult$ (a/mult navigating$))
+(defonce ^:private navigating$ (a/chan))
+(defonce ^:private navigating-mult$ (a/mult navigating$))
 
 (defn <notify-navigating [page-name]
   (let [out-chan (a/promise-chan)]

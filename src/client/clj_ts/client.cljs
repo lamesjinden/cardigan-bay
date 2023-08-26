@@ -36,7 +36,8 @@
 
 (defn render-app []
   (let [editing-confirmation-process (confirm-edit/<create-editor-process
-                                       (e-editing/create-editing$))
+                                       (e-editing/create-editing$)
+                                       (e-editing/create-global-editing$))
 
         nav-confirmation-process (confirm-nav/<create-nav-process
                                    (e-nav/create-navigating$)

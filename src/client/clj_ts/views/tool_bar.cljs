@@ -1,5 +1,7 @@
 (ns clj-ts.views.tool-bar
-  (:require [clj-ts.mode :as mode]
+  (:require [cljs.core.async :as a]
+            [clj-ts.events.editing :as e-editing]
+            [clj-ts.mode :as mode]
             [clj-ts.page :as page]))
 
 (defn tool-bar [db db-mode db-current-page]
@@ -14,7 +16,7 @@
            [:button.big-btn.big-btn-left
             {:on-click (fn []
                          (mode/set-view-mode! db)
-                         (page/cancel-async! db))}
+                         (page/cancel-editing! db))}
             [:span {:class [:material-symbols-sharp :clickable]} "close"]]
            [:button.big-btn.big-btn-right
             {:on-click (fn []
@@ -25,7 +27,11 @@
          :viewing
          [:span.button-container
           [:button.big-btn.big-btn-left
-           {:on-click #(swap! db assoc :mode :editing)}
+           {:on-click (fn []
+                        (a/go
+                          (when-let [response (a/<! (e-editing/<notify-global-editing-starting))]
+                            (when (= response :ok)
+                              (swap! db assoc :mode :editing)))))}
            [:span {:class [:material-symbols-sharp :clickable]} "edit"]]
           [:button.big-btn.big-btn-right
            [:a {:href (str "/api/exportpage?page=" @db-current-page)}

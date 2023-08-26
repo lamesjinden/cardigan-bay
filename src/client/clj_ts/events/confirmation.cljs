@@ -1,7 +1,7 @@
 (ns clj-ts.events.confirmation
   (:require [cljs.core.async :as a]))
 
-(def ^:private confirmation-request$ (a/chan))
+(defonce ^:private confirmation-request$ (a/chan))
 
 (defn <notify-confirm []
   (let [out-chan (a/promise-chan)]

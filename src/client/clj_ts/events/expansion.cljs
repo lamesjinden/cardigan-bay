@@ -1,8 +1,8 @@
 (ns clj-ts.events.expansion
   (:require [cljs.core.async :as a]))
 
-(def ^:private expansion$ (a/chan))
-(def ^:private expansion-mult$ (a/mult expansion$))
+(defonce ^:private expansion$ (a/chan))
+(defonce ^:private expansion-mult$ (a/mult expansion$))
 
 (defn notify-expansion [expanded-or-collapsed]
   (a/put! expansion$ expanded-or-collapsed))
