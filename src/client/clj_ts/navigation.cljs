@@ -50,7 +50,8 @@
   (a/go
     (let [completed$ (nav-events/<notify-navigating page-name)
           response (a/<! completed$)]
-      (when (not (= :canceled response))
+      (when (and (not (nil? response))
+                 (not (= :canceled response)))
         (load-page-response db response)))))
 
 (defn <reload-page! [db]

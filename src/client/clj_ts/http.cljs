@@ -1,9 +1,13 @@
 (ns clj-ts.http
-  (:require [cljs.core.async :as a])
+  (:require [cljs.core.async :as a]
+            [clj-ts.events.progression :as e-progress])
   (:import [goog.net XhrIo]))
 
 (goog-define env "production")
 (goog-define env-port "")
+
+(defn- ->progress-id [url method]
+  (str url method))
 
 (defn- <http-send [{:keys [url method body headers timeout with-credentials?]
                     :or   {body              nil
@@ -21,12 +25,20 @@
               url)
         chan (a/promise-chan)
         callback (fn [e]
-                   (let [response {:status     (-> e (.-target) (.getStatus))
-                                   :statusText (-> e (.-target) (.getStatusText))
-                                   :headers    (-> e (.-target) (.getResponseHeaders))
-                                   :body       (-> e (.-target) (.getResponseText))}]
-                     (when (.isSuccess (.-target e))
-                       (a/put! chan response))))]
+                   (if (.isSuccess (.-target e))
+                     (do
+                       (e-progress/notify-progress-end (->progress-id url method))
+                       (a/put! chan {:isSuccess  true
+                                     :status     (-> e (.-target) (.getStatus))
+                                     :statusText (-> e (.-target) (.getStatusText))
+                                     :headers    (-> e (.-target) (.getResponseHeaders))
+                                     :body       (-> e (.-target) (.getResponseText))}))
+                     (do
+                       (e-progress/notify-progress-fail (->progress-id url method))
+                       (a/put! chan {:isSuccess  false
+                                     :status     (-> e (.-target) (.getStatus))
+                                     :statusText (-> e (.-target) (.getStatusText))}))))]
+    (e-progress/notify-progress-begin (->progress-id url method))
     (.send XhrIo
            url
            callback

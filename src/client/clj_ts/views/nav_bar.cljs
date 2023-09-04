@@ -3,6 +3,7 @@
             [clojure.string :as str]
             [reagent.core :as r]
             [sci.core :as sci]
+            [clj-ts.events.progression :as e-progress]
             [clj-ts.http :as http]
             [clj-ts.keyboard :as keyboard]
             [clj-ts.mode :as mode]

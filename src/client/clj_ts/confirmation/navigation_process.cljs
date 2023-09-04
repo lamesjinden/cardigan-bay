@@ -20,14 +20,18 @@
                  (condp = channel
                    navigating$ (let [{:keys [page-name out-chan]} value]
                                  (if (empty? editing)
-                                   (let [result (a/<! (do-post page-name))]
-                                     (a/put! out-chan result)
+                                   (let [{:keys [isSuccess] :as result} (a/<! (do-post page-name))]
+                                     (if isSuccess
+                                       (a/put! out-chan result)
+                                       (a/close! out-chan))
                                      (recur #{}))
                                    (let [confirm$ (e-confirm/<notify-confirm)
                                          response (a/<! confirm$)]
                                      (if (= response :ok)
-                                       (let [result (a/<! (do-post page-name))]
-                                         (a/put! out-chan result)
+                                       (let [{:keys [isSuccess] :as result} (a/<! (do-post page-name))]
+                                         (if isSuccess
+                                           (a/put! out-chan result)
+                                           (a/close! out-chan))
                                          (recur #{}))
                                        (recur editing)))))
                    editing$ (recur (update-edit-sessions editing value)))))))

@@ -9,6 +9,7 @@
     [clj-ts.events.editing :as e-editing]
     [clj-ts.events.confirmation :as e-confirm]
     [clj-ts.events.navigation :as e-nav]
+    [clj-ts.events.progression :as e-progress]
     [clj-ts.mode :as mode]
     [clj-ts.theme :as theme]
     [clj-ts.navigation :as nav]
@@ -46,9 +47,10 @@
         onbeforeload-process (confirm-onbeforeload/<create-onbeforeload-process
                                (e-editing/create-editing$))
 
-        confirmation-request$ (e-confirm/create-confirmation-request$)]
+        confirmation-request$ (e-confirm/create-confirmation-request$)
+        progress$ (e-progress/create-progress$)]
 
-    (dom/render [app db confirmation-request$] (.-body js/document))))
+    (dom/render [app db confirmation-request$ progress$] (.-body js/document))))
 
 (let [render$ (cond
                 (:initialized? @db)

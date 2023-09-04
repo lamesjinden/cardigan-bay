@@ -8,10 +8,9 @@
     (a/go-loop [current-request nil]
                (when-some [[value channel] (a/alts! [confirmation-request$ modal-closed$])]
                  (condp = channel
-                   confirmation-request$ (do
-                                           (let [dialog-element @!dialog]
-                                             (.showModal dialog-element)
-                                             (recur value)))
+                   confirmation-request$ (let [dialog-element @!dialog]
+                                           (.showModal dialog-element)
+                                           (recur value))
                    modal-closed$ (do
                                    (let [out-chan (:out-chan current-request)]
                                      (a/>! out-chan value))
