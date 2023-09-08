@@ -26,7 +26,7 @@
                      (condp = action
                        :start (let [starting-completed 10]
                                 (swap! local-db assoc :opacity (->% 100) :width (->% starting-completed))
-                                (swap! local-db dissoc :failure)
+                                (swap! local-db dissoc :completed? :failed?)
                                 (schedule-update id (inc starting-completed))
                                 {id starting-completed})
                        :update (if-let [_current-completed (get tasks id)]
@@ -37,20 +37,24 @@
                                    {id completed'})
                                  tasks)
                        :end (do
-                              ;; todo replace with animation
-                              (swap! local-db assoc :width (->% 100))
-                              (a/<! (<timeout 200))
-                              (swap! local-db assoc :opacity 0)
-                              (a/<! (<timeout 200))
-                              (swap! local-db assoc :width 0)
+                              (swap! local-db assoc :completed? true)
                               {})
                        :fail (do
-                               ;; todo replace with animation
-                               (swap! local-db assoc :width 0 :failure true)
+                               (swap! local-db assoc :width 0 :failed? true)
                                {})
                        tasks)))))
 
     (fn [db progress$]
-      [:span.progress-bar-outer {:style {:opacity (:opacity @local-db)}}
-       [:span.progress-bar-inner {:style {:width (:width @local-db)}
-                                  :class (when (:failure @local-db) "failure")}]])))
+      (let [completed? (:completed? @local-db)
+            failed? (:failed @local-db)]
+
+        [:span.progress-bar-outer {:class (cond
+                                            completed? "completed"
+                                            failed? "failed"
+                                            :else "")}
+         [:span.progress-bar-inner {:style (when-not (or completed? failed?)
+                                             {:width (:width @local-db)})
+                                    :class (cond
+                                             completed? "completed"
+                                             failed? "failed"
+                                             :else "")}]]))))

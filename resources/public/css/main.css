@@ -45,6 +45,9 @@
   --main-padding-left: 20px;
   --progress-bar-background-color: #00008b;
   --progress-bar-background-color-failure: #ff0066;
+  --progress-bar-opacity-animation-duration: 25ms;
+  --progress-bar-completed-animation-duration: 1s;
+  --progress-bar-failed-animation-duration: 200ms;
 }
 
 .theme-dark {
@@ -500,17 +503,102 @@ dialog::backdrop {
   z-index: 999;
 }
 
+.progress-bar-outer.completed {
+  animation-direction: normal;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;  
+  animation-play-state: running;
+  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+  animation-name: progress-bar-outer-completed, progress-bar-outer-completed2;
+  animation-delay: 0ms, var(--progress-bar-completed-animation-duration);
+  animation-duration: var(--progress-bar-opacity-animation-duration), var(--progress-bar-opacity-animation-duration);
+}
+
+.progress-bar-outer.failed {
+  animation-direction: normal;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;  
+  animation-play-state: running;
+  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+
+  /* run the animations in reverse */
+  animation-name: progress-bar-outer-completed2, progress-bar-outer-completed;
+  animation-delay: 0ms, var(--progress-bar-failed-animation-duration);
+  animation-duration: var(--progress-bar-opacity-animation-duration), var(--progress-bar-opacity-animation-duration);
+}
+
+@keyframes progress-bar-outer-completed {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 100%;
+  }
+}
+
+@keyframes progress-bar-outer-completed2 {
+  from {
+    opacity: 100%;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 .progress-bar-inner {
-  background-color: var(--progress-bar-background-color) !important;
+  background-color: var(--progress-bar-background-color);
   left: 0;
   outline: 2px solid #0000;
   position: relative;
   top: 0;
-  transition: width .4s ease;
 }
 
-.progress-bar-inner.failure {
-  background-color: var(--progress-bar-background-color-failure) !important;
+.progress-bar-inner.completed {
+  animation-delay: var(--progress-bar-opacity-animation-duration);
+  animation-direction: normal;
+  animation-duration: var(--progress-bar-completed-animation-duration);
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+  animation-name: progress-bar-inner-completed;
+  animation-play-state: running;
+  animation-timing-function: linear;
+}
+
+.progress-bar-inner.failed {
+  animation-delay: var(--progress-bar-opacity-animation-duration);
+  animation-direction: normal;
+  animation-duration: var(--progress-bar-failed-animation-duration);
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+  animation-name: progress-bar-inner-failed;
+  animation-play-state: running;
+  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+@keyframes progress-bar-inner-completed {
+  from {   
+    background-color: var(--progress-bar-background-color);
+    width:10%; 
+  }  
+  75% {
+    background-color: var(--progress-bar-background-color);
+    width: 100%;
+  }
+  to {
+    background-color: white;
+    width: 100%;   
+  }
+}
+
+@keyframes progress-bar-inner-failed {
+  from {   
+    background-color: var(--progress-bar-background-color-failure);    
+  }    
+  to {
+    background-color: white;
+    width: 0%;   
+  }
 }
 
 /*#endregion */
