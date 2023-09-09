@@ -46,8 +46,8 @@
   --progress-bar-background-color: #00008b;
   --progress-bar-background-color-failure: #ff0066;
   --progress-bar-opacity-animation-duration: 25ms;
-  --progress-bar-completed-animation-duration: 1s;
-  --progress-bar-failed-animation-duration: 200ms;
+  --progress-bar-completed-animation-duration: 200ms;
+  --progress-bar-failed-animation-duration: 500ms;
 }
 
 .theme-dark {
@@ -499,7 +499,7 @@ dialog::backdrop {
   outline: 1px solid #0000;
   overflow: hidden;
   position: fixed;
-  width: 100% !important;
+  width: 100% !important;  
   z-index: 999;
 }
 
@@ -511,7 +511,7 @@ dialog::backdrop {
   animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
 
   animation-name: progress-bar-outer-completed, progress-bar-outer-completed2;
-  animation-delay: 0ms, var(--progress-bar-completed-animation-duration);
+  animation-delay: 0ms, calc(var(--progress-bar-opacity-animation-duration) + var(--progress-bar-completed-animation-duration));
   animation-duration: var(--progress-bar-opacity-animation-duration), var(--progress-bar-opacity-animation-duration);
 }
 
@@ -520,11 +520,10 @@ dialog::backdrop {
   animation-fill-mode: forwards;
   animation-iteration-count: 1;  
   animation-play-state: running;
-  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+  animation-timing-function: linear;
 
-  /* run the animations in reverse */
-  animation-name: progress-bar-outer-completed2, progress-bar-outer-completed;
-  animation-delay: 0ms, var(--progress-bar-failed-animation-duration);
+  animation-name: progress-bar-outer-completed, progress-bar-outer-completed2;
+  animation-delay: 0ms, calc(var(--progress-bar-opacity-animation-duration) + var(--progress-bar-failed-animation-duration));
   animation-duration: var(--progress-bar-opacity-animation-duration), var(--progress-bar-opacity-animation-duration);
 }
 
@@ -552,6 +551,7 @@ dialog::backdrop {
   outline: 2px solid #0000;
   position: relative;
   top: 0;
+  transition: width 100ms ease-in;
 }
 
 .progress-bar-inner.completed {
@@ -573,7 +573,7 @@ dialog::backdrop {
   animation-iteration-count: 1;
   animation-name: progress-bar-inner-failed;
   animation-play-state: running;
-  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+  animation-timing-function: linear;
 }
 
 @keyframes progress-bar-inner-completed {
@@ -581,7 +581,7 @@ dialog::backdrop {
     background-color: var(--progress-bar-background-color);
     width:10%; 
   }  
-  75% {
+  80% {
     background-color: var(--progress-bar-background-color);
     width: 100%;
   }
@@ -593,8 +593,11 @@ dialog::backdrop {
 
 @keyframes progress-bar-inner-failed {
   from {   
-    background-color: var(--progress-bar-background-color-failure);    
+    width: 100%;   
   }    
+  80% {
+    background-color: var(--progress-bar-background-color-failure);    
+  }
   to {
     background-color: white;
     width: 0%;   

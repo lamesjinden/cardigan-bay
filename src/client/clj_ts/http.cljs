@@ -23,22 +23,23 @@
         url (if (= env "dev")
               (str "//" hostname ":" env-port url)
               url)
+        progress-id (->progress-id url method)
         chan (a/promise-chan)
         callback (fn [e]
                    (if (.isSuccess (.-target e))
                      (do
-                       (e-progress/notify-progress-end (->progress-id url method))
+                       (e-progress/notify-progress-end progress-id)
                        (a/put! chan {:isSuccess  true
                                      :status     (-> e (.-target) (.getStatus))
                                      :statusText (-> e (.-target) (.getStatusText))
                                      :headers    (-> e (.-target) (.getResponseHeaders))
                                      :body       (-> e (.-target) (.getResponseText))}))
                      (do
-                       (e-progress/notify-progress-fail (->progress-id url method))
+                       (e-progress/notify-progress-fail progress-id)
                        (a/put! chan {:isSuccess  false
                                      :status     (-> e (.-target) (.getStatus))
                                      :statusText (-> e (.-target) (.getStatusText))}))))]
-    (e-progress/notify-progress-begin (->progress-id url method))
+    (e-progress/notify-progress-begin progress-id)
     (.send XhrIo
            url
            callback

@@ -40,20 +40,23 @@
                               (swap! local-db assoc :completed? true)
                               {})
                        :fail (do
-                               (swap! local-db assoc :width 0 :failed? true)
+                               (swap! local-db assoc :failed? true)
                                {})
                        tasks)))))
 
     (fn [db progress$]
       (let [completed? (:completed? @local-db)
-            failed? (:failed @local-db)]
+            failed? (:failed? @local-db)]
 
-        [:span.progress-bar-outer {:class (cond
+        [:span.progress-bar-outer {:style {:opacity (cond
+                                                      completed? 0
+                                                      failed? 0
+                                                      :else (:opacity @local-db))}
+                                   :class (cond
                                             completed? "completed"
                                             failed? "failed"
                                             :else "")}
-         [:span.progress-bar-inner {:style (when-not (or completed? failed?)
-                                             {:width (:width @local-db)})
+         [:span.progress-bar-inner {:style {:width (:width @local-db)}
                                     :class (cond
                                              completed? "completed"
                                              failed? "failed"
