@@ -3,7 +3,6 @@
             [clojure.string :as str]
             [reagent.core :as r]
             [sci.core :as sci]
-            [clj-ts.events.progression :as e-progress]
             [clj-ts.http :as http]
             [clj-ts.keyboard :as keyboard]
             [clj-ts.mode :as mode]
@@ -110,7 +109,7 @@
            :placeholder "Navigate, Search, or Eval"}])
 
 (defn nav-bar [db db-nav-links]
-  (let [inputValue (r/atom nil)]
+  (let [input-value (r/atom nil)]
     (fn []
       (let [nav-links @db-nav-links]
         [:div.nav-container
@@ -122,20 +121,20 @@
                                                :href         (str "/pages/" %)} %])))
           [app-menu db (r/cursor db [:theme])]]
          [:div#header-input
-          [nav-input db inputValue]
+          [nav-input db input-value]
           [:div.header-input-actions
-           (when (not (nil? @inputValue))
+           (when (not (nil? @input-value))
              [:button#close-button.header-input-button
-              {:on-click (fn [] (on-clear-clicked inputValue))}
+              {:on-click (fn [] (on-clear-clicked input-value))}
               [:span {:class [:material-symbols-sharp :clickable]} "close"]])
-           (when (not (nil? @inputValue))
+           (when (not (nil? @input-value))
              [:div.header-input-separator])
            [:button#go-button.header-input-button
-            {:on-click (fn [] (on-navigate-clicked db @inputValue))}
+            {:on-click (fn [] (on-navigate-clicked db @input-value))}
             [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]
            [:button.header-input-button
-            {:on-click (fn [] (on-search-clicked db @inputValue))}
+            {:on-click (fn [] (on-search-clicked db @input-value))}
             [:span {:class [:material-symbols-sharp :clickable]} "search"]]
            [:button#lambda-button.header-input-button
-            {:on-click (fn [] (on-eval-clicked db @inputValue))}
+            {:on-click (fn [] (on-eval-clicked db @input-value))}
             [:span {:class [:material-symbols-sharp :clickable]} "λ"]]]]]))))

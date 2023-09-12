@@ -30,6 +30,9 @@
   --card-border-radius: 5px;
   --card-min-height: 50px;
   --card-box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+  --card-outer-padding: 5px;
+  --card-gutter-background-color: #EFEFEF;
+  --card-details-label-color: #808080;
   --big-btn-padding-top: 7px;
   --big-btn-padding-bottom: 4px;
   --big-btn-padding-left: 8px;
@@ -64,9 +67,11 @@
   --base-button-active-brightness: 100%;
   --base-button-hover-invert: 5%;
   --base-button-active-invert: 10%;
+  --card-gutter-background-color: #373737;
   --header-input-background-color: var(--secondary-background-color);
   --header-input-separator-color: #2a2a2a;
   --progress-bar-background-color: #0078d7;
+
 }
 
 /*#endregion */
@@ -280,43 +285,97 @@ div textarea {
 
 /*#region card_bar */
 
-.card-gutter {
+
+.card-gutter .actions-container {
   display: flex;
-  margin-left: -4px;
-  margin-right: -4px;
+  margin-left: calc(-1 * var(--card-outer-padding));
+  margin-right: calc(-1 * var(--card-outer-padding));
 }
 
-.card-gutter-expansion-toggle {
+.actions-container .expansion-toggle {
   margin-left: auto;
 }
 
-.card-bar {
-  padding: 5px;
-  margin: 10px;
-  border-style: solid;
-  border-width: 1px;
-  border-color: #333333;
+.card-gutter .card-gutter-inner {
+  background-color: var(--card-gutter-background-color);
+  box-shadow: 0 0px 2px rgb(0 0 0 / 0.2) inset;
+  border-bottom-left-radius: var(--card-border-radius);
+  border-bottom-right-radius: var(--card-border-radius);
+  margin-left: calc(-1 * var(--card-outer-padding));
+  margin-right: calc(-1 * var(--card-outer-padding));
+  padding-bottom: 8px;
+  padding-top: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
-.mini-button {
-  margin: 3px;
-  padding: 3px;
-  border-style: solid;
-  border-width: 1;
-  border-color: #333333;
-  cursor: pointer;
+.details-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 1rem;
 }
 
-.send-to-bar {
-  padding: 3px;
+.details-container .details-label {
+  color: var(--card-details-label-color) inset;
+  display: inline-flex;
+  font-size: small;
+  font-style: italic;
+  width: 50px;
 }
 
-.send-to-inner {
+.details-container .details-value {
+  display: inline-flex;
+  font-size: medium;
+  white-space: nowrap;
+}
+
+.details-pair .right {
+  justify-self: end;
+}
+
+.send-elsewhere-input-container {
+  background-color: var(--header-input-background-color);
   display: flex;
-  flex-direction: row;
-  border-style: solid;
-  border-color: #555555;
-  border-width: 1px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  height: 35px;
+  border-radius: 24px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border: 1px solid transparent;
+}
+
+.send-elsewhere-input-container input {
+    width: 100%;
+    border: none;
+    outline: none;
+}
+
+.send-elsewhere-input-actions {
+  display: flex;
+  align-items: center;
+}
+
+.send-elsewhere-input-actions button {
+  color: var(--primary-foreground-color);
+  cursor: pointer;
+  border: none;
+  background: none;
+  height: 100%;
+  width: 24px;
+  font-size: 1.2rem;
+  background-color: transparent;
+  margin: 0 6px;
+  padding-top: var(--big-btn-padding-top);
+  padding-bottom: var(--big-btn-padding-bottom);
+}
+
+.send-elsewhere-input-container .input-separator {
+  border-left: 1px solid var(--header-input-separator-color);
+  height: 85%;
+  margin-left: 10px;
+  min-height: var(--material-icon-size);
 }
 
 /*#endregion */
@@ -347,7 +406,7 @@ ul.system-card-list {
 
 .card-outer {
   border-radius: var(--card-border-radius);
-  padding: 0 5px;
+  padding: 0 var(--card-outer-padding);
   background-color: var(--primary-background-color);
   min-height: 90px;
 }
@@ -499,14 +558,14 @@ dialog::backdrop {
   outline: 1px solid #0000;
   overflow: hidden;
   position: fixed;
-  width: 100% !important;  
+  width: 100% !important;
   z-index: 999;
 }
 
 .progress-bar-outer.completed {
   animation-direction: normal;
   animation-fill-mode: forwards;
-  animation-iteration-count: 1;  
+  animation-iteration-count: 1;
   animation-play-state: running;
   animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
 
@@ -518,7 +577,7 @@ dialog::backdrop {
 .progress-bar-outer.failed {
   animation-direction: normal;
   animation-fill-mode: forwards;
-  animation-iteration-count: 1;  
+  animation-iteration-count: 1;
   animation-play-state: running;
   animation-timing-function: linear;
 
@@ -531,6 +590,7 @@ dialog::backdrop {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 100%;
   }
@@ -540,6 +600,7 @@ dialog::backdrop {
   from {
     opacity: 100%;
   }
+
   to {
     opacity: 0;
   }
@@ -577,30 +638,34 @@ dialog::backdrop {
 }
 
 @keyframes progress-bar-inner-completed {
-  from {   
+  from {
     background-color: var(--progress-bar-background-color);
-    width:10%; 
-  }  
+    width: 10%;
+  }
+
   80% {
     background-color: var(--progress-bar-background-color);
     width: 100%;
   }
+
   to {
     background-color: white;
-    width: 100%;   
+    width: 100%;
   }
 }
 
 @keyframes progress-bar-inner-failed {
-  from {   
-    width: 100%;   
-  }    
-  80% {
-    background-color: var(--progress-bar-background-color-failure);    
+  from {
+    width: 100%;
   }
+
+  80% {
+    background-color: var(--progress-bar-background-color-failure);
+  }
+
   to {
     background-color: white;
-    width: 0%;   
+    width: 0%;
   }
 }
 

@@ -1,5 +1,6 @@
 (ns clj-ts.views.card-bar
   (:require [cljs.core.async :as a]
+            [clojure.string :as str]
             [reagent.core :as r]
             [clj-ts.http :as http]
             [clj-ts.navigation :as nav]
@@ -34,58 +35,65 @@
     (swap! state #(conj % {:toggle "block"}))
     (swap! state #(conj % {:toggle "none"}))))
 
+(defn- clear-input! [input-value]
+  (reset! input-value nil))
+
+(defn- on-clear-clicked [^Atom input-value]
+  (clear-input! input-value))
+
+(defn- on-navigate-clicked [db input-value hash]
+  (let [input-value (-> (or input-value "")
+                        (clojure.string/trim))]
+    (when (not (str/blank? input-value))
+      (<card-send-to-page! db (-> @db :current-page) hash input-value))))
+
+(defn send-elsewhere-input [db value hash]
+  [:div.send-elsewhere-input-container
+   [:input.send-elsewhere-input {:type        "text"
+                                 :placeholder "Send to another page"
+                                 :value       @value
+                                 :on-change   (fn [e] (reset! value (-> e .-target .-value)))}]
+   [:div.send-elsewhere-input-actions
+    (when (not (nil? @value))
+      [:button
+       {:on-click (fn [] (on-clear-clicked value))}
+       [:span {:class [:material-symbols-sharp :clickable]} "close"]])
+    (when (not (nil? @value))
+      [:div.input-separator])
+    [:button
+     {:on-click (fn [] (on-navigate-clicked db @value hash))}
+     [:span {:class [:material-symbols-sharp :clickable]} "navigate_next"]]]])
+
 (defn card-bar [db card]
-  (let [meta-id (str "cardmeta" (get card "hash"))
-        state (r/atom {:toggle "none"})
-        send-value (r/atom "")
-        toggle-fn! (fn [] (toggle! state))]
+  (let [state (r/atom {:toggle "none"})
+        input-value (r/atom nil)]
     (fn [db card]
-      [:div
-       [:div {:class :card-gutter}
-        [:div {:on-click (fn [] (<card-reorder!
-                                  db
-                                  (-> @db :current-page)
-                                  (get card "hash")
-                                  "up"))
-               :class    [:material-symbols-sharp :clickable]}
+      [:div.card-gutter
+       [:div.actions-container
+        [:div {:class    [:material-symbols-sharp :clickable]
+               :on-click (fn [] (<card-reorder! db (-> @db :current-page) (get card "hash") "up"))}
          "expand_less"]
-        [:div {:on-click (fn [] (<card-reorder!
-                                  db
-                                  (-> @db :current-page)
-                                  (get card "hash")
-                                  "down"))
-               :class    [:material-symbols-sharp :clickable]}
+        [:div {:class    [:material-symbols-sharp :clickable]
+               :on-click (fn [] (<card-reorder! db (-> @db :current-page) (get card "hash") "down"))}
          "expand_more"]
-        [:span {:class    :card-gutter-expansion-toggle
-                :on-click toggle-fn!}
+        [:span.expansion-toggle {:on-click (fn [] (toggle! state))}
          (if (= (-> @state :toggle) "none")
            [:span {:class [:material-symbols-sharp :clickable]} "expand_circle_down"]
            [:span {:class [:material-symbols-sharp :clickable]} "expand_circle_up"])]]
-       [:div {:id    meta-id
-              :class :card-bar
-              :style {:display (-> @state :toggle)}}
-        [:div [:h3 "Card Bar"]]
-        [:div
-         [:span "ID: " (get card "id")] " | Hash: "
-         [:span {:class "mini-button" :on-click (fn [] (clip-hash (-> @db :current-page)
-                                                                  (get card "hash")))}
-          "Hash: " (get card "hash")] " | Source type: "
-         [:span (get card "source_type")] " | Render type: "
-         [:span (get card "render_type")]]
-        [:hr]
-        [:div {:class :send-to-bar}
-         [:h4 "Send to Another Page"]
-         [:div {:class :send-to-inner}
-          [:input {:name "hash" :id "sendhash" :type "hidden" :value (get card "hash")}]
-          [:input {:name "from" :id "sendcurrent" :type "hidden" :value (-> @db :current-page)}]
-          [:input {:type      "text"
-                   :id        "sendto-inputbox"
-                   :value     @send-value
-                   :on-change #(reset! send-value (-> % .-target .-value))}]
-          [:button {:on-click
-                    (fn []
-                      (<card-send-to-page!
-                        db
-                        (-> @db :current-page)
-                        (get card "hash")
-                        @send-value))} "Send"]]]]])))
+       (when-not (= "none" (:toggle @state))
+         [:div.card-gutter-inner
+          [:div.details-container
+           [:div.details-pair
+            [:div.details-label "id:"]
+            [:div.details-value (get card "id")]]
+           [:div.details-pair.right
+            [:div.details-label "source:"]
+            [:div.details-value (get card "source_type")]]
+           [:div.details-pair
+            [:div.details-label "hash:"]
+            [:div.details-value.clickable {:on-click (fn [] (clip-hash (-> @db :current-page) (get card "hash")))}
+             (get card "hash")]]
+           [:div.details-pair.right
+            [:div.details-label "render:"]
+            [:div.details-value (get card "render_type")]]]
+          [send-elsewhere-input db input-value (get card "hash")]])])))
