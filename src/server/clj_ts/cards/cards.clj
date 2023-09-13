@@ -19,11 +19,13 @@
 ;; {:for-export false :user-authored? true}
 
 (defn- bookmark-card [data]
-  (let [{:keys [url timestamp]} (edn/read-string data)]
-    (str "
-Bookmarked " timestamp ": <" url ">
-
-")))
+  (let [{:keys [url timestamp title]} (edn/read-string data)
+        url (util/nonblank url "url missing")
+        title (util/nonblank title url)
+        timestamp' (if timestamp
+                     (format " \n\n_saved: %s_" timestamp)
+                     "")]
+    (format "\n[%s](%s)%s\n" title url timestamp')))
 
 ;; todo - why does process-card-map return a vector of 1 element?
 (defn process-card-map

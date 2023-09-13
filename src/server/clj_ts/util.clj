@@ -1,5 +1,6 @@
 (ns clj-ts.util
-  (:require [clojure.java.io :as io]
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]
             [ring.util.response :as resp]
             [sci.core :as sci])
   (:import (java.io PrintWriter StringWriter)
@@ -90,3 +91,8 @@
         (.putNextEntry zip (ZipEntry. (str f-relative-path)))
         (io/copy f zip)
         (.closeEntry zip)))))
+
+(defn nonblank [x & args]
+  (if (not (str/blank? x))
+    x
+    (some (fn [arg] (and (not (str/blank? arg)) arg)) args)))

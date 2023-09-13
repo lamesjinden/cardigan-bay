@@ -140,7 +140,9 @@
 (defn th [s] (tag "th" s))
 
 (defn double-comma-table [raw]
-  (loop [lines (string/split-lines raw) in-table false build []]
+  (loop [lines (string/split-lines raw)
+         in-table false
+         build []]
     (if (empty? lines)
       (if in-table
         (str (string/join "\n" build)
