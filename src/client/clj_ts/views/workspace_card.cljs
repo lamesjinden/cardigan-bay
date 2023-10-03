@@ -15,8 +15,7 @@
         result (sci/eval-string
                  code
                  {:bindings {'replace replace}
-                  :classes  {'js    goog/global
-                             :allow :all}})]
+                  :classes  {'js js/globalThis :allow :all}})]
     (swap! state #(conj % {:calc result :result result}))))
 
 (defn toggle-code! [state]
