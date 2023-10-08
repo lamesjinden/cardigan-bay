@@ -323,6 +323,17 @@
          "-----------------------------------------------------------------------------------------------"
          "\n")))
 
+(defn- print-server-options [server-options]
+  (println
+    (str "\n"
+         (when (:ip server-options) (str "IP:\t" (:ip server-options) "\n"))
+         (when (:port server-options) (str "Port:\t" (:port server-options) "\n"))
+         (when (:thread server-options) (str "Threads:\t" (:thread server-options) "\n"))
+         (when (:worker-name-prefix server-options) (str "Worker Prefix:\t" (:worker-name-prefix server-options) "\n"))
+         (when (:queue-size server-options) (str "Queue Size:\t" (:queue-size server-options) "\n"))
+         (when (:max-body server-options) (str "Max Body Size (bytes):\t" (:max-body server-options) "\n"))
+         (when (:max-line server-options) (str "Max Line Length:\t" (:max-line server-options) "\n")))))
+
 (defn initialize-state
   "initializes server state contained within an Atom and returns it"
   [settings]
@@ -341,9 +352,10 @@
 
 (defn -main [& args]
   (let [settings (gather-settings args)
-        server-opts (select-keys settings [:port])
+        server-opts (select-keys settings [:ip :port :thread :worker-name-prefix :queue-size :max-body :max-line])
         card-server (initialize-state settings)
         app (create-app card-server)]
+    (print-server-options server-opts)
     (run-server app server-opts)))
 
 ;; endregion
