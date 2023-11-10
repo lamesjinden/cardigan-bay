@@ -14,8 +14,9 @@
   (let [code (.getValue (:editor @state))
         result (sci/eval-string
                  code
-                 {:bindings {'replace replace}
-                  :classes  {'js js/globalThis :allow :all}})]
+                 {:classes  {'js js/globalThis :allow :all}
+                  :namespaces {'sci.core {'eval-string sci/eval-string}
+                               'cb {'get-element-by-id (fn [id] (js/document.getElementById id))}}})]
     (swap! state #(conj % {:calc result :result result}))))
 
 (defn toggle-code! [state]
@@ -149,7 +150,7 @@
                                       (with-out-str (pprint (str (-> @local-db :calc))))]])
 
                                   (when (:result-toggle @local-db)
-                                    [:div.result-section
+                                    [:div.result-section {:on-double-click (fn [e] (.stopPropagation e))}
                                      [:h4 "Result"]
                                      [:output
                                       (let [result (-> @local-db :result)]
