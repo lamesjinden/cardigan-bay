@@ -138,7 +138,8 @@
                                       [:button.big-btn {:on-click (fn [] (resize-editor! db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
                                     [:div.workspace-editor {:ref         (fn [element] (reset! !editor-element element))
-                                                            :on-key-down (fn [e] (workspace-editor-on-key-down db local-db e))}
+                                                            :on-key-down (fn [e] (workspace-editor-on-key-down db local-db e))
+                                                            :on-double-click (fn [e] (.stopPropagation e))}
                                      (str/trim (-> @local-db :code))]]]
 
                                   (when (:calc-toggle @local-db)
