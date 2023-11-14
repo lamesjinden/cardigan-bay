@@ -20,29 +20,29 @@
   (let [local-db (r/atom {:width   0
                           :opacity 0})]
     (a/go-loop [tasks {}]
-               (when-some [message (a/<! progress$)]
-                 (let [{:keys [id action]} message]
-                   (recur
-                     (condp = action
-                       :start (let [starting-completed 10]
-                                (swap! local-db assoc :opacity (->% 100) :width (->% starting-completed))
-                                (swap! local-db dissoc :completed? :failed?)
-                                (schedule-update id (inc starting-completed))
-                                {id starting-completed})
-                       :update (if-let [_current-completed (get tasks id)]
-                                 (let [{completed :completed} message
-                                       completed' (min completed 100)]
-                                   (swap! local-db assoc :width (->% completed'))
-                                   (schedule-update id (inc completed'))
-                                   {id completed'})
-                                 tasks)
-                       :end (do
-                              (swap! local-db assoc :completed? true)
-                              {})
-                       :fail (do
-                               (swap! local-db assoc :failed? true)
-                               {})
-                       tasks)))))
+      (when-some [message (a/<! progress$)]
+        (let [{:keys [id action]} message]
+          (recur
+           (condp = action
+             :start (let [starting-completed 10]
+                      (swap! local-db assoc :opacity (->% 100) :width (->% starting-completed))
+                      (swap! local-db dissoc :completed? :failed?)
+                      (schedule-update id (inc starting-completed))
+                      {id starting-completed})
+             :update (if-let [_current-completed (get tasks id)]
+                       (let [{completed :completed} message
+                             completed' (min completed 100)]
+                         (swap! local-db assoc :width (->% completed'))
+                         (schedule-update id (inc completed'))
+                         {id completed'})
+                       tasks)
+             :end (do
+                    (swap! local-db assoc :completed? true)
+                    {})
+             :fail (do
+                     (swap! local-db assoc :failed? true)
+                     {})
+             tasks)))))
 
     (fn [db progress$]
       (let [completed? (:completed? @local-db)

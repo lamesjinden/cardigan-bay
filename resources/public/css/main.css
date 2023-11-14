@@ -347,9 +347,9 @@ div textarea {
 }
 
 .send-elsewhere-input-container input {
-    width: 100%;
-    border: none;
-    outline: none;
+  width: 100%;
+  border: none;
+  outline: none;
 }
 
 .send-elsewhere-input-actions {
@@ -612,7 +612,7 @@ dialog::backdrop {
   outline: 2px solid #0000;
   position: relative;
   top: 0;
-  transition: width 100ms ease-in;
+  transition: width 1000ms ease-in;
 }
 
 .progress-bar-inner.completed {
