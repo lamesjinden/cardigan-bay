@@ -1,5 +1,6 @@
 (ns clj-ts.views.workspace-card
   (:require [clojure.string :as str]
+            [clojure.edn :as edn]
             [cljs.pprint :refer [pprint]]
             [reagent.core :as r]
             [sci.core :as sci]
@@ -10,13 +11,25 @@
             [clj-ts.theme :as theme]
             [clj-ts.view :refer [->display]]))
 
-(defn execute-code [state]
+(defn eval-string [s]
+  (try
+    (sci/eval-string
+      s
+      {:classes    {'js js/globalThis :allow :all}
+       :namespaces {'sci.core {'eval-string sci/eval-string}
+                    'cb       {'get-element-by-id (fn [id] (js/document.getElementById id))}}})
+    (catch :default e
+      (js/console.error e)
+      (pr-str s))))
+
+(defn eval-from-editor [state]
   (let [code (.getValue (:editor @state))
-        result (sci/eval-string
-                 code
-                 {:classes  {'js js/globalThis :allow :all}
-                  :namespaces {'sci.core {'eval-string sci/eval-string}
-                               'cb {'get-element-by-id (fn [id] (js/document.getElementById id))}}})]
+        result (eval-string code)]
+    (swap! state #(conj % {:calc result :result result}))))
+
+(defn eval-on-load [state]
+  (let [code (:code @state)
+        result (eval-string code)]
     (swap! state #(conj % {:calc result :result result}))))
 
 (defn toggle-code! [state]
@@ -90,19 +103,38 @@
   (when-let [editor (:editor @local-db)]
     (.destroy editor)))
 
+(defn ->card-configuration
+  "the card configuration is a map literal read from server_prepared_data.
+   if the first form is not a map, returns nil."
+  [server-prepared-data]
+  (try
+    (let [edn (-> server-prepared-data
+                  (str/trim)
+                  (edn/read-string))]
+      (when (map? edn)
+        edn))
+    (catch :default _e
+      nil)))
+
 (defn workspace [db card]
-  (let [local-db (r/atom {:code-toggle      true
-                          :calc-toggle      false
-                          :result-toggle    true
-                          :calc             []
-                          :result           ""
-                          :editor           nil
+  (let [server-prepared-data (get card "server_prepared_data")
+        card-configuration (or (->card-configuration server-prepared-data) {})
+        local-db (r/atom {:calc             []
+                          :calc-toggle      (get card-configuration :calc-visibility false)
+                          :code             server-prepared-data
                           :code-editor-size :small
-                          :code             (get card "server_prepared_data")
+                          :code-toggle      (get card-configuration :code-visibility true)
+                          :editor           nil
                           :hash             (get card "hash")
+                          :result           ""
+                          :result-toggle    (get card-configuration :result-visibility false)
                           :source_type      (get card "source_type")})
         !editor-element (clojure.core/atom nil)
         track-theme (r/track! (partial theme-tracker db local-db))]
+
+    (when (get card-configuration :eval-on-load)
+      (eval-on-load local-db))
+
     (reagent.core/create-class
       {:component-did-mount    (fn []
                                  (setup-editor db local-db !editor-element))
@@ -130,7 +162,7 @@
                                     [:div.code-section-header-container
                                      [:h4 "Source"]
                                      [:div.workspace-buttons
-                                      [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (execute-code local-db))}
+                                      [:button.big-btn.big-btn-left.lambda-button {:on-click (fn [] (eval-from-editor local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "λ"]]
                                       [:button.big-btn.big-btn-middle {:on-click (fn [] (on-save-clicked db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "save"]]
@@ -138,8 +170,8 @@
                                        [:span {:class [:material-symbols-sharp :clickable]} "format_align_justify"]]
                                       [:button.big-btn {:on-click (fn [] (resize-editor! db local-db))}
                                        [:span {:class [:material-symbols-sharp :clickable]} "expand"]]]]
-                                    [:div.workspace-editor {:ref         (fn [element] (reset! !editor-element element))
-                                                            :on-key-down (fn [e] (workspace-editor-on-key-down db local-db e))
+                                    [:div.workspace-editor {:ref             (fn [element] (reset! !editor-element element))
+                                                            :on-key-down     (fn [e] (workspace-editor-on-key-down db local-db e))
                                                             :on-double-click (fn [e] (.stopPropagation e))}
                                      (str/trim (-> @local-db :code))]]]
 
