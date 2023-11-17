@@ -13,11 +13,10 @@
 
 (defn eval-string [s]
   (try
-    (sci/eval-string
-      s
-      {:classes    {'js js/globalThis :allow :all}
-       :namespaces {'sci.core {'eval-string sci/eval-string}
-                    'cb       {'get-element-by-id (fn [id] (js/document.getElementById id))}}})
+    (let [opts {:classes    {'js js/globalThis :allow :all}
+                :namespaces {'sci.core {'eval-string sci/eval-string}
+                             'cb       {'get-element-by-id (fn [id] (js/document.getElementById id))}}}]
+      (sci/eval-string s opts))
     (catch :default e
       (js/console.error e)
       (pr-str s))))
@@ -136,6 +135,7 @@
       (eval-on-load local-db))
 
     (reagent.core/create-class
+
       {:component-did-mount    (fn []
                                  (setup-editor db local-db !editor-element))
        :component-will-unmount (fn []

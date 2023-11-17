@@ -72,7 +72,7 @@
             :on-aux-click (fn [e] (on-link-clicked db e true))}
            [:div.card-parent {:class (when (collapsed? local-db) :collapsed)}
             [:div.card-child.container
-             [component]]
+             component]
             [:div.card-child.overlay {:style {:display (->display (collapsed? local-db))}}]]]
           [card-bar db card]]
          [:div.editor-container

@@ -6,39 +6,53 @@
             [clj-ts.views.card-shell :refer [card-shell]]
             [clj-ts.views.workspace-card :refer [workspace]]))
 
+(defn error-boundary
+  [& children]
+  (let [err-state (r/atom nil)]
+    (r/create-class
+      {:display-name        "ErrorBoundary"
+       :component-did-catch (fn [err info]
+                              (reset! err-state [err info]))
+       :reagent-render      (fn [& children]
+                              (if (nil? @err-state)
+                                (into [:<>] children)
+                                (let [[_ info] @err-state]
+                                  [:pre.error-boundary
+                                   [:code (pr-str info)]])))})))
+
 (defn card->component [db card]
   (let [render-type (get card "render_type")
         data (get card "server_prepared_data")
         inner-component (condp = render-type
 
-                          "markdown" {:reagent-render      (fn [] (inner-html (view/card->html card)))
-                                      :component-did-mount highlight/highlight-all}
+                          "markdown"
+                          (r/create-class {:reagent-render      (fn [] (inner-html (view/card->html card)))
+                                           :component-did-mount highlight/highlight-all})
 
                           "manual-copy"
-                          {:reagent-render (fn [] (inner-html
-                                                    (str "<div class='manual-copy'>"
-                                                         (view/card->html card)
-                                                         "</div>")))}
+                          [inner-html
+                           (str "<div class='manual-copy'>"
+                                (view/card->html card)
+                                "</div>")]
 
                           "raw"
-                          {:reagent-render (fn [] (inner-html (str "<pre>" data "</pre>")))}
+                          [inner-html (str "<pre>" data "</pre>")]
 
                           "code"
-                          {:reagent-render (fn [] (inner-html (str "<code>" data "</code>")))}
+                          [inner-html (str "<code>" data "</code>")]
 
                           "workspace"
-                          {:reagent-render (fn [] [workspace db card])}
+                          [workspace db card]
 
                           "html"
-                          {:reagent-render      (fn [] (inner-html data))
-                           :component-did-mount highlight/highlight-all}
+                          (r/create-class {:reagent-render      (fn [] (inner-html data))
+                                           :component-did-mount highlight/highlight-all})
 
                           "hiccup"
-                          {:reagent-render (fn [] data)}
+                          [data]
 
-                          (str "UNKNOWN TYPE ( " render-type " ) " data))
-        class (r/create-class inner-component)]
-    class))
+                          (str "UNKNOWN TYPE ( " render-type " ) " data))]
+    inner-component))
 
 (defn error-card [exception]
   {"render_type"          "hiccup"
@@ -65,16 +79,24 @@
              (for [card (filter view/not-blank? cards)]
                [:div.user-card-list-item {:key (key-fn card)}
                 (try
-                  [card-shell db card (card->component db card)]
+                  [card-shell db card
+                   [error-boundary
+                    [card->component db card]]]
                   (catch :default e
                     (let [error-card (error-card e)]
-                      [card-shell db error-card (card->component db error-card)])))]))]
+                      [card-shell db error-card
+                       [error-boundary
+                        [card->component db error-card]]])))]))]
           [:div.system-card-list
            (try
              (let [system-cards @db-system-cards]
                (for [system-card system-cards]
                  [:div.system-card-list-item {:key (key-fn system-card)}
-                  [card-shell db system-card (card->component db system-card)]]))
+                  [card-shell db system-card
+                   [error-boundary
+                    [card->component db system-card]]]]))
              (catch :default e
                (let [error-card (error-card e)]
-                 [card-shell db error-card (card->component db error-card)])))]]))}))
+                 [card-shell db error-card
+                  [error-boundary
+                   [card->component db error-card]]])))]]))}))
